@@ -3,6 +3,7 @@ package com.minecade.minecraftmaker;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -13,6 +14,7 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerInteractEvent;
 
 import com.minecade.core.gamebase.MinigameArena;
+import com.minecade.core.gamebase.MinigameLocation;
 import com.minecade.core.gamebase.MinigamePlayer.Type;
 import com.minecade.serverweb.shared.constants.GameState;
 import com.sk89q.worldedit.event.platform.BlockInteractEvent;
@@ -134,8 +136,36 @@ public class MakerArena extends MinigameArena {
 		int x = event.getBlock().getX();
 		if(x < slot.getX() || x > 16*MAX_CHUNKS + slot.getX()) {
 			event.setCancelled(true);
+			return;
 		}
-
+		if(arenaType == ArenaType.CREATING) {
+			Block block = event.getBlock();
+			if(block.getType() == Material.BEACON) {
+				MakerRelativeLocation finish = arenaDef.getFinish();
+				if(finish != null) {
+					finish.getLocation(slot).getBlock().setType(Material.AIR);
+					int goldx = finish.getBlockX() - 1;
+					int goldy = finish.getBlockY() - 1;
+					int goldz = finish.getBlockZ() - 1;
+					for(int x1 = 0; x < 3; x++) {
+						for(int z1 = 0; z < 3; z++) {
+							Block gblock = new Location(((MakerBase)base).getArenaWorld(), x1 + goldx, goldy, z1 + goldz).getBlock();
+							gblock.setType(Material.STONE);
+						}
+					}
+				}
+				arenaDef.setFinish(new MakerRelativeLocation(block.getLocation(), slot));
+				int goldx = block.getX() - 1;
+				int goldy = block.getY() - 1;
+				int goldz = block.getZ() - 1;
+				for(int x1 = 0; x < 3; x++) {
+					for(int z1 = 0; z < 3; z++) {
+						Block gblock = new Location(((MakerBase)base).getArenaWorld(), x1 + goldx, goldy, z1 + goldz).getBlock();
+						gblock.setType(Material.GOLD_BLOCK);
+					}
+				}
+			}
+		}
 	}
 	
 	public void onBlockBreak(BlockBreakEvent event) {
@@ -148,6 +178,26 @@ public class MakerArena extends MinigameArena {
 		int x = event.getBlock().getX();
 		if(x < slot.getX() || x > 16*MAX_CHUNKS + slot.getX()) {
 			event.setCancelled(true);
+			return;
+		}
+		if(arenaType == ArenaType.CREATING) {
+			Block block = event.getBlock();
+			if(block.getType() == Material.BEACON) {
+				MakerRelativeLocation finish = arenaDef.getFinish();
+				if(finish != null && finish.getBlockX() == block.getX() && finish.getBlockY() == block.getY() &&
+						finish.getBlockZ() == block.getZ()) {
+					arenaDef.setFinish(null);
+					int goldx = block.getX() - 1;
+					int goldy = block.getY() - 1;
+					int goldz = block.getZ() - 1;
+					for(int x1 = 0; x < 3; x++) {
+						for(int z1 = 0; z < 3; z++) {
+							Block gblock = new Location(((MakerBase)base).getArenaWorld(), x1 + goldx, goldy, z1 + goldz).getBlock();
+							gblock.setType(Material.STONE);
+						}
+					}
+				}
+			}
 		}
 	}
 	

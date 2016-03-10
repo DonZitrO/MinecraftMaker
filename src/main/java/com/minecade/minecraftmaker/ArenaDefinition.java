@@ -11,8 +11,8 @@ public class ArenaDefinition {
 	private String name;
 	private int likes = 0;
 	private int dislikes = 0;
-	private MinigameLocation spawn = null;
-	private MinigameLocation finish = null;
+	private MakerRelativeLocation spawn = null;
+	private MakerRelativeLocation finish = null;
 	private boolean clearedByMaker = false;
 	
 	public ArenaDefinition(String author, UUID authorUUID, String name) {
@@ -81,19 +81,19 @@ public class ArenaDefinition {
 		return authorUUID;
 	}
 
-	public MinigameLocation getSpawn() {
+	public MakerRelativeLocation getSpawn() {
 		return spawn;
 	}
 
-	public void setSpawn(MinigameLocation spawn) {
+	public void setSpawn(MakerRelativeLocation spawn) {
 		this.spawn = spawn;
 	}
 
-	public MinigameLocation getFinish() {
+	public MakerRelativeLocation getFinish() {
 		return finish;
 	}
 
-	public void setFinish(MinigameLocation finish) {
+	public void setFinish(MakerRelativeLocation finish) {
 		this.finish = finish;
 	}
 
