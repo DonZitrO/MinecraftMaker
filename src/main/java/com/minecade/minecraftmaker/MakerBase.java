@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import com.minecade.core.MinecadeCore;
@@ -25,10 +26,15 @@ public class MakerBase extends MinigameBase {
 
 	private ReturnToLobbyItem lobbyItem;
 	private ServerBrowserItem serverBrowserItem;
+	
+	private World arenaWorld = null;
+	
+	private static MakerBase instance;
 
 	public MakerBase(MinecraftMaker plugin) {
 		super(plugin);
 		mplugin = plugin;
+		instance = this;
 		lobbyItem = new ReturnToLobbyItem();
 		lobbyItem.getBuilder().setTitle(getText("lobby.item.titleleave"));
 		lobbyItem.getBuilder().clearLore().addLore(getText("lobby.item.leave"));
@@ -37,6 +43,10 @@ public class MakerBase extends MinigameBase {
 		serverBrowserItem.getBuilder().setTitle(getText("lobby.item.serverbrowser"));
 		MinecadeCore.getActiveItemRegistry().registerItem(lobbyItem);
 		MinecadeCore.getActiveItemRegistry().registerItem(serverBrowserItem);
+	}
+	
+	public static MakerBase getMakerBase() {
+		return instance;
 	}
 
 	@Override
@@ -147,6 +157,14 @@ public class MakerBase extends MinigameBase {
 		}else {
 			return new SlotBoundaries(nextSlotID++);
 		}
+	}
+
+	public World getArenaWorld() {
+		return arenaWorld;
+	}
+
+	public void setArenaWorld(World arenaWorld) {
+		this.arenaWorld = arenaWorld;
 	}
 	
 	

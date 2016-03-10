@@ -13,6 +13,7 @@ public class ArenaDefinition {
 	private int dislikes = 0;
 	private MinigameLocation spawn = null;
 	private MinigameLocation finish = null;
+	private boolean clearedByMaker = false;
 	
 	public ArenaDefinition(String author, UUID authorUUID, String name) {
 		this.author = author;
@@ -26,6 +27,22 @@ public class ArenaDefinition {
 		this.name = name;
 		this.likes = likes;
 		this.dislikes = dislikes;
+	}
+	
+	public ArenaDefinition(String author, UUID authorUUID, String name, boolean cleared) {
+		this.author = author;
+		this.authorUUID = authorUUID;
+		this.name = name;
+		clearedByMaker = cleared;
+	}
+	
+	public ArenaDefinition(String author, UUID authorUUID, String name, boolean cleared, int likes, int dislikes) {
+		this.author = author;
+		this.authorUUID = authorUUID;
+		this.name = name;
+		this.likes = likes;
+		this.dislikes = dislikes;
+		clearedByMaker = cleared;
 	}
 
 	public String getAuthor() {
@@ -78,5 +95,13 @@ public class ArenaDefinition {
 
 	public void setFinish(MinigameLocation finish) {
 		this.finish = finish;
+	}
+
+	public boolean isClearedByMaker() {
+		return clearedByMaker;
+	}
+
+	public void setClearedByMaker(boolean clearedByMaker) {
+		this.clearedByMaker = clearedByMaker;
 	}
 }

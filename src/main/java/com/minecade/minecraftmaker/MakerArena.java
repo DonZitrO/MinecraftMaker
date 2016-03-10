@@ -1,13 +1,22 @@
 package com.minecade.minecraftmaker;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
+import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 import com.minecade.core.gamebase.MinigameArena;
 import com.minecade.core.gamebase.MinigamePlayer.Type;
 import com.minecade.serverweb.shared.constants.GameState;
+import com.sk89q.worldedit.event.platform.BlockInteractEvent;
+import com.sk89q.worldedit.event.platform.Interaction;
 
 public class MakerArena extends MinigameArena {
 	
@@ -16,11 +25,18 @@ public class MakerArena extends MinigameArena {
 		PLAYING;
 	}
 	
-	ArenaType arenaType = ArenaType.PLAYING;
-	ArenaDefinition arenaDef = null;
-	MakerSchematic schematic = null;
-	UUID id = UUID.randomUUID();
-	SlotBoundaries slot = null;
+	private ArenaType arenaType = ArenaType.PLAYING;
+	private ArenaDefinition arenaDef = null;
+	private MakerSchematic schematic = null;
+	private UUID id = UUID.randomUUID();
+	private SlotBoundaries slot = null;
+	
+	private MakerPlayer player = null;
+	private ArrayList<MakerPlayer> spectators = new ArrayList<MakerPlayer>();
+	
+	private int lives = 5;
+	
+	private static final int MAX_CHUNKS = 10;
 
 	/**
 	 * Use this method for a player who is just going to be creating a blank arena.
@@ -47,13 +63,26 @@ public class MakerArena extends MinigameArena {
 
 	@Override
 	public boolean addPlayer(Player player, Type type) {
-		// TODO Auto-generated method stub
+		if(type == Type.Player) {
+			if(this.player != null) {
+				return false;
+			}
+			this.player = (MakerPlayer) base.getMinigamePlayer(player);
+			return true;
+		}else {
+			//TODO: add in spectator support
+		}
 		return false;
 	}
 
 	@Override
 	public void removePlayer(Player player) {
-		// TODO Auto-generated method stub
+		if(player == this.player.getPlayer()) {
+			this.player = null;
+			endGame();
+		}else {
+			//TODO: spectator code
+		}
 	}
 
 	@Override
@@ -71,15 +100,77 @@ public class MakerArena extends MinigameArena {
 		}
 		return true;
 	}
+	
+	public void endGame() {
+		//TODO:
+	}
 
 	@Override
 	public boolean isArenaReady() {
-		return false;
+		return player != null && schematic != null && slot != null && arenaDef != null;
 	}
 
 	public void onEntityDamageEvent(EntityDamageEvent event) {
 		// TODO Auto-generated method stub
-		
+		if(event.getEntity() instanceof Player) {
+			if(event.getCause() == DamageCause.VOID) {
+				if(--lives < 1) {
+					endGame();
+				}else {
+					//Reset player
+					pasteSchematic();
+				}
+			}
+		}
+	}
+	
+	public void onBlockPlace(BlockPlaceEvent event) {
+		//Don't let them build outside of their arena
+		int z = event.getBlock().getZ();
+		if(z < slot.getZ() || z > slot.getZ() + 9) {
+			event.setCancelled(true);
+			return;
+		}
+		int x = event.getBlock().getX();
+		if(x < slot.getX() || x > 16*MAX_CHUNKS + slot.getX()) {
+			event.setCancelled(true);
+		}
+
+	}
+	
+	public void onBlockBreak(BlockBreakEvent event) {
+		//Don't let them break anything outside of their arena
+		int z = event.getBlock().getZ();
+		if(z < slot.getZ() || z > slot.getZ() + 9) {
+			event.setCancelled(true);
+			return;
+		}
+		int x = event.getBlock().getX();
+		if(x < slot.getX() || x > 16*MAX_CHUNKS + slot.getX()) {
+			event.setCancelled(true);
+		}
+	}
+	
+	public void onBlockInteract(PlayerInteractEvent event) {
+		Block block = event.getClickedBlock();
+		//Don't let them interact with anything outside of their arena
+		if(block != null) {
+			int z = block.getZ();
+			if(z < slot.getZ() || z > slot.getZ() + 9) {
+				event.setCancelled(true);
+				return;
+			}
+			int x = block.getX();
+			if(x < slot.getX() || x > 16*MAX_CHUNKS + slot.getX()) {
+				event.setCancelled(true);
+				return;
+			}
+		}
+		//Let's not let a player pull stuff out of a dispenser or hopper
+		if(block != null && (block.getType() == Material.DISPENSER || block.getType() == Material.HOPPER) 
+				&& arenaType == ArenaType.PLAYING) {
+			event.setCancelled(true);
+		}
 	}
 	
 	public void setArenaSchematic(MakerSchematic schematic) {
@@ -94,6 +185,10 @@ public class MakerArena extends MinigameArena {
 		schematic.pasteSchematic(slot);
 	}
 	
+	public void arenaPasted() {
+		//TODO:
+	}
+	
 	public UUID getUniqueID() {
 		return id;
 	}
@@ -106,4 +201,11 @@ public class MakerArena extends MinigameArena {
 		return slot;
 	}
 
+	public int getLives() {
+		return lives;
+	}
+
+	public void setLives(int lives) {
+		this.lives = lives;
+	}
 }
