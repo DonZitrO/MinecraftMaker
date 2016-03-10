@@ -112,4 +112,7 @@ public class MakerBase extends MinigameBase {
 		return serverBrowserItem;
 	}
 
+	public void loadArenaSchematic(MakerArena makerArena, ArenaDefinition arenaDef) {
+		
+	}
 }

@@ -16,6 +16,7 @@ public class MakerArena extends MinigameArena {
 	
 	ArenaType arenaType = ArenaType.PLAYING;
 	ArenaDefinition arenaDef = null;
+	MakerSchematic schematic = null;
 
 	/**
 	 * Use this method for a player who is just going to be creating a blank arena.
@@ -49,19 +50,18 @@ public class MakerArena extends MinigameArena {
 	@Override
 	public void removePlayer(Player player) {
 		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void setStatus(GameState status) {
-		// TODO Auto-generated method stub
-
+		this.status = status;
 	}
 
 	@Override
 	public boolean startGame() {
+		setStatus(GameState.IN_GAME);
 		if(arenaType == ArenaType.PLAYING) {
-			
+			((MakerBase)base).loadArenaSchematic(this, arenaDef);
 		}else if(arenaType == ArenaType.CREATING) {
 			
 		}
@@ -75,6 +75,14 @@ public class MakerArena extends MinigameArena {
 
 	public void onEntityDamageEvent(EntityDamageEvent event) {
 		// TODO Auto-generated method stub
+		
+	}
+	
+	public void setArenaSchematic(MakerSchematic schematic) {
+		
+	}
+	
+	public void pasteSchematic() {
 		
 	}
 
