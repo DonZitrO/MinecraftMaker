@@ -79,11 +79,15 @@ public class MakerArena extends MinigameArena {
 	}
 	
 	public void setArenaSchematic(MakerSchematic schematic) {
-		
+		this.schematic = schematic;
+		if(getStatus() == GameState.IN_GAME) {
+			pasteSchematic();
+			//TODO: Let's get the player set up to play the game!
+		}
 	}
 	
 	public void pasteSchematic() {
-		
+		schematic.pasteSchematic();
 	}
 
 }
