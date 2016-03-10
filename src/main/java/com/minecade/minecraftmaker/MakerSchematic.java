@@ -8,7 +8,7 @@ public class MakerSchematic {
 	 * @return
 	 */
 	//TODO: Probably add bounding start corner
-	public boolean pasteSchematic() {
+	public boolean pasteSchematic(SlotBoundaries slot) {
 		//TODO: actually paste and return true on success, false on failure.
 		return true;
 	}

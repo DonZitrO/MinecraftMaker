@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker;
 
+import java.util.UUID;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
 
@@ -17,6 +19,8 @@ public class MakerArena extends MinigameArena {
 	ArenaType arenaType = ArenaType.PLAYING;
 	ArenaDefinition arenaDef = null;
 	MakerSchematic schematic = null;
+	UUID id = UUID.randomUUID();
+	SlotBoundaries slot = null;
 
 	/**
 	 * Use this method for a player who is just going to be creating a blank arena.
@@ -87,7 +91,19 @@ public class MakerArena extends MinigameArena {
 	}
 	
 	public void pasteSchematic() {
-		schematic.pasteSchematic();
+		schematic.pasteSchematic(slot);
+	}
+	
+	public UUID getUniqueID() {
+		return id;
+	}
+	
+	public void setSlot(SlotBoundaries slot) {
+		this.slot = slot;
+	}
+	
+	public SlotBoundaries getSlot() {
+		return slot;
 	}
 
 }

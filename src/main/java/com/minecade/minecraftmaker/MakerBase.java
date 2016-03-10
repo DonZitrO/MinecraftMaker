@@ -1,5 +1,6 @@
 package com.minecade.minecraftmaker;
 
+import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,6 +18,10 @@ public class MakerBase extends MinigameBase {
 	
 	MinecraftMaker mplugin;
 	ConcurrentHashMap<UUID, ConcurrentHashMap<String, ArenaDefinition>> maps = new ConcurrentHashMap<UUID, ConcurrentHashMap<String, ArenaDefinition>>();
+	ConcurrentHashMap<UUID, MakerArena> runningArenas = new ConcurrentHashMap<UUID, MakerArena>();
+	
+	ArrayList<SlotBoundaries> openSlots = new ArrayList<SlotBoundaries>();
+	int nextSlotID = 0;
 
 	private ReturnToLobbyItem lobbyItem;
 	private ServerBrowserItem serverBrowserItem;
@@ -115,4 +120,34 @@ public class MakerBase extends MinigameBase {
 	public void loadArenaSchematic(MakerArena makerArena, ArenaDefinition arenaDef) {
 		
 	}
+	
+	public void addRunningArena(MakerArena arena) {
+		runningArenas.put(arena.getUniqueID(), arena);
+	}
+	
+	public void removeArena(MakerArena arena) {
+		runningArenas.remove(arena.getUniqueID());
+		if(arena.getSlot() != null) 
+			openSlots.add(arena.getSlot());
+	}
+	
+	public MakerArena getArena(UUID id) {
+		return runningArenas.get(id);
+	}
+	
+	/**
+	 * Gets the next open slot, removing it from the list
+	 * of available slots. This function dynamically
+	 * generates more slots as needed.
+	 * @return
+	 */
+	public SlotBoundaries getOpenSlot() {
+		if(openSlots.size() > 0) {
+			return openSlots.remove(0);
+		}else {
+			return new SlotBoundaries(nextSlotID++);
+		}
+	}
+	
+	
 }
