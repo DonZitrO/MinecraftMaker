@@ -14,11 +14,8 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerInteractEvent;
 
 import com.minecade.core.gamebase.MinigameArena;
-import com.minecade.core.gamebase.MinigameLocation;
 import com.minecade.core.gamebase.MinigamePlayer.Type;
 import com.minecade.serverweb.shared.constants.GameState;
-import com.sk89q.worldedit.event.platform.BlockInteractEvent;
-import com.sk89q.worldedit.event.platform.Interaction;
 
 public class MakerArena extends MinigameArena {
 	
@@ -37,6 +34,8 @@ public class MakerArena extends MinigameArena {
 	private ArrayList<MakerPlayer> spectators = new ArrayList<MakerPlayer>();
 	
 	private int lives = 5;
+	
+	private int arenaWidth = 7;
 	
 	private static final int MAX_CHUNKS = 10;
 
@@ -129,7 +128,7 @@ public class MakerArena extends MinigameArena {
 	public void onBlockPlace(BlockPlaceEvent event) {
 		//Don't let them build outside of their arena
 		int z = event.getBlock().getZ();
-		if(z < slot.getZ() || z > slot.getZ() + 9) {
+		if(z < slot.getZ() + 1 || z > slot.getZ() + arenaWidth) {
 			event.setCancelled(true);
 			return;
 		}
@@ -141,6 +140,11 @@ public class MakerArena extends MinigameArena {
 		if(arenaType == ArenaType.CREATING) {
 			Block block = event.getBlock();
 			if(block.getType() == Material.BEACON) {
+				if(z < slot.getZ() + 2 || z > slot.getZ() + arenaWidth - 1) {
+					event.setCancelled(true);
+					event.getPlayer().sendMessage(base.getText("arena.beacon.tooclose"));
+					return;
+				}
 				MakerRelativeLocation finish = arenaDef.getFinish();
 				if(finish != null) {
 					finish.getLocation(slot).getBlock().setType(Material.AIR);
@@ -171,7 +175,7 @@ public class MakerArena extends MinigameArena {
 	public void onBlockBreak(BlockBreakEvent event) {
 		//Don't let them break anything outside of their arena
 		int z = event.getBlock().getZ();
-		if(z < slot.getZ() || z > slot.getZ() + 9) {
+		if(z < slot.getZ() + 1 || z > slot.getZ() + arenaWidth) {
 			event.setCancelled(true);
 			return;
 		}
@@ -206,7 +210,7 @@ public class MakerArena extends MinigameArena {
 		//Don't let them interact with anything outside of their arena
 		if(block != null) {
 			int z = block.getZ();
-			if(z < slot.getZ() || z > slot.getZ() + 9) {
+			if(z < slot.getZ() + 1 || z > slot.getZ() + arenaWidth) {
 				event.setCancelled(true);
 				return;
 			}

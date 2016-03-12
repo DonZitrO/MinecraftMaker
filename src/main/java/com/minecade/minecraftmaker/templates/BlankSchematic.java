@@ -19,13 +19,15 @@ public class BlankSchematic implements MakerSchematic {
 	 * The height in blocks
 	 */
 	private int height = 64;
+	
+	private int width = 7;
 
 	@Override
 	public boolean pasteSchematic(SlotBoundaries slot) {
 		World arenaWorld = MakerBase.getMakerBase().getArenaWorld();
 		//Construct the back and end walls
 		for(int y = 0; y < height + 1; y++) {
-			for(int z = 0; z < 9; z++) {
+			for(int z = 0; z < width + 2; z++) {
 				Location loc = new Location(arenaWorld, slot.getX(), y, z + slot.getZ());
 				Block block = loc.getBlock();
 				block.setType(Material.BARRIER);
@@ -40,14 +42,14 @@ public class BlankSchematic implements MakerSchematic {
 				Location loc = new Location(arenaWorld, x + slot.getX(), y, slot.getZ());
 				Block block = loc.getBlock();
 				block.setType(Material.BARRIER);
-				loc = new Location(arenaWorld, x + slot.getX(), y, slot.getZ() + 8);
+				loc = new Location(arenaWorld, x + slot.getX(), y, slot.getZ() + width + 1);
 				block = loc.getBlock();
 				block.setType(Material.BARRIER);
 			}
 		}
 		//Construct the ceiling
 		for(int x = 0; x < 16*length; x++) {
-			for(int z = 0; z < 9; z++) {
+			for(int z = 0; z < width + 2; z++) {
 				Location loc = new Location(arenaWorld, x + slot.getX(), height + 1, z + slot.getZ());
 				Block block = loc.getBlock();
 				block.setType(Material.BARRIER);
