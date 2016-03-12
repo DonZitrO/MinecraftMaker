@@ -19,11 +19,14 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.7</java.version>
+		<!-- Dependencies -->
 		<spigot.version>1.9-R0.1-SNAPSHOT</spigot.version>
 		<minecade.core.version>1.3.3.4</minecade.core.version>
 		<effectlib.version>3.8</effectlib.version>
-		<junit.version>3.8.1</junit.version>
 		<worldedit.version>6.1</worldedit.version>
+		<!-- Test dependencies -->
+		<junit.version>3.8.1</junit.version>
+		<!-- Maven plugins dependencies TODO -->
 	</properties>
 
 	<repositories>
