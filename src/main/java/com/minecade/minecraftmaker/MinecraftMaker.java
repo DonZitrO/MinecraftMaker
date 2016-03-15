@@ -10,15 +10,21 @@ import com.minecade.core.serverbrowser.packets.GameStateUpdatePacket;
 import com.minecade.core.serverbrowser.packets.PlayerCountUpdatePacket;
 import com.minecade.core.serverweb.NodeDataFactory;
 import com.minecade.serverweb.shared.constants.GameState;
+import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
+import com.minecade.minecraftmaker.controller.MakerController;
 
 public class MinecraftMaker extends JavaPlugin {
 	
 	MakerBase base;
 	int maxPlayers = 32;
 
+	private MakerController controller;
+
 	@Override
 	public void onDisable() {
-		
+		if (controller != null) {
+			controller.disable();
+		}
 	}
 
 	@Override
@@ -47,6 +53,15 @@ public class MinecraftMaker extends JavaPlugin {
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvents(new MinigameBasicListener(base), this);
 		pm.registerEvents(new MakerListener(base), this);
+		// register commands
+		getCommand("level").setExecutor(new LevelCommandExecutor());
+		// instantiate and init main controller
+		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
+		controller.enable();
+	}
+
+	public MakerController getController() {
+		return controller;
 	}
 
 }

@@ -1,0 +1,10 @@
+name: SuperMinecraftMaker
+main: com.minecade.minecraftmaker.MinecraftMaker
+version: '${project.version}'
+authors: [SethBling, tux2, DonZitrO]
+load: startup
+commands:
+  level:
+    description: Used by devs to manipulate levels
+    usage: 'Usage: /level <create|save|load> <level-name> <chunk-location>'
+    permission-message: '§4Only console and ops are allowed to use this command!'

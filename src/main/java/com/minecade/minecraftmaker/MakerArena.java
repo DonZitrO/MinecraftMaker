@@ -17,9 +17,10 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import com.minecade.core.gamebase.MinigameArena;
 import com.minecade.core.gamebase.MinigamePlayer.Type;
 import com.minecade.core.item.Loadout;
+import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.serverweb.shared.constants.GameState;
 
-public class MakerArena extends MinigameArena {
+public class MakerArena extends MinigameArena implements Tickable {
 	
 	enum ArenaType {
 		CREATING,
@@ -279,4 +280,37 @@ public class MakerArena extends MinigameArena {
 	public void setLives(int lives) {
 		this.lives = lives;
 	}
+
+	private long currentTick;
+	private boolean enabled = true;
+
+	@Override
+	public void disable() {
+		if (!enabled) {
+			return;
+		}
+		// TODO: disable logic
+		enabled = false;
+	}
+
+	@Override
+	public void enable() {
+		throw new UnsupportedOperationException("An Arena is enabled by default");
+	}
+
+	@Override
+	public long getCurrentTick() {
+		return currentTick;
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	@Override
+	public void tick(long currentTick) {
+		this.currentTick = currentTick;
+	}
+
 }
