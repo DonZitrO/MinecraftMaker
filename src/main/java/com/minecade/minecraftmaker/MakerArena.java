@@ -3,6 +3,7 @@ package com.minecade.minecraftmaker;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -15,6 +16,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 
 import com.minecade.core.gamebase.MinigameArena;
 import com.minecade.core.gamebase.MinigamePlayer.Type;
+import com.minecade.core.item.Loadout;
 import com.minecade.serverweb.shared.constants.GameState;
 
 public class MakerArena extends MinigameArena {
@@ -38,6 +40,8 @@ public class MakerArena extends MinigameArena {
 	private int arenaWidth = 7;
 	
 	private static final int MAX_CHUNKS = 10;
+	
+	private Loadout arenaLoadout = new Loadout();
 
 	/**
 	 * Use this method for a player who is just going to be creating a blank arena.
@@ -115,11 +119,15 @@ public class MakerArena extends MinigameArena {
 		// TODO Auto-generated method stub
 		if(event.getEntity() instanceof Player) {
 			if(event.getCause() == DamageCause.VOID) {
-				if(--lives < 1) {
-					endGame();
+				if(arenaType == ArenaType.PLAYING) {
+					if(--lives < 1) {
+						endGame();
+					}else {
+						//Reset player
+						pasteSchematic();
+					}
 				}else {
-					//Reset player
-					pasteSchematic();
+					//TODO: return to default spawn point
 				}
 			}
 		}
@@ -241,6 +249,15 @@ public class MakerArena extends MinigameArena {
 	
 	public void arenaPasted() {
 		//TODO:
+		if(arenaType == ArenaType.PLAYING) {
+			Player bukkitPlayer = player.getPlayer();
+			bukkitPlayer.teleport(arenaDef.getSpawn().getLocation(slot));
+			bukkitPlayer.setGameMode(GameMode.ADVENTURE);
+			bukkitPlayer.getInventory().clear();
+			arenaLoadout.equip(bukkitPlayer);
+		}else {
+			//TODO: Not sure?
+		}
 	}
 	
 	public UUID getUniqueID() {
