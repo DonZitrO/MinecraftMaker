@@ -46,6 +46,7 @@ public class MinecraftMaker extends JavaPlugin {
 		}, 10*20, 10*20);
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvents(new MinigameBasicListener(base), this);
+		pm.registerEvents(new MakerListener(base), this);
 	}
 
 }

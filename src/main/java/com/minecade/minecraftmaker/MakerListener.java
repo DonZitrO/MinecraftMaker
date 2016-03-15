@@ -1,15 +1,19 @@
 package com.minecade.minecraftmaker;
 
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
@@ -83,4 +87,34 @@ public class MakerListener implements Listener {
 		}
 	}
 
+	@EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
+	public void onBlockPlace(BlockPlaceEvent event) {
+		Player player = event.getPlayer();
+		MakerPlayer mPlayer = (MakerPlayer) base.getMinigamePlayer(player);
+		if(mPlayer.getArena() != null) {
+			mPlayer.getArena().onBlockPlace(event);
+		}
+		
+	}
+
+	@EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
+	public void onBlockBreak(BlockBreakEvent event) {
+		Player player = event.getPlayer();
+		MakerPlayer mPlayer = (MakerPlayer) base.getMinigamePlayer(player);
+		if(mPlayer.getArena() != null) {
+			mPlayer.getArena().onBlockBreak(event);
+		}
+		
+	}
+
+	@EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled=true)
+	public void onBlockInteract(PlayerInteractEvent event) {
+		if(event.getClickedBlock() != null && event.getClickedBlock().getType() != Material.AIR) {
+			Player player = event.getPlayer();
+			MakerPlayer mPlayer = (MakerPlayer) base.getMinigamePlayer(player);
+			if(mPlayer.getArena() != null) {
+				mPlayer.getArena().onBlockInteract(event);
+			}
+		}
+	}
 }
