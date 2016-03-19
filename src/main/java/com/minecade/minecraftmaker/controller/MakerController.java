@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -15,6 +16,7 @@ import org.bukkit.scheduler.BukkitTask;
 import com.minecade.minecraftmaker.MakerArena;
 import com.minecade.minecraftmaker.MakerPlayer;
 import com.minecade.minecraftmaker.MinecraftMaker;
+import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
 
@@ -25,6 +27,8 @@ public class MakerController implements Runnable, Tickable {
 	private final MinecraftMaker plugin;
 
 	private BukkitTask globalTickerTask;
+	private String mainWorldName;
+	private World mainWorld;
 
 	private long currentTick;
 	private boolean enabled;
@@ -37,7 +41,8 @@ public class MakerController implements Runnable, Tickable {
 
 	public MakerController(MinecraftMaker plugin, ConfigurationSection config) {
 		this.plugin = plugin;
-		maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
+		this.mainWorldName = config != null ? config.getString("main-world", "world") : "world";
+		this.maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
 	}
 
 	@Override
@@ -70,6 +75,13 @@ public class MakerController implements Runnable, Tickable {
 	@Override
 	public long getCurrentTick() {
 		return currentTick;
+	}
+
+	public World getMainWorld() {
+		if (this.mainWorld == null) {
+			this.mainWorld = Bukkit.getWorld(this.mainWorldName);
+		}
+		return this.mainWorld;
 	}
 
 	public MakerArena getArena(UUID arenaId) {
@@ -109,6 +121,11 @@ public class MakerController implements Runnable, Tickable {
 	@Override
 	public boolean isEnabled() {
 		return enabled;
+	}
+
+	public void createEmptyLevel(String string, int chunkZ) {
+		// TODO register level on slot
+		LevelUtils.placeEmptyLevel(getMainWorld(), chunkZ);
 	}
 
 }

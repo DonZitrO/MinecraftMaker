@@ -54,7 +54,7 @@ public class MinecraftMaker extends JavaPlugin {
 		pm.registerEvents(new MinigameBasicListener(base), this);
 		pm.registerEvents(new MakerListener(base), this);
 		// register commands
-		getCommand("level").setExecutor(new LevelCommandExecutor());
+		getCommand("level").setExecutor(new LevelCommandExecutor(this));
 		// instantiate and init main controller
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
 		controller.enable();
