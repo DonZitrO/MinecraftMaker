@@ -25,6 +25,7 @@ public class MinecraftMaker extends JavaPlugin {
 		if (controller != null) {
 			controller.disable();
 		}
+		this.getServer().getScheduler().cancelTasks(this);
 	}
 
 	@Override

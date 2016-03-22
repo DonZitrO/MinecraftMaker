@@ -1,4 +1,4 @@
-package com.minecade.minecraftmaker.schematic.function;
+package com.minecade.minecraftmaker.schematic.function.mask;
 
 import com.minecade.minecraftmaker.schematic.world.Vector2D;
 
