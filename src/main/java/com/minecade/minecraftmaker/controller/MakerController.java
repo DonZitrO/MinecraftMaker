@@ -16,19 +16,32 @@ import org.bukkit.scheduler.BukkitTask;
 import com.minecade.minecraftmaker.MakerArena;
 import com.minecade.minecraftmaker.MakerPlayer;
 import com.minecade.minecraftmaker.MinecraftMaker;
+import com.minecade.minecraftmaker.bukkit.BukkitUtil;
+import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.function.mask.ExistingBlockMask;
+import com.minecade.minecraftmaker.schematic.function.operation.ForwardExtentCopy;
+import com.minecade.minecraftmaker.schematic.io.Clipboard;
+import com.minecade.minecraftmaker.schematic.transform.Identity;
+import com.minecade.minecraftmaker.schematic.transform.Transform;
+import com.minecade.minecraftmaker.schematic.world.BlockTransformExtent;
+import com.minecade.minecraftmaker.schematic.world.MakerExtent;
+import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
 
+
 public class MakerController implements Runnable, Tickable {
 
 	private static final int DEFAULT_MAX_PLAYERS = 40;
+	private static final Transform IDENTITY_TRANSFORM = new Identity();
 
 	private final MinecraftMaker plugin;
 
 	private BukkitTask globalTickerTask;
 	private String mainWorldName;
 	private World mainWorld;
+	private MakerExtent destinationExtent;
 
 	private long currentTick;
 	private boolean enabled;
@@ -77,6 +90,13 @@ public class MakerController implements Runnable, Tickable {
 		return currentTick;
 	}
 
+	public MakerExtent getDestinationExtent() {
+		if (this.destinationExtent == null) {
+			this.destinationExtent = new MakerExtent(BukkitUtil.toWorld(getMainWorld()));
+		}
+		return this.destinationExtent;
+	}
+
 	public World getMainWorld() {
 		if (this.mainWorld == null) {
 			this.mainWorld = Bukkit.getWorld(this.mainWorldName);
@@ -123,9 +143,25 @@ public class MakerController implements Runnable, Tickable {
 		return enabled;
 	}
 
-	public void createEmptyLevel(String string, int chunkZ) {
+	public void createEmptyLevel(String string, short chunkZ) {
 		// TODO register level on slot
-		LevelUtils.placeEmptyLevel(getMainWorld(), chunkZ);
+		try {
+			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), (short) chunkZ);
+			Region region = clipboard.getRegion();
+			com.minecade.minecraftmaker.schematic.world.World world = region.getWorld();
+			com.minecade.minecraftmaker.schematic.world.WorldData worldData = world.getWorldData();
+			BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
+			ForwardExtentCopy copy = new ForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getDestinationExtent(), clipboard.getOrigin());
+			copy.setTransform(IDENTITY_TRANSFORM);
+			boolean ignoreAirBlocks = false;
+			if (ignoreAirBlocks) {
+				copy.setSourceMask(new ExistingBlockMask(clipboard));
+			}
+			plugin.getBuilderTask().offer(copy);
+		} catch (MinecraftMakerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 }

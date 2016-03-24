@@ -55,6 +55,12 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.spigotmc</groupId>
+			<artifactId>spigot</artifactId>
+			<version>${spigot.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
 			<groupId>com.minecade</groupId>
 			<artifactId>core</artifactId>
 			<version>${minecade.core.version}</version>
@@ -91,6 +97,7 @@
 				<directory>src/main/resources</directory>
 				<filtering>false</filtering>
 				<includes>
+					<include>**/*.json</include>
 					<include>*.properties</include>
 				</includes>
 			</resource>

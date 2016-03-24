@@ -65,7 +65,7 @@ public class PausableOperationQueue implements Operation {
 
 	@Override
 	public Operation resume(RunContext run) throws MinecraftMakerException {
-		if ((run instanceof PausableRunContext)) {
+		if (!(run instanceof PausableRunContext)) {
 			throw new IllegalArgumentException("This operation is meant to run in a PausableRunContext");
 		}
 		if (!run.shouldContinue()) {

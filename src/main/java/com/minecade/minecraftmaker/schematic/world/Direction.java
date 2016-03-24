@@ -1,7 +1,5 @@
 package com.minecade.minecraftmaker.schematic.world;
 
-import com.sk89q.worldedit.Vector;
-
 import javax.annotation.Nullable;
 
 /**

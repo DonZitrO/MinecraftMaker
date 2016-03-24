@@ -48,7 +48,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 				sender.sendMessage(command.getUsage());
 				return true;
 			}
-			plugin.getController().createEmptyLevel(args[1], Integer.parseInt(args[2]));
+			plugin.getController().createEmptyLevel(args[1], Short.parseShort(args[2]));
 			return true;
 		}
 		return false;
@@ -56,7 +56,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 
 	private boolean isValidChunkCoordinate(String chunkCoordinate) {
 		try {
-			Validate.inclusiveBetween(MIN_CHUNK_COORDINATE, MAX_CHUNK_COORDINATE, Integer.parseInt(chunkCoordinate));
+			Validate.inclusiveBetween(MIN_CHUNK_COORDINATE, MAX_CHUNK_COORDINATE, Short.parseShort(chunkCoordinate));
 		} catch (Exception e) {
 			Bukkit.getLogger().warning(String.format("LevelCommandExecutor.isValidChunkCoordinate - invalid chunk coordinate: [%s] - %s", chunkCoordinate, e.getMessage()));
 			return false;
