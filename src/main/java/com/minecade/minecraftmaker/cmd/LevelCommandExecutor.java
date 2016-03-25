@@ -43,15 +43,23 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 			sender.sendMessage(command.getUsage());
 			return true;
 		}
+		if (!isValidLevelName(args[1]) || !isValidChunkCoordinate(args[2])) {
+			sender.sendMessage(command.getUsage());
+			return true;
+		}
 		if (args[0].equalsIgnoreCase("create")) {
-			if (!isValidLevelName(args[1]) || !isValidChunkCoordinate(args[2])) {
-				sender.sendMessage(command.getUsage());
-				return true;
-			}
 			plugin.getController().createEmptyLevel(args[1], Short.parseShort(args[2]));
 			return true;
 		}
-		return false;
+		if (args[0].equalsIgnoreCase("load")) {
+			plugin.getController().loadLevel(args[1], Short.parseShort(args[2]));
+			return true;
+		}
+		if (args[0].equalsIgnoreCase("save")) {
+			plugin.getController().saveLevel(args[1], Short.parseShort(args[2]));
+			return true;
+		}
+		return true;
 	}
 
 	private boolean isValidChunkCoordinate(String chunkCoordinate) {

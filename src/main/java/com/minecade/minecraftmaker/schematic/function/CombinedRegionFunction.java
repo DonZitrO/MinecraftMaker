@@ -7,6 +7,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import org.bukkit.Bukkit;
+
+import com.minecade.minecraftmaker.MinecraftMaker;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.world.Vector;
 
@@ -67,11 +70,19 @@ public class CombinedRegionFunction implements RegionFunction {
 
 	@Override
 	public boolean apply(Vector position) throws MinecraftMakerException {
+		long startNanoTime = 0;
+		if (MinecraftMaker.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | CombinedRegionFunction.apply - position: [%s]", position));
+			startNanoTime = System.nanoTime();
+		}
 		boolean ret = false;
 		for (RegionFunction function : functions) {
 			if (function.apply(position)) {
 				ret = true;
 			}
+		}
+		if (MinecraftMaker.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | CombinedRegionFunction.apply - took: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		}
 		return ret;
 	}

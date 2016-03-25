@@ -9,14 +9,14 @@ import com.minecade.minecraftmaker.MinecraftMaker;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.function.operation.LimitedTimeRunContext;
 import com.minecade.minecraftmaker.schematic.function.operation.Operation;
-import com.minecade.minecraftmaker.schematic.function.operation.PausableOperationQueue;
+import com.minecade.minecraftmaker.schematic.function.operation.ResumableOperationQueue;
 
 public class MakerBuilderTask extends BukkitRunnable {
 
-	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 5000000; // 5ms
+	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 5000000; // 5ms to build per tick
 
 	private final MinecraftMaker plugin;
-	private final PausableOperationQueue operationQueue = new PausableOperationQueue();
+	private final ResumableOperationQueue operationQueue = new ResumableOperationQueue();
 
 	public MakerBuilderTask(MinecraftMaker plugin) {
 		this.plugin = plugin;

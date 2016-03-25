@@ -1,5 +1,9 @@
 package com.minecade.minecraftmaker.controller;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -17,19 +21,26 @@ import com.minecade.minecraftmaker.MakerArena;
 import com.minecade.minecraftmaker.MakerPlayer;
 import com.minecade.minecraftmaker.MinecraftMaker;
 import com.minecade.minecraftmaker.bukkit.BukkitUtil;
+import com.minecade.minecraftmaker.schematic.exception.FilenameException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.function.mask.ExistingBlockMask;
-import com.minecade.minecraftmaker.schematic.function.operation.ForwardExtentCopy;
+import com.minecade.minecraftmaker.schematic.function.operation.PausableForwardExtentCopy;
+import com.minecade.minecraftmaker.schematic.function.operation.ResumableOperationQueue;
+import com.minecade.minecraftmaker.schematic.function.operation.SchematicWriteOperation;
+import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
+import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
+import com.minecade.minecraftmaker.schematic.io.ClipboardReader;
 import com.minecade.minecraftmaker.schematic.transform.Identity;
 import com.minecade.minecraftmaker.schematic.transform.Transform;
 import com.minecade.minecraftmaker.schematic.world.BlockTransformExtent;
 import com.minecade.minecraftmaker.schematic.world.MakerExtent;
 import com.minecade.minecraftmaker.schematic.world.Region;
+import com.minecade.minecraftmaker.schematic.world.WorldData;
+import com.minecade.minecraftmaker.util.FileUtils;
 import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
-
 
 public class MakerController implements Runnable, Tickable {
 
@@ -41,7 +52,7 @@ public class MakerController implements Runnable, Tickable {
 	private BukkitTask globalTickerTask;
 	private String mainWorldName;
 	private World mainWorld;
-	private MakerExtent destinationExtent;
+	private MakerExtent makerExtent;
 
 	private long currentTick;
 	private boolean enabled;
@@ -90,11 +101,11 @@ public class MakerController implements Runnable, Tickable {
 		return currentTick;
 	}
 
-	public MakerExtent getDestinationExtent() {
-		if (this.destinationExtent == null) {
-			this.destinationExtent = new MakerExtent(BukkitUtil.toWorld(getMainWorld()));
+	public MakerExtent getMakerExtent() {
+		if (this.makerExtent == null) {
+			this.makerExtent = new MakerExtent(BukkitUtil.toWorld(getMainWorld()));
 		}
-		return this.destinationExtent;
+		return this.makerExtent;
 	}
 
 	public World getMainWorld() {
@@ -151,7 +162,7 @@ public class MakerController implements Runnable, Tickable {
 			com.minecade.minecraftmaker.schematic.world.World world = region.getWorld();
 			com.minecade.minecraftmaker.schematic.world.WorldData worldData = world.getWorldData();
 			BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
-			ForwardExtentCopy copy = new ForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getDestinationExtent(), clipboard.getOrigin());
+			PausableForwardExtentCopy copy = new PausableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
 			copy.setTransform(IDENTITY_TRANSFORM);
 			boolean ignoreAirBlocks = false;
 			if (ignoreAirBlocks) {
@@ -162,6 +173,96 @@ public class MakerController implements Runnable, Tickable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	public void loadLevel(String levelName, short chunkZ) {
+		File schematicsFolder = new File(plugin.getDataFolder(), "test");
+		// if the directory does not exist, create it
+		if (!schematicsFolder.exists()) {
+			try {
+				schematicsFolder.mkdir();
+			} catch (Exception e) {
+				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
+				e.printStackTrace();
+				return;
+			}
+		}
+
+		File f;
+		try {
+			f = FileUtils.getSafeOpenFile(schematicsFolder, levelName, "schematic", "schematic");
+		} catch (FilenameException e) {
+			// TODO notify player/sender
+			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+			e.printStackTrace();
+			return;
+		}
+
+		if (!f.exists()) {
+			// TODO notify player/sender
+			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+			return;
+		}
+
+		ClipboardFormat format = ClipboardFormat.SCHEMATIC;
+
+		try (FileInputStream fis = new FileInputStream(f); BufferedInputStream bis = new BufferedInputStream(fis)) {
+
+			ClipboardReader reader = format.getReader(bis);
+
+			WorldData worldData = BukkitUtil.toWorld(getMainWorld()).getWorldData();
+			Clipboard clipboard = reader.read(worldData);
+			BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
+			PausableForwardExtentCopy copy = new PausableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
+			copy.setTransform(IDENTITY_TRANSFORM);
+			boolean ignoreAirBlocks = false;
+			if (ignoreAirBlocks) {
+				copy.setSourceMask(new ExistingBlockMask(clipboard));
+			}
+			plugin.getBuilderTask().offer(copy);
+		} catch (IOException e) {
+			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to load level: %s", e.getMessage()));
+			e.printStackTrace();
+			return;
+		}
+	}
+
+	public void saveLevel(String levelName, short chunkZ) {
+		File schematicsFolder = new File(plugin.getDataFolder(), "test");
+		// if the directory does not exist, create it
+		if (!schematicsFolder.exists()) {
+			try {
+				schematicsFolder.mkdir();
+			} catch (Exception e) {
+				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
+				e.printStackTrace();
+				return;
+			}
+		}
+
+		File f;
+		try {
+			f = FileUtils.getSafeSaveFile(schematicsFolder, levelName, "schematic", "schematic");
+		} catch (FilenameException e) {
+			// TODO notify player/sender
+			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+			e.printStackTrace();
+			return;
+		}
+
+		if (!f.exists()) {
+			// TODO notify player/sender
+			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+			return;
+		}
+
+		Region levelRegion = LevelUtils.getLevelRegion(getMainWorld(), chunkZ);
+		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
+		clipboard.setOrigin(levelRegion.getMinimumPoint());
+		PausableForwardExtentCopy copy = new PausableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, levelRegion.getMinimumPoint());
+
+		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, BukkitUtil.toWorld(getMainWorld()).getWorldData(), f)));
+
 	}
 
 }

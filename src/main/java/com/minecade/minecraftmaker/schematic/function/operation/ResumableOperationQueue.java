@@ -13,7 +13,7 @@ import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 /**
  * Executes multiple queues in order. It can be paused for later resuming
  */
-public class PausableOperationQueue implements Operation {
+public class ResumableOperationQueue implements Operation {
 
 	private final List<Operation> operations = Lists.newArrayList();
 	private final Deque<Operation> queue = new ArrayDeque<Operation>();
@@ -22,7 +22,7 @@ public class PausableOperationQueue implements Operation {
 	/**
 	 * Create a new queue containing no operations.
 	 */
-	public PausableOperationQueue() {
+	public ResumableOperationQueue() {
 	}
 
 	/**
@@ -31,7 +31,7 @@ public class PausableOperationQueue implements Operation {
 	 * @param operations
 	 *            a collection of operations
 	 */
-	public PausableOperationQueue(Collection<Operation> operations) {
+	public ResumableOperationQueue(Collection<Operation> operations) {
 		checkNotNull(operations);
 		for (Operation operation : operations) {
 			offer(operation);
@@ -45,7 +45,7 @@ public class PausableOperationQueue implements Operation {
 	 * @param operation
 	 *            an array of operations
 	 */
-	public PausableOperationQueue(Operation... operation) {
+	public ResumableOperationQueue(Operation... operation) {
 		checkNotNull(operation);
 		for (Operation o : operation) {
 			offer(o);
@@ -69,7 +69,7 @@ public class PausableOperationQueue implements Operation {
 			throw new IllegalArgumentException("This operation is meant to run in a PausableRunContext");
 		}
 		if (!run.shouldContinue()) {
-			return null;
+			return current;
 		}
 		if (current == null && !queue.isEmpty()) {
 			current = queue.poll();
@@ -78,7 +78,7 @@ public class PausableOperationQueue implements Operation {
 		if (current != null) {
 			current = current.resume(run);
 			if (!run.shouldContinue()) {
-				return null;
+				return current;
 			}
 			if (current == null) {
 				current = queue.poll();

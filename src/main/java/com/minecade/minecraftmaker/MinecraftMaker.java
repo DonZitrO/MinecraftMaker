@@ -13,7 +13,7 @@ import com.minecade.serverweb.shared.constants.GameState;
 import com.minecade.minecraftmaker.bukkit.BukkitImplAdapter;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
-import com.minecade.minecraftmaker.nms.bukkit.Spigot_v1_9_R1;
+import com.minecade.minecraftmaker.nms.schematic.Spigot_v1_9_R1;
 import com.minecade.minecraftmaker.task.MakerBuilderTask;
 
 public class MinecraftMaker extends JavaPlugin {

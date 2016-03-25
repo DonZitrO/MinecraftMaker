@@ -14,43 +14,46 @@ import com.minecade.minecraftmaker.schematic.world.Vector;
 
 public class LevelUtils {
 
-	public static Clipboard createEmptyLevel(World world, short chunkCoordinate) throws MinecraftMakerException {
-
+	public static Vector getLevelOrigin(short chunkZ) {
 		short originX = 0;
 		short originY = 64;
-		short originZ = (short) (chunkCoordinate * 16);
+		short originZ = (short) (chunkZ * 16);
+		return new Vector(originX, originY, originZ);
+	}
 
+	public static Region getLevelRegion(World world, short chunkZ) {
+		Vector origin = getLevelOrigin(chunkZ);
 		short width = 128;
 		short height = 64;
 		short length = 9;
+		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
+	}
 
-		Vector origin;
-		Region region;
+	public static Clipboard createEmptyLevel(World world, short chunkZ) throws MinecraftMakerException {
 
-		origin = new Vector(originX, originY, originZ);
-		region = new CuboidRegion(origin, origin.add(width, height, length).subtract(Vector.ONE));
-		region.setWorld(BukkitUtil.toWorld(world));
+		Region region = getLevelRegion(world, chunkZ);
+		Vector minimumPoint = region.getMinimumPoint();
 
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
-		clipboard.setOrigin(origin);
+		clipboard.setOrigin(minimumPoint);
 
 		// construct the back and end walls
-		for (int y = origin.getBlockY(); y < region.getMaximumPoint().getBlockY(); y++) {
-			for (int z = origin.getBlockZ(); z < region.getMaximumPoint().getBlockZ(); z++) {
-				clipboard.setBlock(new Vector(origin.getBlockX(), y, z), new BaseBlock(BlockID.STONE));
+		for (int y = minimumPoint.getBlockY(); y < region.getMaximumPoint().getBlockY(); y++) {
+			for (int z = minimumPoint.getBlockZ(); z < region.getMaximumPoint().getBlockZ(); z++) {
+				clipboard.setBlock(new Vector(minimumPoint.getBlockX(), y, z), new BaseBlock(BlockID.STONE));
 				clipboard.setBlock(new Vector(region.getMaximumPoint().getBlockX(), y, z), new BaseBlock(BlockID.DIAMOND_ORE));
 			}
 		}
 		// construct the side walls
-		for(int x = origin.getBlockX(); x < region.getMaximumPoint().getBlockX(); x++) {
-			for(int y = origin.getBlockY(); y < region.getMaximumPoint().getBlockY(); y++) {
-				clipboard.setBlock(new Vector(x, y, origin.getBlockZ()), new BaseBlock(BlockID.DIRT));
+		for(int x = minimumPoint.getBlockX(); x < region.getMaximumPoint().getBlockX(); x++) {
+			for(int y = minimumPoint.getBlockY(); y < region.getMaximumPoint().getBlockY(); y++) {
+				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ()), new BaseBlock(BlockID.DIRT));
 				clipboard.setBlock(new Vector(x, y, region.getMaximumPoint().getBlockZ()), new BaseBlock(BlockID.REDSTONE_BLOCK));
 			}
 		}
 		// construct the ceiling
-		for(int x = origin.getBlockX(); x < region.getMaximumPoint().getBlockX(); x++) {
-			for(int z = origin.getBlockZ(); z < region.getMaximumPoint().getBlockZ(); z++) {
+		for(int x = minimumPoint.getBlockX(); x < region.getMaximumPoint().getBlockX(); x++) {
+			for(int z = minimumPoint.getBlockZ(); z <= region.getMaximumPoint().getBlockZ(); z++) {
 				clipboard.setBlock(new Vector(x, region.getMaximumPoint().getBlockY(), z), new BaseBlock(BlockID.GLASS));
 			}
 		}

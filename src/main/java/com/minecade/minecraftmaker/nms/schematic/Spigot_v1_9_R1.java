@@ -1,4 +1,4 @@
-package com.minecade.minecraftmaker.nms.bukkit;
+package com.minecade.minecraftmaker.nms.schematic;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
