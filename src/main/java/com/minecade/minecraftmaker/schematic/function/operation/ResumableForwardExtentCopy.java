@@ -18,7 +18,7 @@ import com.minecade.minecraftmaker.schematic.function.entity.ExtentEntityCopy;
 import com.minecade.minecraftmaker.schematic.function.mask.Mask;
 import com.minecade.minecraftmaker.schematic.function.mask.Masks;
 import com.minecade.minecraftmaker.schematic.function.visitor.EntityVisitor;
-import com.minecade.minecraftmaker.schematic.function.visitor.PausableRegionVisitor;
+import com.minecade.minecraftmaker.schematic.function.visitor.ResumableRegionVisitor;
 import com.minecade.minecraftmaker.schematic.transform.Identity;
 import com.minecade.minecraftmaker.schematic.transform.Transform;
 import com.minecade.minecraftmaker.schematic.world.Extent;
@@ -29,12 +29,12 @@ import com.minecade.minecraftmaker.schematic.world.Vector;
  * Makes a copy of a portion of one extent to another extent or another point.
  *
  * <p>
- * This is a pausable forward extent copy, meaning that it iterates over the blocks in
+ * This is a resumable forward extent copy, meaning that it iterates over the blocks in
  * the source extent, and will copy as many blocks as there are in the source.
  * Therefore, interpolation will not occur to fill in the gaps.
  * </p>
  */
-public class PausableForwardExtentCopy implements Operation {
+public class ResumableForwardExtentCopy implements Operation {
 
 	private final Extent source;
 	private final Extent destination;
@@ -47,7 +47,7 @@ public class PausableForwardExtentCopy implements Operation {
 	private RegionFunction sourceFunction = null;
 	private Transform transform = new Identity();
 	private Transform currentTransform = null;
-	private PausableRegionVisitor lastVisitor;
+	private ResumableRegionVisitor lastVisitor;
 	private int affected;
 
 	/**
@@ -65,7 +65,7 @@ public class PausableForwardExtentCopy implements Operation {
 	 * @see #ForwardExtentCopy(Extent, Region, Vector, Extent, Vector) the main
 	 *      constructor
 	 */
-	public PausableForwardExtentCopy(Extent source, Region region, Extent destination, Vector to) {
+	public ResumableForwardExtentCopy(Extent source, Region region, Extent destination, Vector to) {
 		this(source, region, region.getMinimumPoint(), destination, to);
 	}
 
@@ -83,7 +83,7 @@ public class PausableForwardExtentCopy implements Operation {
 	 * @param to
 	 *            the destination position
 	 */
-	public PausableForwardExtentCopy(Extent source, Region region, Vector from, Extent destination, Vector to) {
+	public ResumableForwardExtentCopy(Extent source, Region region, Vector from, Extent destination, Vector to) {
 		checkNotNull(source);
 		checkNotNull(region);
 		checkNotNull(from);
@@ -238,7 +238,7 @@ public class PausableForwardExtentCopy implements Operation {
 			ExtentBlockCopy blockCopy = new ExtentBlockCopy(source, from, destination, to, currentTransform);
 			RegionMaskingFilter filter = new RegionMaskingFilter(sourceMask, blockCopy);
 			RegionFunction function = sourceFunction != null ? new CombinedRegionFunction(filter, sourceFunction) : filter;
-			PausableRegionVisitor blockVisitor = new PausableRegionVisitor(region, function);
+			ResumableRegionVisitor blockVisitor = new ResumableRegionVisitor(region, function);
 
 			ExtentEntityCopy entityCopy = new ExtentEntityCopy(from, destination, to, currentTransform);
 			entityCopy.setRemoving(removingEntities);
@@ -250,8 +250,7 @@ public class PausableForwardExtentCopy implements Operation {
 			toResume = new DelegateOperation(this, new ResumableOperationQueue(blockVisitor, entityVisitor));
 		}
 		if (MinecraftMaker.getInstance().isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | PausableForwardExtentCopy.resume - took: [%s] nanoseconds", System.nanoTime() - startNanoTime));
-			startNanoTime = System.nanoTime();
+			Bukkit.getLogger().info(String.format("[DEBUG] | PausableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		}
 		return toResume;
 	}

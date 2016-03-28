@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 
+import com.minecade.minecraftmaker.MinecraftMaker;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
@@ -27,6 +28,11 @@ public class SchematicWriteOperation implements Operation {
 
 	@Override
 	public Operation resume(RunContext run) throws MinecraftMakerException {
+		long startNanoTime = 0;
+		if (MinecraftMaker.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | SchematicWriteOperation.resume - start..."));
+			startNanoTime = System.nanoTime();
+		}
 		try (
 			FileOutputStream fos = new FileOutputStream(file);
 			BufferedOutputStream bos = new BufferedOutputStream(fos);
@@ -35,7 +41,9 @@ public class SchematicWriteOperation implements Operation {
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("SchematicWriteOperation.resume - unable to write schematic data: %s", e.getMessage()));
 			e.printStackTrace();
-			return null;
+		}
+		if (MinecraftMaker.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | SchematicWriteOperation.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		}
 		return null;
 	}

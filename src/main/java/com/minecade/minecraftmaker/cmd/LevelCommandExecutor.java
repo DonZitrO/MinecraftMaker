@@ -39,7 +39,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 			sender.sendMessage(command.getPermissionMessage());
 			return true;
 		}
-		if (args.length != 3) {
+		if (args.length < 3) {
 			sender.sendMessage(command.getUsage());
 			return true;
 		}
@@ -48,7 +48,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("create")) {
-			plugin.getController().createEmptyLevel(args[1], Short.parseShort(args[2]));
+			plugin.getController().createEmptyLevel(args[1], Short.parseShort(args[2]), optionalBlockId(args, 3));
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("load")) {
@@ -74,6 +74,20 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 
 	private boolean isValidLevelName(String levelName) {
 		return !StringUtils.isBlank(levelName);
+	}
+
+	private int optionalBlockId(String[] args, int index) {
+		if (args.length > index) {
+			try {
+				int blockId = Integer.parseInt(args[index]);
+				Validate.inclusiveBetween(1, 4, blockId);
+				return blockId;
+			} catch (Exception e) {
+				Bukkit.getLogger().warning(String.format("LevelCommandExecutor.optionalBlockId - invalid block id: [%s] - %s", args[index], e.getMessage()));
+				return 0;
+			}
+		}
+		return 0;
 	}
 
 }

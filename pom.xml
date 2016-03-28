@@ -18,7 +18,7 @@
 	<!-- share the same version -->
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.version>1.7</java.version>
+		<java.version>1.8</java.version>
 		<!-- Dependencies -->
 		<spigot.version>1.9-R0.1-SNAPSHOT</spigot.version>
 		<minecade.core.version>1.3.3.5</minecade.core.version>
@@ -27,6 +27,7 @@
 		<!-- Test dependencies -->
 		<junit.version>3.8.1</junit.version>
 		<!-- Maven plugins dependencies TODO -->
+		<maven-compiler-plugin.version>3.5.1</maven-compiler-plugin.version>
 	</properties>
 
 	<repositories>
@@ -106,10 +107,10 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.3</version>
+				<version>${maven-compiler-plugin.version}</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
 				</configuration>
 			</plugin>
 		</plugins>

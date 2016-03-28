@@ -24,7 +24,7 @@ import com.minecade.minecraftmaker.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.FilenameException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.function.mask.ExistingBlockMask;
-import com.minecade.minecraftmaker.schematic.function.operation.PausableForwardExtentCopy;
+import com.minecade.minecraftmaker.schematic.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.schematic.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.schematic.function.operation.SchematicWriteOperation;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
@@ -154,15 +154,15 @@ public class MakerController implements Runnable, Tickable {
 		return enabled;
 	}
 
-	public void createEmptyLevel(String string, short chunkZ) {
+	public void createEmptyLevel(String string, short chunkZ, int floorBlockId) {
 		// TODO register level on slot
 		try {
-			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), (short) chunkZ);
+			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), (short) chunkZ, floorBlockId);
 			Region region = clipboard.getRegion();
 			com.minecade.minecraftmaker.schematic.world.World world = region.getWorld();
 			com.minecade.minecraftmaker.schematic.world.WorldData worldData = world.getWorldData();
 			BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
-			PausableForwardExtentCopy copy = new PausableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
+			ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
 			copy.setTransform(IDENTITY_TRANSFORM);
 			boolean ignoreAirBlocks = false;
 			if (ignoreAirBlocks) {
@@ -190,7 +190,7 @@ public class MakerController implements Runnable, Tickable {
 
 		File f;
 		try {
-			f = FileUtils.getSafeOpenFile(schematicsFolder, levelName, "schematic", "schematic");
+			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
 		} catch (FilenameException e) {
 			// TODO notify player/sender
 			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
@@ -213,7 +213,7 @@ public class MakerController implements Runnable, Tickable {
 			WorldData worldData = BukkitUtil.toWorld(getMainWorld()).getWorldData();
 			Clipboard clipboard = reader.read(worldData);
 			BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
-			PausableForwardExtentCopy copy = new PausableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
+			ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), LevelUtils.getLevelOrigin(chunkZ));
 			copy.setTransform(IDENTITY_TRANSFORM);
 			boolean ignoreAirBlocks = false;
 			if (ignoreAirBlocks) {
@@ -242,7 +242,7 @@ public class MakerController implements Runnable, Tickable {
 
 		File f;
 		try {
-			f = FileUtils.getSafeSaveFile(schematicsFolder, levelName, "schematic", "schematic");
+			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
 		} catch (FilenameException e) {
 			// TODO notify player/sender
 			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
@@ -250,16 +250,10 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 
-		if (!f.exists()) {
-			// TODO notify player/sender
-			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
-			return;
-		}
-
 		Region levelRegion = LevelUtils.getLevelRegion(getMainWorld(), chunkZ);
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
 		clipboard.setOrigin(levelRegion.getMinimumPoint());
-		PausableForwardExtentCopy copy = new PausableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, levelRegion.getMinimumPoint());
+		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
 
 		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, BukkitUtil.toWorld(getMainWorld()).getWorldData(), f)));
 

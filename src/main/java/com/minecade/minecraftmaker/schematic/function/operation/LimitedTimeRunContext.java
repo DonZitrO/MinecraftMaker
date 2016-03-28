@@ -1,6 +1,6 @@
 package com.minecade.minecraftmaker.schematic.function.operation;
 
-public class LimitedTimeRunContext extends RunContext implements PausableRunContext {
+public class LimitedTimeRunContext extends RunContext implements ResumableRunContext {
 
 	private long endNanoTime;
 

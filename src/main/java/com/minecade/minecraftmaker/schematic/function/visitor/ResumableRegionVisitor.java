@@ -14,13 +14,13 @@ import com.minecade.minecraftmaker.schematic.world.Region;
  * Utility class to apply region functions to
  * {@link com.minecade.minecraftmaker.schematic.world.Region}.
  */
-public class PausableRegionVisitor implements Operation {
+public class ResumableRegionVisitor implements Operation {
 
 	private final Iterator<BlockVector> regionIterator;
 	private final RegionFunction function;
 	private int affected = 0;
 
-	public PausableRegionVisitor(Region region, RegionFunction function) {
+	public ResumableRegionVisitor(Region region, RegionFunction function) {
 		this.regionIterator = region.iterator();
 		this.function = function;
 	}
