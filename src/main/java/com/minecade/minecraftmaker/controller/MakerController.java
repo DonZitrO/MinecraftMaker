@@ -15,15 +15,18 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 
-import com.minecade.minecraftmaker.MakerArena;
-import com.minecade.minecraftmaker.MakerPlayer;
-import com.minecade.minecraftmaker.MinecraftMaker;
 import com.minecade.minecraftmaker.bukkit.BukkitUtil;
+import com.minecade.minecraftmaker.level.MakerLevel;
+import com.minecade.minecraftmaker.player.MakerPlayer;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.FilenameException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.function.mask.ExistingBlockMask;
+import com.minecade.minecraftmaker.schematic.function.operation.Operation;
 import com.minecade.minecraftmaker.schematic.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.schematic.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.schematic.function.operation.SchematicWriteOperation;
@@ -39,6 +42,7 @@ import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.schematic.world.WorldData;
 import com.minecade.minecraftmaker.util.FileUtils;
 import com.minecade.minecraftmaker.util.LevelUtils;
+import com.minecade.minecraftmaker.util.MakerWorldUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
 
@@ -46,8 +50,9 @@ public class MakerController implements Runnable, Tickable {
 
 	private static final int DEFAULT_MAX_PLAYERS = 40;
 	private static final Transform IDENTITY_TRANSFORM = new Identity();
+	private static final Vector DEFAULT_SPAWN_LOCATION = new Vector(-16.5d, 65.0d, 16.5d);
 
-	private final MinecraftMaker plugin;
+	private final MinecraftMakerPlugin plugin;
 
 	private BukkitTask globalTickerTask;
 	private String mainWorldName;
@@ -61,9 +66,9 @@ public class MakerController implements Runnable, Tickable {
 	// keeps track of every player on the server
 	private Map<UUID, MakerPlayer> playerMap;
 	// keeps track of every arena on the server
-	protected Map<UUID, MakerArena> arenaMap;
+	protected Map<Short, MakerLevel> levelMap;
 
-	public MakerController(MinecraftMaker plugin, ConfigurationSection config) {
+	public MakerController(MinecraftMakerPlugin plugin, ConfigurationSection config) {
 		this.plugin = plugin;
 		this.mainWorldName = config != null ? config.getString("main-world", "world") : "world";
 		this.maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
@@ -91,7 +96,7 @@ public class MakerController implements Runnable, Tickable {
 				return size() > (maxPlayers * 2);
 			}
 		});
-		arenaMap = new ConcurrentHashMap<>();
+		levelMap = new ConcurrentHashMap<>();
 		globalTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, this, 0, 0);
 		enabled = true;
 	}
@@ -110,13 +115,13 @@ public class MakerController implements Runnable, Tickable {
 
 	public World getMainWorld() {
 		if (this.mainWorld == null) {
-			this.mainWorld = Bukkit.getWorld(this.mainWorldName);
+			this.mainWorld = MakerWorldUtils.createOrLoadWorld(this.plugin, this.mainWorldName, DEFAULT_SPAWN_LOCATION);
 		}
 		return this.mainWorld;
 	}
 
-	public MakerArena getArena(UUID arenaId) {
-		return arenaMap.get(arenaId);
+	public MakerLevel getArena(short slotId) {
+		return levelMap.get(slotId);
 	}
 
 	public MakerPlayer getPlayer(Player player) {
@@ -135,10 +140,19 @@ public class MakerController implements Runnable, Tickable {
 	@Override
 	public void tick(long currentTick) {
 		this.currentTick = currentTick;
-		// tick arenas
-		for (MakerArena arena : new ArrayList<MakerArena>(arenaMap.values())) {
-			if (arena != null) {
-				TickableUtils.tickSafely(arena, currentTick);
+		if (this.currentTick == 1) {
+			MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld());
+			try {
+				plugin.getBuilderTask().offer(createPasteOperation(LevelUtils.createLobbyFloor(this.getMainWorld())));
+			} catch (MinecraftMakerException e) {
+				e.printStackTrace();
+			}
+			return;
+		}
+		// tick levels
+		for (MakerLevel level : new ArrayList<MakerLevel>(levelMap.values())) {
+			if (level != null) {
+				TickableUtils.tickSafely(level, currentTick);
 			}
 		}
 		// tick players
@@ -158,21 +172,26 @@ public class MakerController implements Runnable, Tickable {
 		// TODO register level on slot
 		try {
 			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), (short) chunkZ, floorBlockId);
-			Region region = clipboard.getRegion();
-			com.minecade.minecraftmaker.schematic.world.World world = region.getWorld();
-			com.minecade.minecraftmaker.schematic.world.WorldData worldData = world.getWorldData();
-			BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
-			ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
-			copy.setTransform(IDENTITY_TRANSFORM);
-			boolean ignoreAirBlocks = false;
-			if (ignoreAirBlocks) {
-				copy.setSourceMask(new ExistingBlockMask(clipboard));
-			}
+			Operation copy = createPasteOperation(clipboard);
 			plugin.getBuilderTask().offer(copy);
 		} catch (MinecraftMakerException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	public Operation createPasteOperation(Clipboard clipboard) {
+		Region region = clipboard.getRegion();
+		com.minecade.minecraftmaker.schematic.world.World world = region.getWorld();
+		com.minecade.minecraftmaker.schematic.world.WorldData worldData = world.getWorldData();
+		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
+		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
+		copy.setTransform(IDENTITY_TRANSFORM);
+		boolean ignoreAirBlocks = false;
+		if (ignoreAirBlocks) {
+			copy.setSourceMask(new ExistingBlockMask(clipboard));
+		}
+		return copy;
 	}
 
 	public void loadLevel(String levelName, short chunkZ) {
@@ -254,8 +273,21 @@ public class MakerController implements Runnable, Tickable {
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
 		clipboard.setOrigin(levelRegion.getMinimumPoint());
 		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
-
 		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, BukkitUtil.toWorld(getMainWorld()).getWorldData(), f)));
+	}
+
+	public void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void onPlayerJoin(Player player) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void onPlayerQuit(Player player) {
+		// TODO Auto-generated method stub
 
 	}
 

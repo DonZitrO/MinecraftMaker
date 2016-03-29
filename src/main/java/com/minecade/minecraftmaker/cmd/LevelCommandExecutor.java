@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
-import com.minecade.minecraftmaker.MinecraftMaker;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 /**
  * 
@@ -23,7 +23,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 	private static final int MIN_CHUNK_COORDINATE = 0;
 	private static final int MAX_CHUNK_COORDINATE = 63;
 
-	public LevelCommandExecutor(MinecraftMaker plugin) {
+	public LevelCommandExecutor(MinecraftMakerPlugin plugin) {
 		super(plugin);
 	}
 

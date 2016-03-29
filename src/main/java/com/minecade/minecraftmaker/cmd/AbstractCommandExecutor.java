@@ -2,13 +2,13 @@ package com.minecade.minecraftmaker.cmd;
 
 import org.bukkit.command.CommandExecutor;
 
-import com.minecade.minecraftmaker.MinecraftMaker;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public abstract class AbstractCommandExecutor implements CommandExecutor {
 
-	protected final MinecraftMaker plugin;
+	protected final MinecraftMakerPlugin plugin;
 
-	public AbstractCommandExecutor(MinecraftMaker plugin) {
+	public AbstractCommandExecutor(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
 	}
 

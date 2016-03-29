@@ -5,7 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.minecade.minecraftmaker.MinecraftMaker;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.function.operation.LimitedTimeRunContext;
 import com.minecade.minecraftmaker.schematic.function.operation.Operation;
@@ -15,10 +15,10 @@ public class MakerBuilderTask extends BukkitRunnable {
 
 	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 5000000; // 5ms to build per tick
 
-	private final MinecraftMaker plugin;
+	private final MinecraftMakerPlugin plugin;
 	private final ResumableOperationQueue operationQueue = new ResumableOperationQueue();
 
-	public MakerBuilderTask(MinecraftMaker plugin) {
+	public MakerBuilderTask(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
 	}
 

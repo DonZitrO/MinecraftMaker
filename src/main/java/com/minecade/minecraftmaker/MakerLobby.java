@@ -15,12 +15,13 @@ import com.minecade.core.item.Loadout;
 import com.minecade.core.scoreboard.DisplayBoard;
 import com.minecade.core.scoreboard.DisplayBoardManager;
 import com.minecade.core.scoreboard.DisplayBoardValue;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.serverweb.shared.constants.GameState;
 
 public class MakerLobby extends MinigameLobby {
 	
 	MakerBase base;
-	MinecraftMaker plugin;
+	MinecraftMakerPlugin plugin;
 
 	private DisplayBoardManager displayboardmanager = null;
 	private DisplayBoardValue server;
@@ -34,7 +35,7 @@ public class MakerLobby extends MinigameLobby {
 	
 	private ConcurrentHashMap<UUID, DisplayBoardValue> playercoins = new ConcurrentHashMap<UUID, DisplayBoardValue>();
 	
-	public MakerLobby(MinecraftMaker plugin, MakerBase base) {
+	public MakerLobby(MinecraftMakerPlugin plugin, MakerBase base) {
 		this.plugin = plugin;
 		this.base = base;
 	}

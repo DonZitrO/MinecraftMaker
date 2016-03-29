@@ -22,7 +22,7 @@ import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import com.minecade.minecraftmaker.MinecraftMaker;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BaseItemStack;
 import com.minecade.minecraftmaker.schematic.block.LazyBlock;
@@ -85,7 +85,7 @@ public class BukkitWorld extends AbstractWorld {
 	@Nullable
 	@Override
 	public com.minecade.minecraftmaker.schematic.entity.Entity createEntity(com.minecade.minecraftmaker.schematic.util.Location location, BaseEntity entity) {
-		BukkitImplAdapter adapter = MinecraftMaker.getInstance().getBukkitImplAdapter();
+		BukkitImplAdapter adapter = MinecraftMakerPlugin.getInstance().getBukkitImplAdapter();
 		if (adapter != null) {
 			Entity createdEntity = adapter.createEntity(BukkitAdapter.adapt(getWorld(), location), entity);
 			if (createdEntity != null) {
@@ -308,7 +308,7 @@ public class BukkitWorld extends AbstractWorld {
 
 	@Override
 	public BaseBlock getBlock(Vector position) {
-		BukkitImplAdapter adapter = MinecraftMaker.getInstance().getBukkitImplAdapter();
+		BukkitImplAdapter adapter = MinecraftMakerPlugin.getInstance().getBukkitImplAdapter();
 		if (adapter != null) {
 			return adapter.getBlock(BukkitAdapter.adapt(getWorld(), position));
 		} else {
@@ -319,7 +319,7 @@ public class BukkitWorld extends AbstractWorld {
 
 	@Override
 	public boolean setBlock(Vector position, BaseBlock block, boolean notifyAndLight) throws MinecraftMakerException {
-		BukkitImplAdapter adapter = MinecraftMaker.getInstance().getBukkitImplAdapter();
+		BukkitImplAdapter adapter = MinecraftMakerPlugin.getInstance().getBukkitImplAdapter();
 		if (adapter != null) {
 			return adapter.setBlock(BukkitAdapter.adapt(getWorld(), position), block, notifyAndLight);
 		} else {
@@ -338,7 +338,7 @@ public class BukkitWorld extends AbstractWorld {
 
 	@Override
 	public BaseBiome getBiome(Vector2D position) {
-		BukkitImplAdapter adapter = MinecraftMaker.getInstance().getBukkitImplAdapter();
+		BukkitImplAdapter adapter = MinecraftMakerPlugin.getInstance().getBukkitImplAdapter();
 		if (adapter != null) {
 			int id = adapter.getBiomeId(getWorld().getBiome(position.getBlockX(), position.getBlockZ()));
 			return new BaseBiome(id);
@@ -349,7 +349,7 @@ public class BukkitWorld extends AbstractWorld {
 
 	@Override
 	public boolean setBiome(Vector2D position, BaseBiome biome) {
-		BukkitImplAdapter adapter = MinecraftMaker.getInstance().getBukkitImplAdapter();
+		BukkitImplAdapter adapter = MinecraftMakerPlugin.getInstance().getBukkitImplAdapter();
 		if (adapter != null) {
 			Biome bukkitBiome = adapter.getBiome(biome.getId());
 			getWorld().setBiome(position.getBlockX(), position.getBlockZ(), bukkitBiome);

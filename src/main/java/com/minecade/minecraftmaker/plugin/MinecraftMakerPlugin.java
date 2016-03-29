@@ -1,35 +1,34 @@
-package com.minecade.minecraftmaker;
+package com.minecade.minecraftmaker.plugin;
+
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.PluginManager;
+import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.minecade.core.gamebase.MinigameBasicListener;
-import com.minecade.core.serverbrowser.ServerBrowserDriver;
-import com.minecade.core.serverbrowser.packets.GameStateUpdatePacket;
-import com.minecade.core.serverbrowser.packets.PlayerCountUpdatePacket;
-import com.minecade.core.serverweb.NodeDataFactory;
-import com.minecade.serverweb.shared.constants.GameState;
+import com.minecade.core.data.Rank;
+import com.minecade.core.i18n.Internationalizable;
 import com.minecade.minecraftmaker.bukkit.BukkitImplAdapter;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
+import com.minecade.minecraftmaker.items.MakerLobbyItems;
+import com.minecade.minecraftmaker.listener.MakerListener;
 import com.minecade.minecraftmaker.nms.schematic.Spigot_v1_9_R1;
 import com.minecade.minecraftmaker.task.MakerBuilderTask;
 
-public class MinecraftMaker extends JavaPlugin {
+public class MinecraftMakerPlugin extends JavaPlugin implements Internationalizable {
 
-	private static MinecraftMaker instance;
+	private static MinecraftMakerPlugin instance;
 
-	public static MinecraftMaker getInstance() {
+	public static MinecraftMakerPlugin getInstance() {
 		return instance;
 	}
-
-	MakerBase base;
-	int maxPlayers = 32;
 
 	private MakerController controller;
 	private MakerBuilderTask builderTask;
 	private BukkitImplAdapter bukkitImplAdapter;
+	private ResourceBundle messages;
 
 	@Override
 	public void onLoad() {
@@ -46,34 +45,25 @@ public class MinecraftMaker extends JavaPlugin {
 			// this is an extreme case, so shut the server down
 			Bukkit.shutdown();
 		}
+		// i18n config
+		messages = ResourceBundle.getBundle("text", new Locale(getConfig().getString("locale", "en")));
+		// translate
+		translateGeneralStuff();
+	}
+
+	private void translateGeneralStuff() {
+		// translate ranks
+		for (Rank rank : Rank.values()) {
+			rank.translate(this);
+		}
+		// translate lobby items
+		for (MakerLobbyItems item : MakerLobbyItems.values()) {
+			item.translate(this);
+		}
 	}
 
 	@Override
 	public void onEnable() {
-//		base = new MakerBase(this);
-//		base.setupTranslations();
-//		base.setPlayerRegistry(new MCMakerPlayerRegistry(this));
-//		base.setNodeData(NodeDataFactory.newNodeData("MCMaker"));
-//		base.getNodeData().getServerData().setCurrentPlayers(Bukkit.getOnlinePlayers().size());
-//		base.getNodeData().getServerData().setMaxPlayers(maxPlayers);
-//		base.setMaxPlayers(maxPlayers);
-//		base.getNodeData().getServerData().setGameState(GameState.IN_LOBBY);
-//		base.getNodeData().pushUpdate();
-//		ServerBrowserDriver.setServerDataHolder(new MakerServerDataHolder(base));
-//		getServer().getScheduler().runTaskTimer(this, new Runnable() {
-//			
-//			@Override
-//			public void run() {
-//				base.getNodeData().getServerData().setCurrentPlayers(Bukkit.getOnlinePlayers().size());
-//				base.getNodeData().pushUpdate();
-//				new GameStateUpdatePacket().dispatch();
-//				new PlayerCountUpdatePacket().dispatch();
-//				
-//			}
-//		}, 10*20, 10*20);
-//		PluginManager pm = getServer().getPluginManager();
-//		pm.registerEvents(new MinigameBasicListener(base), this);
-//		pm.registerEvents(new MakerListener(base), this);
 		// register commands
 		getCommand("level").setExecutor(new LevelCommandExecutor(this));
 		// instantiate and init main controller
@@ -82,6 +72,8 @@ public class MinecraftMaker extends JavaPlugin {
 		// start builder task
 		builderTask = new MakerBuilderTask(this);
 		builderTask.runTaskTimer(this, 0, 0);
+		// register listeners
+		getServer().getPluginManager().registerEvents(new MakerListener(this), this);
 	}
 
 	@Override
@@ -106,6 +98,14 @@ public class MinecraftMaker extends JavaPlugin {
 
 	public BukkitImplAdapter getBukkitImplAdapter() {
 		return bukkitImplAdapter;
+	}
+
+	@Override
+	public String getMessage(String key, Object... args) {
+		if (messages.containsKey(key)) {
+			return String.format(ChatColor.translateAlternateColorCodes('&', messages.getString(key)), args);
+		}
+		return key;
 	}
 
 }

@@ -14,10 +14,11 @@ import com.minecade.core.gamebase.MinigamePlayer;
 import com.minecade.core.gamebase.MinigameSetup;
 import com.minecade.core.item.common.ReturnToLobbyItem;
 import com.minecade.core.item.common.ServerBrowserItem;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class MakerBase extends MinigameBase {
 	
-	MinecraftMaker mplugin;
+	MinecraftMakerPlugin mplugin;
 	ConcurrentHashMap<UUID, ConcurrentHashMap<String, ArenaDefinition>> maps = new ConcurrentHashMap<UUID, ConcurrentHashMap<String, ArenaDefinition>>();
 	ConcurrentHashMap<UUID, MakerArena> runningArenas = new ConcurrentHashMap<UUID, MakerArena>();
 	
@@ -31,7 +32,7 @@ public class MakerBase extends MinigameBase {
 	
 	private static MakerBase instance;
 
-	public MakerBase(MinecraftMaker plugin) {
+	public MakerBase(MinecraftMakerPlugin plugin) {
 		super(plugin);
 		mplugin = plugin;
 		instance = this;

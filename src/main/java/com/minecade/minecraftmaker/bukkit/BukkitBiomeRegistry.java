@@ -8,7 +8,7 @@ import javax.annotation.Nullable;
 
 import org.bukkit.block.Biome;
 
-import com.minecade.minecraftmaker.MinecraftMaker;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.world.BaseBiome;
 import com.minecade.minecraftmaker.schematic.world.BiomeData;
 import com.minecade.minecraftmaker.schematic.world.BiomeRegistry;
@@ -29,7 +29,7 @@ class BukkitBiomeRegistry implements BiomeRegistry {
 
 	@Override
 	public List<BaseBiome> getBiomes() {
-		BukkitImplAdapter adapter = MinecraftMaker.getInstance().getBukkitImplAdapter();
+		BukkitImplAdapter adapter = MinecraftMakerPlugin.getInstance().getBukkitImplAdapter();
 		if (adapter != null) {
 			List<BaseBiome> biomes = new ArrayList<BaseBiome>();
 			for (Biome biome : Biome.values()) {
@@ -45,7 +45,7 @@ class BukkitBiomeRegistry implements BiomeRegistry {
 	@Nullable
 	@Override
 	public BiomeData getData(BaseBiome biome) {
-		BukkitImplAdapter adapter = MinecraftMaker.getInstance().getBukkitImplAdapter();
+		BukkitImplAdapter adapter = MinecraftMakerPlugin.getInstance().getBukkitImplAdapter();
 		if (adapter != null) {
 			final Biome bukkitBiome = adapter.getBiome(biome.getId());
 			return new BiomeData() {

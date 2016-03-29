@@ -65,6 +65,7 @@
 			<groupId>com.minecade</groupId>
 			<artifactId>core</artifactId>
 			<version>${minecade.core.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>de.slikey</groupId>

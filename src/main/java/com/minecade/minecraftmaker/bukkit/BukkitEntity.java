@@ -8,7 +8,7 @@ import javax.annotation.Nullable;
 
 import org.bukkit.entity.Player;
 
-import com.minecade.minecraftmaker.MinecraftMaker;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.util.Location;
@@ -61,7 +61,7 @@ class BukkitEntity implements Entity {
 				return null;
 			}
 
-			BukkitImplAdapter adapter = MinecraftMaker.getInstance().getBukkitImplAdapter();
+			BukkitImplAdapter adapter = MinecraftMakerPlugin.getInstance().getBukkitImplAdapter();
 			if (adapter != null) {
 				return adapter.getEntity(entity);
 			} else {

@@ -23,9 +23,9 @@ public class LevelUtils {
 
 	public static Region getLevelRegion(World world, short chunkZ) {
 		Vector origin = getLevelOrigin(chunkZ);
-		short width = 160;
-		short height = 128;
-		short length = 9;
+		short width = 161;
+		short height = 129;
+		short length = 13;
 		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
 	}
 
@@ -33,39 +33,130 @@ public class LevelUtils {
 
 		Region region = getLevelRegion(world, chunkZ);
 		Vector minimumPoint = region.getMinimumPoint();
+		Vector maximumPoint = region.getMaximumPoint();
 
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
 		clipboard.setOrigin(minimumPoint);
 
 		BaseBlock barrier = new BaseBlock(BlockID.BARRIER);
-		// construct the back and end walls
-		for (int y = minimumPoint.getBlockY(); y < region.getMaximumPoint().getBlockY(); y++) {
-			for (int z = minimumPoint.getBlockZ(); z < region.getMaximumPoint().getBlockZ(); z++) {
-				clipboard.setBlock(new Vector(minimumPoint.getBlockX(), y, z), barrier);
-				clipboard.setBlock(new Vector(region.getMaximumPoint().getBlockX(), y, z), barrier);
+		BaseBlock darkGlass = new BaseBlock(BlockID.GLASS, 15);
+		// construct the side walls
+		for (int x = minimumPoint.getBlockX(); x <= region.getMaximumPoint().getBlockX(); x++) {
+			for (int y = minimumPoint.getBlockY(); y <= region.getMaximumPoint().getBlockY(); y++) {
+				// left side wall
+				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ()), barrier);
+				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 1), (x % 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
+				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 2), barrier);
+				// right side wall
+				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ()), barrier);
+				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 1), (x % 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
+				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 2), barrier);
 			}
 		}
-		// construct the side walls
-		for(int x = minimumPoint.getBlockX(); x < region.getMaximumPoint().getBlockX(); x++) {
-			for(int y = minimumPoint.getBlockY(); y < region.getMaximumPoint().getBlockY(); y++) {
-				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ()), barrier);
-				clipboard.setBlock(new Vector(x, y, region.getMaximumPoint().getBlockZ()), barrier);
+		// construct the back and end walls
+		for (int y = minimumPoint.getBlockY(); y <= maximumPoint.getBlockY(); y++) {
+			for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ() - 3; z++) {
+				// triple back wall
+				clipboard.setBlock(new Vector(minimumPoint.getBlockX(), y, z), barrier);
+				clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 1, y, z), barrier);
+				clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, y, z), barrier);
+				// triple end wall
+				clipboard.setBlock(new Vector(maximumPoint.getBlockX(), y, z), barrier);
+				clipboard.setBlock(new Vector(maximumPoint.getBlockX() - 1, y, z), barrier);
+				clipboard.setBlock(new Vector(maximumPoint.getBlockX() - 2, y, z), barrier);
 			}
 		}
 		// construct the ceiling
-		for(int x = minimumPoint.getBlockX(); x < region.getMaximumPoint().getBlockX(); x++) {
-			for(int z = minimumPoint.getBlockZ(); z <= region.getMaximumPoint().getBlockZ(); z++) {
-				clipboard.setBlock(new Vector(x, region.getMaximumPoint().getBlockY(), z), barrier);
+		for (int x = minimumPoint.getBlockX() + 1; x < maximumPoint.getBlockX(); x++) {
+			for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ() - 3; z++) {
+				clipboard.setBlock(new Vector(x, maximumPoint.getBlockY(), z), barrier);
 			}
 		}
-		// construct the floor (optional) 
+		// floor blocks to start the level
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 64, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.STONE));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 3, 64, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.STONE));
+		// default spawn point in back wall
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 65, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 66, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
+		// construct the floor (optional)
 		if (floorBlockId > 0) {
-			for(int x = minimumPoint.getBlockX(); x < region.getMaximumPoint().getBlockX(); x++) {
-				for(int z = minimumPoint.getBlockZ(); z <= region.getMaximumPoint().getBlockZ(); z++) {
-					clipboard.setBlock(new Vector(x, 64, z), new BaseBlock(floorBlockId));
+			BaseBlock floorBlock = new BaseBlock(floorBlockId);
+			clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 64, minimumPoint.getBlockZ() + 6), floorBlock);
+			for (int x = minimumPoint.getBlockX() + 3; x < maximumPoint.getBlockX() - 2; x++) {
+				for (int z = minimumPoint.getBlockZ() + 3; z < maximumPoint.getBlockZ() - 2; z++) {
+					clipboard.setBlock(new Vector(x, 64, z), floorBlock);
 				}
 			}
 		}
+		return clipboard;
+	}
+
+	public static Vector getLobbyOrigin() {
+		short originX = -1;
+		short originY = 63;
+		short originZ = 0;
+		return new Vector(originX, originY, originZ);
+	}
+
+	public static Region getLobbyRegion(World world) {
+		Vector origin = getLobbyOrigin();
+		short width = -64;
+		short height = 65;
+		short length = 64;
+		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
+	}
+
+	public static Clipboard createLobbyFloor(World world) throws MinecraftMakerException {
+		Region region = getLobbyRegion(world);
+		Vector minimumPoint = region.getMinimumPoint();
+		Vector maximumPoint = region.getMaximumPoint();
+
+		BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
+		clipboard.setOrigin(minimumPoint);
+
+		// lobby floor
+		BaseBlock barrier = new BaseBlock(BlockID.BARRIER);
+		BaseBlock grass = new BaseBlock(BlockID.GRASS);
+		for (int x = minimumPoint.getBlockX(); x < maximumPoint.getBlockX(); x++) {
+			for (int z = minimumPoint.getBlockZ(); z < maximumPoint.getBlockZ(); z++) {
+				clipboard.setBlock(new Vector(x, minimumPoint.getBlockY(), z), barrier);
+				clipboard.setBlock(new Vector(x, minimumPoint.getBlockY() + 1, z), grass);
+			}
+		}
+		BaseBlock darkGlass = new BaseBlock(BlockID.GLASS, 15);
+		// construct the side walls
+		for (int x = minimumPoint.getBlockX(); x <= region.getMaximumPoint().getBlockX(); x++) {
+			for (int y = minimumPoint.getBlockY(); y <= region.getMaximumPoint().getBlockY(); y++) {
+				// left side wall
+				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ()), barrier);
+				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 1), (x % 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
+				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 2), barrier);
+				// right side wall
+				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ()), barrier);
+				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 1), (x % 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
+				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 2), barrier);
+			}
+		}
+		// construct the back and end walls
+		for (int y = minimumPoint.getBlockY(); y <= maximumPoint.getBlockY(); y++) {
+			for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ() - 3; z++) {
+				// triple back wall
+				clipboard.setBlock(new Vector(minimumPoint.getBlockX(), y, z), barrier);
+				clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 1, y, z), barrier);
+				clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, y, z), barrier);
+				// triple end wall
+				clipboard.setBlock(new Vector(maximumPoint.getBlockX(), y, z), barrier);
+				clipboard.setBlock(new Vector(maximumPoint.getBlockX() - 1, y, z), barrier);
+				clipboard.setBlock(new Vector(maximumPoint.getBlockX() - 2, y, z), barrier);
+			}
+		}
+		// construct the ceiling
+		for (int x = minimumPoint.getBlockX() + 1; x < maximumPoint.getBlockX(); x++) {
+			for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ() - 3; z++) {
+				clipboard.setBlock(new Vector(x, maximumPoint.getBlockY(), z), barrier);
+			}
+		}
+
 		return clipboard;
 	}
 

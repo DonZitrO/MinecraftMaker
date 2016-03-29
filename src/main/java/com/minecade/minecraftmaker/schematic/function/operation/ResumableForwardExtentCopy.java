@@ -7,7 +7,7 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 
-import com.minecade.minecraftmaker.MinecraftMaker;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.function.CombinedRegionFunction;
@@ -219,7 +219,7 @@ public class ResumableForwardExtentCopy implements Operation {
 	public Operation resume(RunContext run) throws MinecraftMakerException {
 		Operation toResume = null;
 		long startNanoTime = 0;
-		if (MinecraftMaker.getInstance().isDebugMode()) {
+		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | PausableForwardExtentCopy.resume - start..."));
 			startNanoTime = System.nanoTime();
 		}
@@ -249,7 +249,7 @@ public class ResumableForwardExtentCopy implements Operation {
 			currentTransform = currentTransform.combine(transform);
 			toResume = new DelegateOperation(this, new ResumableOperationQueue(blockVisitor, entityVisitor));
 		}
-		if (MinecraftMaker.getInstance().isDebugMode()) {
+		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | PausableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		}
 		return toResume;
