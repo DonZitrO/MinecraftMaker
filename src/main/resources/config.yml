@@ -1,0 +1,16 @@
+database:
+  password: <db-pass>
+  username: <db-user>
+  url: <db-url>
+  network-schema: <db-network-schema>
+  coins-column: <db-coins-column>
+messaging:
+  password: <rabbit-pass>
+  username: <rabbit-user>
+  host-ip: <rabbit-ip>
+  host-port: <rabbit-port>
+  virtualhost-name: <rabbit-virtualhost-name>
+server:
+  id: <server-id>
+  port: <server-port>
+  pvp: false

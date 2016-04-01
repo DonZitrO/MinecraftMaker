@@ -12,14 +12,28 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+import com.minecade.core.data.Rank;
+import com.minecade.core.event.AsyncAccountDataLoadEvent;
+import com.minecade.core.event.EventUtils;
+import com.minecade.core.item.ItemUtils;
+import com.minecade.core.player.PlayerUtils;
+import com.minecade.core.util.BungeeUtils;
 import com.minecade.minecraftmaker.bukkit.BukkitUtil;
+import com.minecade.minecraftmaker.data.MakerPlayerData;
+import com.minecade.minecraftmaker.items.MakerLobbyItems;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -48,9 +62,15 @@ import com.minecade.minecraftmaker.util.TickableUtils;
 
 public class MakerController implements Runnable, Tickable {
 
+	private static final int FAST_RELOGIN_DELAY_SECONDS = 5;
+	private static final int DOUBLE_LOGIN_DELAY_SECONDS = 2;
 	private static final int DEFAULT_MAX_PLAYERS = 40;
+	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
 	private static final Transform IDENTITY_TRANSFORM = new Identity();
-	private static final Vector DEFAULT_SPAWN_LOCATION = new Vector(-16.5d, 65.0d, 16.5d);
+
+	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.5d, 65.0d, 16.5d);
+	private static final float DEFAULT_SPAWN_YAW = 180f;
+	private static final float DEFAULT_SPAWN_PITCH = 0f;
 
 	private final MinecraftMakerPlugin plugin;
 
@@ -58,6 +78,10 @@ public class MakerController implements Runnable, Tickable {
 	private String mainWorldName;
 	private World mainWorld;
 	private MakerExtent makerExtent;
+
+	private Vector spawnVector;
+	private float spawnYaw;
+	private float spawnPitch;
 
 	private long currentTick;
 	private boolean enabled;
@@ -68,10 +92,33 @@ public class MakerController implements Runnable, Tickable {
 	// keeps track of every arena on the server
 	protected Map<Short, MakerLevel> levelMap;
 
+	// an async thread loads the data to this map, then the main thread process it
+	private final Map<UUID, MakerPlayerData> accountDataMap = Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayerData>(MAX_ACCOUNT_DATA_ENTRIES * 2) {
+		private static final long serialVersionUID = 1L;
+
+		protected boolean removeEldestEntry(Map.Entry<UUID, MakerPlayerData> eldest) {
+			return size() > MAX_ACCOUNT_DATA_ENTRIES;
+		}
+
+	});
+
+	// used to control the fast relogin hack
+	private final Map<UUID, Long> nextAllowedLogins = Collections.synchronizedMap(new LinkedHashMap<UUID, Long>() {
+		private static final long serialVersionUID = 1L;
+		private static final int MAX_ENTRIES = 200;
+
+		protected boolean removeEldestEntry(Map.Entry<UUID, Long> eldest) {
+			return size() > MAX_ENTRIES;
+		}
+	});
+
 	public MakerController(MinecraftMakerPlugin plugin, ConfigurationSection config) {
 		this.plugin = plugin;
 		this.mainWorldName = config != null ? config.getString("main-world", "world") : "world";
 		this.maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
+		this.spawnVector = config != null ? config.getVector("spawn-vector", DEFAULT_SPAWN_VECTOR) : DEFAULT_SPAWN_VECTOR;
+		this.spawnYaw = config != null ? (float)config.getDouble("spawn-yaw", DEFAULT_SPAWN_YAW) : DEFAULT_SPAWN_YAW;
+		this.spawnPitch = config != null ? (float)config.getDouble("spawn-pitch", DEFAULT_SPAWN_PITCH) : DEFAULT_SPAWN_PITCH;
 	}
 
 	@Override
@@ -115,7 +162,7 @@ public class MakerController implements Runnable, Tickable {
 
 	public World getMainWorld() {
 		if (this.mainWorld == null) {
-			this.mainWorld = MakerWorldUtils.createOrLoadWorld(this.plugin, this.mainWorldName, DEFAULT_SPAWN_LOCATION);
+			this.mainWorld = MakerWorldUtils.createOrLoadWorld(this.plugin, this.mainWorldName, DEFAULT_SPAWN_VECTOR);
 		}
 		return this.mainWorld;
 	}
@@ -276,19 +323,213 @@ public class MakerController implements Runnable, Tickable {
 		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, BukkitUtil.toWorld(getMainWorld()).getWorldData(), f)));
 	}
 
-	public void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
-		// TODO Auto-generated method stub
+	public int getPlayerCount() {
+		return playerMap.size();
+	}
 
+	public void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
+		// allow vanilla white-list logic to work
+		if (Result.KICK_WHITELIST.equals(event.getLoginResult())) {
+			return;
+		}
+
+		// login hacks
+		controlDoubleLoginHack(event);
+		controlFastReloginHack(event);
+		if (Result.KICK_OTHER.equals(event.getLoginResult())) {
+			return;
+		}
+
+		// this code is not run by the main thread
+		final MakerPlayerData data = plugin.getDatabaseAdapter().loadAccountData(event.getUniqueId(), event.getName());
+		if (null == data) {
+			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.missing-data"));
+			return;
+		}
+
+		// allow vips to join full servers
+		if (Result.KICK_FULL.equals(event.getLoginResult())) {
+			if (data.hasRank(Rank.VIP) && getPlayerCount() < Bukkit.getMaxPlayers() + 20) {
+				event.allow();
+			} else {
+				event.setKickMessage(plugin.getMessage("server.error.max-player-capacity"));
+				return;
+			}
+		}
+		accountDataMap.put(event.getUniqueId(), data);
+		Bukkit.getPluginManager().callEvent(new AsyncAccountDataLoadEvent(data));
+	}
+
+	private void controlFastReloginHack(AsyncPlayerPreLoginEvent event) {
+		Long nextAllowedLogin = nextAllowedLogins.get(event.getUniqueId());
+		if (nextAllowedLogin != null && System.currentTimeMillis() < nextAllowedLogin.longValue()) {
+			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlFastReloginHack - possible too fast relogin detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
+			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.too-fast-relogin"));
+		} else {
+			nextAllowedLogins.put(event.getUniqueId(), System.currentTimeMillis() + (FAST_RELOGIN_DELAY_SECONDS * 1000));
+		}
+	}
+
+	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
+		if (playerMap.containsKey(event.getUniqueId())) {
+			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlDoubleLoginHack - possible double login detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
+			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.double-login"));
+		}
 	}
 
 	public void onPlayerJoin(Player player) {
-		// TODO Auto-generated method stub
-
+		Bukkit.getLogger().info(String.format("MakerController.onPlayerJoin - Player: [%s<%s>]", player.getName(), player.getUniqueId()));
+		MakerPlayerData data = accountDataMap.remove(player.getUniqueId());
+		if (null == data && !playerMap.containsKey(player.getUniqueId())) {
+			Bukkit.getLogger().info(String.format("MakerController.onPlayerJoin - No data available yet for Player: [%s<%s>]", player.getName(), player.getUniqueId()));
+			// avoid double login hack
+			new BukkitRunnable() {
+				@Override
+				public void run() {
+					if (player.isOnline() && !playerMap.containsKey(player.getUniqueId())) {
+						Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.onPlayerJoin - possible double login for player: [%s<%s>]", player.getName(), player.getUniqueId()));
+						player.kickPlayer(plugin.getMessage("server.error.double-login"));
+					}
+				}
+			}.runTaskLater(plugin, DOUBLE_LOGIN_DELAY_SECONDS * 20);
+			return;
+		}
+		if (!playerMap.containsKey(data.getUniqueId())) {
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerJoin - adding player to the server: [%s]", data.getUsername()));
+			addMakerPlayer(player, data);
+		}
 	}
 
 	public void onPlayerQuit(Player player) {
-		// TODO Auto-generated method stub
+		// wait a bit before coming back
+		nextAllowedLogins.put(player.getUniqueId(), System.currentTimeMillis() + (FAST_RELOGIN_DELAY_SECONDS * 1000));
+		// remove from map
+		MakerPlayer mPlayer = playerMap.remove(player.getUniqueId());
+		if (mPlayer != null) {
+			// TODO: destroy player custom stuff
+		} else {
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerQuit - Player: [%s] was already removed", player.getName()));
+		}
+		// TODO: notify rabbit that player left
+		// plugin.publishServerInfoAsync();
+		
+		
+//		// FIXME: experimental
+//		entriesToRemoveFromScoreboardTeamsOnNextTick.add(quitter.getName());
+//
+//		final SCBPlayer gPlayer = getPlayer(quitter);
+//
+//		if (gPlayer != null) {
+//			// destroy stuff
+//			if (gPlayer.getCurrentGame() != null) {
+//				gPlayer.getCurrentGame().onPlayerQuit(gPlayer);
+//			}
+//			if (gPlayer.getSpectatingGame() != null) {
+//				gPlayer.getSpectatingGame().onSpectatorQuit(gPlayer);
+//			}
+//			if (quitter.getMaxHealth() != 20) {
+//				quitter.setMaxHealth(20);
+//			}
+//
+//			// remove customized scoreboard
+//			gPlayer.removeLobbyScoreboard();
+//
+//			// remove customized inventories
+//			gPlayer.removePersonalInventories();
+//
+//			// remove from the player map
+//			playerMap.remove(gPlayer.getPlayer().getUniqueId());	
+//			// notify a player left
+//			plugin.publishServerInfoAsync();
+//		} else {
+//			Bukkit.getLogger().warning(String.format("SCBController.onPlayerQuit - Player: [%s] was already removed", quitter.getName()));
+//		}
+	}
 
+	public void onAsyncAccountDataLoad(MakerPlayerData data) {
+		if (playerMap.containsKey(data.getUniqueId())) {
+			Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - Player is already registered on the server with valid data: [%s]", data.getUsername()));
+			return;
+		}
+		// switch to main thread
+		Bukkit.getScheduler().runTask(plugin, new Runnable() {
+			@Override
+			public void run() {
+				Player player = Bukkit.getPlayer(data.getUniqueId());
+				if (player == null) {
+					Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - Player is not online: [%s]", data.getUsername()));
+					// TODO: discard data?
+					return;
+				}
+				Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - adding player to the server: [%s]", data.getUsername()));
+				addMakerPlayer(player, data);
+			}
+		});
+	}
+
+	private void addMakerPlayer(Player player, MakerPlayerData data) {
+		final MakerPlayer mPlayer = new MakerPlayer(player, data);
+		// add the player to the player map
+
+		playerMap.put(mPlayer.getUniqueId(), mPlayer);
+		// TODO: notify player joined
+		//plugin.publishServerInfoAsync();
+
+		// add the player to the lobby
+		addPlayerToMainLobby(mPlayer);
+
+		// TODO: welcome stuff if needed
+	}
+
+	public Location getDefaultSpawnLocation() {
+		return spawnVector.toLocation(getMainWorld(), spawnYaw, spawnPitch);
+	}
+
+	private void addPlayerToMainLobby(MakerPlayer mPlayer) {
+		// reset player
+		mPlayer.resetPlayer();
+		// teleport to spawn point
+		if (mPlayer.getPlayer().getLocation().distanceSquared(getDefaultSpawnLocation()) > 4d) {
+			mPlayer.getPlayer().teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN);
+		}
+		// set lobby inventory
+		mPlayer.resetLobbyInventory();
+		// reset display name
+		mPlayer.getPlayer().setDisplayName(mPlayer.getDisplayName());
+		mPlayer.getPlayer().setPlayerListName(mPlayer.getDisplayName());
+		// create player Lobby Scoreboard
+		// TODO: mPlayer.addLobbyScoreboard();
+		// we need this in order to display the rank tags over player heads
+		// TODO: entriesToAddToScoreboardTeamsOnNextTick.add(mPlayer);
+		// reset visibility
+		PlayerUtils.resetPlayerVisibility(mPlayer.getPlayer());
+	}
+
+	public void onPlayerInteract(PlayerInteractEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onPlayerInteract - Player:[%s]", event.getPlayer().getName()));
+		}
+		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerInteract - untracked Player:[%s]", event.getPlayer().getName()));
+			event.setCancelled(true);
+			return;
+		}
+		if (EventUtils.isItemRightClick(event)) {
+			ItemStack item = event.getItem();
+			if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
+				return;
+			}
+			if (ItemUtils.itemNameEquals(item, MakerLobbyItems.CREATE_LEVEL.getDisplayName())) {
+				event.setCancelled(true);
+				// TODO: open new level menu
+				return;
+			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItems.QUIT.getDisplayName())) {
+				event.setCancelled(true);
+				BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
+				return;
+			}
+		}
 	}
 
 }

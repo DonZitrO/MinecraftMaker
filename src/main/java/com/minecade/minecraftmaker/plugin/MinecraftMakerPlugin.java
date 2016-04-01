@@ -5,13 +5,18 @@ import java.util.ResourceBundle;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.minecade.core.config.ServerPropertyFilesConfigurator;
 import com.minecade.core.data.Rank;
 import com.minecade.core.i18n.Internationalizable;
+import com.minecade.core.util.BungeeUtils;
+import com.minecade.core.util.EmptyGenerator;
 import com.minecade.minecraftmaker.bukkit.BukkitImplAdapter;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
+import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
 import com.minecade.minecraftmaker.items.MakerLobbyItems;
 import com.minecade.minecraftmaker.listener.MakerListener;
 import com.minecade.minecraftmaker.nms.schematic.Spigot_v1_9_R1;
@@ -25,6 +30,9 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		return instance;
 	}
 
+	private final ChunkGenerator emptyGenerator = new EmptyGenerator();
+
+	private MakerDatabaseAdapter databaseAdapter;
 	private MakerController controller;
 	private MakerBuilderTask builderTask;
 	private BukkitImplAdapter bukkitImplAdapter;
@@ -37,6 +45,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		saveDefaultConfig();
 		// server custom config should override this
 		getConfig().options().copyDefaults(false);
+		// configure server files first and reboot if necessary
+		ServerPropertyFilesConfigurator.configureServerProperties();
+		ServerPropertyFilesConfigurator.configureBukkitYML();
+		ServerPropertyFilesConfigurator.configureSpigotYML();
 		try {
 			this.bukkitImplAdapter = new Spigot_v1_9_R1();
 		} catch (Exception e) {
@@ -64,8 +76,11 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 
 	@Override
 	public void onEnable() {
+		// BungeeCord communication
+		getServer().getMessenger().registerOutgoingPluginChannel(this, BungeeUtils.BUNGEECORD_CHANNEL);
 		// register commands
 		getCommand("level").setExecutor(new LevelCommandExecutor(this));
+		databaseAdapter = new MakerDatabaseAdapter(this);
 		// instantiate and init main controller
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
 		controller.enable();
@@ -84,6 +99,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		this.getServer().getScheduler().cancelTasks(this);
 	}
 
+	public MakerDatabaseAdapter getDatabaseAdapter() {
+		return databaseAdapter;
+	}
+
 	public MakerController getController() {
 		return controller;
 	}
@@ -98,6 +117,11 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 
 	public BukkitImplAdapter getBukkitImplAdapter() {
 		return bukkitImplAdapter;
+	}
+
+	@Override
+	public ChunkGenerator getDefaultWorldGenerator(String world, String id) {
+		return emptyGenerator;
 	}
 
 	@Override

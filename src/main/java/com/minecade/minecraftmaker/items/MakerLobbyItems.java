@@ -13,9 +13,10 @@ import com.minecade.core.item.ItemStackBuilder;
 
 public enum MakerLobbyItems implements Translatable {
 
-	STEVE_CHALLENGE_ITEM(Material.SKULL_ITEM, 1, (short) 3),
-	CREATE_LEVEL_ITEM(Material.EMPTY_MAP),
-	VIEW_LEVELS_ITEM(Material.BOOKSHELF),
+	SERVER_BROWSER(Material.WATCH),
+	STEVE_CHALLENGE(Material.SKULL_ITEM, 1, (short) 3),
+	CREATE_LEVEL(Material.EMPTY_MAP),
+	VIEW_LEVELS(Material.BOOKSHELF),
 	QUIT(Material.TNT);
 
 	private final ItemStackBuilder builder;
@@ -38,12 +39,12 @@ public enum MakerLobbyItems implements Translatable {
 
 	@Override
 	public void translate(Internationalizable plugin) {
-		String translationKey = String.format("item.%s.display-name", name().toLowerCase().replace('_','-'));
+		String translationKey = String.format("lobby.item.%s.display-name", name().toLowerCase().replace('_','-'));
 		String displayName = plugin.getMessage(translationKey);
 		if (displayName != translationKey) {
 			builder.withDisplayName(displayName);
 		}
-		translationKey = String.format("item.%s.lore", name().toLowerCase().replace('_','-'));
+		translationKey = String.format("lobby.item.%s.lore", name().toLowerCase().replace('_','-'));
 		List<String> translatedLore = I18NUtils.translateAndSplitSingleLine(plugin, translationKey);
 		if (!translatedLore.isEmpty() && !translationKey.equals(translatedLore.get(0))) {
 			builder.withLore(translatedLore);
