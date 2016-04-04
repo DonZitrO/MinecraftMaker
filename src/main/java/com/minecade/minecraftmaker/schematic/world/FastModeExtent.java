@@ -6,10 +6,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.minecade.minecraftmaker.function.operation.Operation;
+import com.minecade.minecraftmaker.function.operation.RunContext;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
-import com.minecade.minecraftmaker.schematic.function.operation.Operation;
-import com.minecade.minecraftmaker.schematic.function.operation.RunContext;
 
 /**
  * Implements "fast mode" which may skip physics, lighting, etc.

@@ -5,11 +5,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import com.minecade.minecraftmaker.function.operation.LimitedTimeRunContext;
+import com.minecade.minecraftmaker.function.operation.Operation;
+import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
-import com.minecade.minecraftmaker.schematic.function.operation.LimitedTimeRunContext;
-import com.minecade.minecraftmaker.schematic.function.operation.Operation;
-import com.minecade.minecraftmaker.schematic.function.operation.ResumableOperationQueue;
 
 public class MakerBuilderTask extends BukkitRunnable {
 

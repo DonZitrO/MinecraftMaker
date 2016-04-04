@@ -45,9 +45,9 @@ import org.bukkit.craftbukkit.v1_9_R1.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_9_R1.entity.CraftEntity;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 
-import com.minecade.minecraftmaker.bukkit.BukkitImplAdapter;
-import com.minecade.minecraftmaker.bukkit.Constants;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
+import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
+import com.minecade.minecraftmaker.schematic.bukkit.Constants;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.jnbt.ByteArrayTag;
 import com.minecade.minecraftmaker.schematic.jnbt.ByteTag;

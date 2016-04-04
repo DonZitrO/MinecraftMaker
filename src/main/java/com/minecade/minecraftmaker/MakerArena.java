@@ -1,3 +1,4 @@
+/*
 package com.minecade.minecraftmaker;
 
 import java.util.ArrayList;
@@ -44,13 +45,13 @@ public class MakerArena extends MinigameArena implements Tickable {
 	
 	private Loadout arenaLoadout = new Loadout();
 
-	/**
+	*//**
 	 * Use this method for a player who is just going to be creating a blank arena.
 	 * @param base
 	 * @param name the name can be blank, as the user will fill it in during arena creation.
 	 * @param minPlayers this should be set to 1
 	 * @param maxPlayers this should also be set to 1, unless we want more than 1 editor.
-	 */
+	 *//*
 	public MakerArena(MakerBase base, String name, int minPlayers, int maxPlayers) {
 		super(base, name, minPlayers, maxPlayers);
 		arenaType = ArenaType.CREATING;
@@ -314,3 +315,4 @@ public class MakerArena extends MinigameArena implements Tickable {
 	}
 
 }
+*/

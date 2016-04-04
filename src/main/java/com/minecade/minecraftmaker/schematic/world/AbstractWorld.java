@@ -2,14 +2,14 @@ package com.minecade.minecraftmaker.schematic.world;
 
 import javax.annotation.Nullable;
 
+import com.minecade.minecraftmaker.function.mask.BlockMask;
+import com.minecade.minecraftmaker.function.mask.Mask;
+import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BaseItem;
 import com.minecade.minecraftmaker.schematic.block.BaseItemStack;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
-import com.minecade.minecraftmaker.schematic.function.mask.BlockMask;
-import com.minecade.minecraftmaker.schematic.function.mask.Mask;
-import com.minecade.minecraftmaker.schematic.function.operation.Operation;
 
 /**
  * An abstract implementation of {@link World}.

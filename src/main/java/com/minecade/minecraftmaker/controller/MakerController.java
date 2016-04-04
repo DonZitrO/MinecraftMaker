@@ -13,9 +13,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -31,19 +34,20 @@ import com.minecade.core.event.EventUtils;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.core.player.PlayerUtils;
 import com.minecade.core.util.BungeeUtils;
-import com.minecade.minecraftmaker.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
-import com.minecade.minecraftmaker.items.MakerLobbyItems;
+import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
+import com.minecade.minecraftmaker.function.operation.Operation;
+import com.minecade.minecraftmaker.function.operation.ReadyLevelForEditionOperation;
+import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
+import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
+import com.minecade.minecraftmaker.function.operation.SchematicWriteOperation;
+import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
+import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.FilenameException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
-import com.minecade.minecraftmaker.schematic.function.mask.ExistingBlockMask;
-import com.minecade.minecraftmaker.schematic.function.operation.Operation;
-import com.minecade.minecraftmaker.schematic.function.operation.ResumableForwardExtentCopy;
-import com.minecade.minecraftmaker.schematic.function.operation.ResumableOperationQueue;
-import com.minecade.minecraftmaker.schematic.function.operation.SchematicWriteOperation;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
@@ -65,6 +69,7 @@ public class MakerController implements Runnable, Tickable {
 	private static final int FAST_RELOGIN_DELAY_SECONDS = 5;
 	private static final int DOUBLE_LOGIN_DELAY_SECONDS = 2;
 	private static final int DEFAULT_MAX_PLAYERS = 40;
+	private static final int DEFAULT_MAX_LEVELS = 10;
 	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
 	private static final Transform IDENTITY_TRANSFORM = new Identity();
 
@@ -86,6 +91,7 @@ public class MakerController implements Runnable, Tickable {
 	private long currentTick;
 	private boolean enabled;
 	private int maxPlayers;
+	private short maxLevels;
 
 	// keeps track of every player on the server
 	private Map<UUID, MakerPlayer> playerMap;
@@ -116,9 +122,109 @@ public class MakerController implements Runnable, Tickable {
 		this.plugin = plugin;
 		this.mainWorldName = config != null ? config.getString("main-world", "world") : "world";
 		this.maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
+		this.maxLevels = config != null ? (short)config.getInt("max-levels", DEFAULT_MAX_LEVELS) : DEFAULT_MAX_LEVELS;
 		this.spawnVector = config != null ? config.getVector("spawn-vector", DEFAULT_SPAWN_VECTOR) : DEFAULT_SPAWN_VECTOR;
 		this.spawnYaw = config != null ? (float)config.getDouble("spawn-yaw", DEFAULT_SPAWN_YAW) : DEFAULT_SPAWN_YAW;
 		this.spawnPitch = config != null ? (float)config.getDouble("spawn-pitch", DEFAULT_SPAWN_PITCH) : DEFAULT_SPAWN_PITCH;
+	}
+
+	private void addMakerPlayer(Player player, MakerPlayerData data) {
+		final MakerPlayer mPlayer = new MakerPlayer(player, data);
+		// add the player to the player map
+
+		playerMap.put(mPlayer.getUniqueId(), mPlayer);
+		// TODO: notify player joined
+		//plugin.publishServerInfoAsync();
+
+		// add the player to the lobby
+		addPlayerToMainLobby(mPlayer);
+
+		// TODO: welcome stuff if needed
+	}
+
+	private void addPlayerToMainLobby(MakerPlayer mPlayer) {
+		// reset player
+		mPlayer.resetPlayer();
+		// teleport to spawn point
+		if (mPlayer.getPlayer().getLocation().distanceSquared(getDefaultSpawnLocation()) > 4d) {
+			mPlayer.getPlayer().teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN);
+		}
+		// set lobby inventory
+		mPlayer.resetLobbyInventory();
+		// reset display name
+		mPlayer.getPlayer().setDisplayName(mPlayer.getDisplayName());
+		mPlayer.getPlayer().setPlayerListName(mPlayer.getDisplayName());
+		// create player Lobby Scoreboard
+		// TODO: mPlayer.addLobbyScoreboard();
+		// we need this in order to display the rank tags over player heads
+		// TODO: entriesToAddToScoreboardTeamsOnNextTick.add(mPlayer);
+		// reset visibility
+		PlayerUtils.resetPlayerVisibility(mPlayer.getPlayer());
+	}
+
+	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
+		if (playerMap.containsKey(event.getUniqueId())) {
+			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlDoubleLoginHack - possible double login detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
+			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.double-login"));
+		}
+	}
+
+	private void controlFastReloginHack(AsyncPlayerPreLoginEvent event) {
+		Long nextAllowedLogin = nextAllowedLogins.get(event.getUniqueId());
+		if (nextAllowedLogin != null && System.currentTimeMillis() < nextAllowedLogin.longValue()) {
+			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlFastReloginHack - possible too fast relogin detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
+			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.too-fast-relogin"));
+		} else {
+			nextAllowedLogins.put(event.getUniqueId(), System.currentTimeMillis() + (FAST_RELOGIN_DELAY_SECONDS * 1000));
+		}
+	}
+
+	public void createEmptyLevel(MakerPlayer author, Material material) {
+		if (!author.isInLobby() || author.hasPendingOperation()) {
+			author.sendMessage(plugin, "level.create.error.author-busy");
+		}
+		MakerLevel level = getEmptyLevelIfAvailable();
+		if (level == null) {
+			author.sendMessage(plugin, "level.full");
+			return;
+		}
+		level.setAuthorId(author.getUniqueId());
+		author.sendMessage(plugin, "level.loading");
+		try {
+			@SuppressWarnings("deprecation")
+			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), level.getChunkZ(), material.getId());
+			Operation copy = createPasteOperation(clipboard);
+			plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new ReadyLevelForEditionOperation(level)));
+		} catch (MinecraftMakerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public void createEmptyLevel(String string, short chunkZ, int floorBlockId) {
+		// TODO register level on slot
+		try {
+			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), (short) chunkZ, floorBlockId);
+			Operation copy = createPasteOperation(clipboard);
+			plugin.getBuilderTask().offer(copy);
+		} catch (MinecraftMakerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public Operation createPasteOperation(Clipboard clipboard) {
+		Region region = clipboard.getRegion();
+		com.minecade.minecraftmaker.schematic.world.World world = region.getWorld();
+		com.minecade.minecraftmaker.schematic.world.WorldData worldData = world.getWorldData();
+		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
+		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
+		copy.setTransform(IDENTITY_TRANSFORM);
+		boolean ignoreAirBlocks = false;
+		if (ignoreAirBlocks) {
+			copy.setSourceMask(new ExistingBlockMask(clipboard));
+		}
+		return copy;
 	}
 
 	@Override
@@ -153,11 +259,23 @@ public class MakerController implements Runnable, Tickable {
 		return currentTick;
 	}
 
-	public MakerExtent getMakerExtent() {
-		if (this.makerExtent == null) {
-			this.makerExtent = new MakerExtent(BukkitUtil.toWorld(getMainWorld()));
+	public Location getDefaultSpawnLocation() {
+		return spawnVector.toLocation(getMainWorld(), spawnYaw, spawnPitch);
+	}
+
+	private MakerLevel getEmptyLevelIfAvailable() {
+		for (short i = 0; i < maxLevels; i++) {
+			if (!levelMap.containsKey(i)) {
+				MakerLevel level = new MakerLevel(plugin, i);
+				levelMap.put(i, level);
+				return level;
+			}
 		}
-		return this.makerExtent;
+		return null;
+	}
+
+	public MakerLevel getLevel(short slotId) {
+		return levelMap.get(slotId);
 	}
 
 	public World getMainWorld() {
@@ -167,8 +285,11 @@ public class MakerController implements Runnable, Tickable {
 		return this.mainWorld;
 	}
 
-	public MakerLevel getArena(short slotId) {
-		return levelMap.get(slotId);
+	public MakerExtent getMakerExtent() {
+		if (this.makerExtent == null) {
+			this.makerExtent = new MakerExtent(BukkitUtil.toWorld(getMainWorld()));
+		}
+		return this.makerExtent;
 	}
 
 	public MakerPlayer getPlayer(Player player) {
@@ -179,66 +300,13 @@ public class MakerController implements Runnable, Tickable {
 		return playerMap.get(playerId);
 	}
 
-	@Override
-	public void run() {
-		tick(getCurrentTick() + 1);
-	}
-
-	@Override
-	public void tick(long currentTick) {
-		this.currentTick = currentTick;
-		if (this.currentTick == 1) {
-			MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld());
-			try {
-				plugin.getBuilderTask().offer(createPasteOperation(LevelUtils.createLobbyFloor(this.getMainWorld())));
-			} catch (MinecraftMakerException e) {
-				e.printStackTrace();
-			}
-			return;
-		}
-		// tick levels
-		for (MakerLevel level : new ArrayList<MakerLevel>(levelMap.values())) {
-			if (level != null) {
-				TickableUtils.tickSafely(level, currentTick);
-			}
-		}
-		// tick players
-		for (MakerPlayer mPlayer : new ArrayList<MakerPlayer>(playerMap.values())) {
-			if (mPlayer != null) {
-				TickableUtils.tickSafely(mPlayer, currentTick);
-			}
-		}
+	public int getPlayerCount() {
+		return playerMap.size();
 	}
 
 	@Override
 	public boolean isEnabled() {
 		return enabled;
-	}
-
-	public void createEmptyLevel(String string, short chunkZ, int floorBlockId) {
-		// TODO register level on slot
-		try {
-			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), (short) chunkZ, floorBlockId);
-			Operation copy = createPasteOperation(clipboard);
-			plugin.getBuilderTask().offer(copy);
-		} catch (MinecraftMakerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	public Operation createPasteOperation(Clipboard clipboard) {
-		Region region = clipboard.getRegion();
-		com.minecade.minecraftmaker.schematic.world.World world = region.getWorld();
-		com.minecade.minecraftmaker.schematic.world.WorldData worldData = world.getWorldData();
-		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
-		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
-		copy.setTransform(IDENTITY_TRANSFORM);
-		boolean ignoreAirBlocks = false;
-		if (ignoreAirBlocks) {
-			copy.setSourceMask(new ExistingBlockMask(clipboard));
-		}
-		return copy;
 	}
 
 	public void loadLevel(String levelName, short chunkZ) {
@@ -293,38 +361,25 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void saveLevel(String levelName, short chunkZ) {
-		File schematicsFolder = new File(plugin.getDataFolder(), "test");
-		// if the directory does not exist, create it
-		if (!schematicsFolder.exists()) {
-			try {
-				schematicsFolder.mkdir();
-			} catch (Exception e) {
-				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
-				e.printStackTrace();
-				return;
-			}
-		}
-
-		File f;
-		try {
-			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
-		} catch (FilenameException e) {
-			// TODO notify player/sender
-			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
-			e.printStackTrace();
+	public void onAsyncAccountDataLoad(MakerPlayerData data) {
+		if (playerMap.containsKey(data.getUniqueId())) {
+			Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - Player is already registered on the server with valid data: [%s]", data.getUsername()));
 			return;
 		}
-
-		Region levelRegion = LevelUtils.getLevelRegion(getMainWorld(), chunkZ);
-		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
-		clipboard.setOrigin(levelRegion.getMinimumPoint());
-		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
-		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, BukkitUtil.toWorld(getMainWorld()).getWorldData(), f)));
-	}
-
-	public int getPlayerCount() {
-		return playerMap.size();
+		// switch to main thread
+		Bukkit.getScheduler().runTask(plugin, new Runnable() {
+			@Override
+			public void run() {
+				Player player = Bukkit.getPlayer(data.getUniqueId());
+				if (player == null) {
+					Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - Player is not online: [%s]", data.getUsername()));
+					// TODO: discard data?
+					return;
+				}
+				Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - adding player to the server: [%s]", data.getUsername()));
+				addMakerPlayer(player, data);
+			}
+		});
 	}
 
 	public void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
@@ -360,20 +415,65 @@ public class MakerController implements Runnable, Tickable {
 		Bukkit.getPluginManager().callEvent(new AsyncAccountDataLoadEvent(data));
 	}
 
-	private void controlFastReloginHack(AsyncPlayerPreLoginEvent event) {
-		Long nextAllowedLogin = nextAllowedLogins.get(event.getUniqueId());
-		if (nextAllowedLogin != null && System.currentTimeMillis() < nextAllowedLogin.longValue()) {
-			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlFastReloginHack - possible too fast relogin detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
-			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.too-fast-relogin"));
-		} else {
-			nextAllowedLogins.put(event.getUniqueId(), System.currentTimeMillis() + (FAST_RELOGIN_DELAY_SECONDS * 1000));
+	public void onInventoryClick(InventoryClickEvent event) {
+		Player bukkitPlayer = (Player) event.getWhoClicked();
+		final MakerPlayer mPlayer = getPlayer(bukkitPlayer);
+		if (mPlayer == null) {
+			event.setCancelled(true);
+			return;
+		}
+		// FIXME: or is not in lobby?
+		if (mPlayer.isEditingLevel()) {
+			return;
+		}
+		// cancel inventory right click entirely
+		if (event.isRightClick()) {
+			event.setCancelled(true);
+			mPlayer.updateInventoryOnNextTick();
+			return;
+		}
+		// we are only interested on clicks on container type slots for custom menus and inventories
+		if (event.getSlotType() == SlotType.CONTAINER) {
+			final ItemStack clicked = event.getCurrentItem();
+			if (clicked != null && clicked.getType() != Material.AIR) {
+				if (mPlayer.onInventoryClick(event.getInventory(), event.getRawSlot())) {
+					event.setCancelled(true);
+					mPlayer.closeInventory();
+				}
+			}
+			return;
 		}
 	}
 
-	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
-		if (playerMap.containsKey(event.getUniqueId())) {
-			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlDoubleLoginHack - possible double login detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
-			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.double-login"));
+	public void onPlayerInteract(PlayerInteractEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onPlayerInteract - Player:[%s]", event.getPlayer().getName()));
+		}
+		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerInteract - untracked Player:[%s]", event.getPlayer().getName()));
+			event.setCancelled(true);
+			return;
+		}
+		if (EventUtils.isItemRightClick(event)) {
+			ItemStack item = event.getItem();
+			if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
+				return;
+			}
+			if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SERVER_BROWSER.getDisplayName())) {
+				event.setCancelled(true);
+				mPlayer.openServerBrowserMenu();
+				return;
+			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
+				event.setCancelled(true);
+				mPlayer.updateInventoryOnNextTick();
+				mPlayer.openLevelTemplateMenu();
+				return;
+			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
+				event.setCancelled(true);
+				BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
+				return;
+			}
 		}
 	}
 
@@ -407,12 +507,15 @@ public class MakerController implements Runnable, Tickable {
 		MakerPlayer mPlayer = playerMap.remove(player.getUniqueId());
 		if (mPlayer != null) {
 			// TODO: destroy player custom stuff
+			// TODO: cancel pending level loading tasks
+			mPlayer.cancelPendingOperation();
 		} else {
 			Bukkit.getLogger().warning(String.format("MakerController.onPlayerQuit - Player: [%s] was already removed", player.getName()));
 		}
 		// TODO: notify rabbit that player left
 		// plugin.publishServerInfoAsync();
 		
+
 		
 //		// FIXME: experimental
 //		entriesToRemoveFromScoreboardTeamsOnNextTick.add(quitter.getName());
@@ -446,88 +549,63 @@ public class MakerController implements Runnable, Tickable {
 //		}
 	}
 
-	public void onAsyncAccountDataLoad(MakerPlayerData data) {
-		if (playerMap.containsKey(data.getUniqueId())) {
-			Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - Player is already registered on the server with valid data: [%s]", data.getUsername()));
-			return;
-		}
-		// switch to main thread
-		Bukkit.getScheduler().runTask(plugin, new Runnable() {
-			@Override
-			public void run() {
-				Player player = Bukkit.getPlayer(data.getUniqueId());
-				if (player == null) {
-					Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - Player is not online: [%s]", data.getUsername()));
-					// TODO: discard data?
-					return;
-				}
-				Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - adding player to the server: [%s]", data.getUsername()));
-				addMakerPlayer(player, data);
-			}
-		});
+	@Override
+	public void run() {
+		tick(getCurrentTick() + 1);
 	}
 
-	private void addMakerPlayer(Player player, MakerPlayerData data) {
-		final MakerPlayer mPlayer = new MakerPlayer(player, data);
-		// add the player to the player map
-
-		playerMap.put(mPlayer.getUniqueId(), mPlayer);
-		// TODO: notify player joined
-		//plugin.publishServerInfoAsync();
-
-		// add the player to the lobby
-		addPlayerToMainLobby(mPlayer);
-
-		// TODO: welcome stuff if needed
-	}
-
-	public Location getDefaultSpawnLocation() {
-		return spawnVector.toLocation(getMainWorld(), spawnYaw, spawnPitch);
-	}
-
-	private void addPlayerToMainLobby(MakerPlayer mPlayer) {
-		// reset player
-		mPlayer.resetPlayer();
-		// teleport to spawn point
-		if (mPlayer.getPlayer().getLocation().distanceSquared(getDefaultSpawnLocation()) > 4d) {
-			mPlayer.getPlayer().teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN);
-		}
-		// set lobby inventory
-		mPlayer.resetLobbyInventory();
-		// reset display name
-		mPlayer.getPlayer().setDisplayName(mPlayer.getDisplayName());
-		mPlayer.getPlayer().setPlayerListName(mPlayer.getDisplayName());
-		// create player Lobby Scoreboard
-		// TODO: mPlayer.addLobbyScoreboard();
-		// we need this in order to display the rank tags over player heads
-		// TODO: entriesToAddToScoreboardTeamsOnNextTick.add(mPlayer);
-		// reset visibility
-		PlayerUtils.resetPlayerVisibility(mPlayer.getPlayer());
-	}
-
-	public void onPlayerInteract(PlayerInteractEvent event) {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onPlayerInteract - Player:[%s]", event.getPlayer().getName()));
-		}
-		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
-		if (mPlayer == null) {
-			Bukkit.getLogger().warning(String.format("MakerController.onPlayerInteract - untracked Player:[%s]", event.getPlayer().getName()));
-			event.setCancelled(true);
-			return;
-		}
-		if (EventUtils.isItemRightClick(event)) {
-			ItemStack item = event.getItem();
-			if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
+	public void saveLevel(String levelName, short chunkZ) {
+		File schematicsFolder = new File(plugin.getDataFolder(), "test");
+		// if the directory does not exist, create it
+		if (!schematicsFolder.exists()) {
+			try {
+				schematicsFolder.mkdir();
+			} catch (Exception e) {
+				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
+				e.printStackTrace();
 				return;
 			}
-			if (ItemUtils.itemNameEquals(item, MakerLobbyItems.CREATE_LEVEL.getDisplayName())) {
-				event.setCancelled(true);
-				// TODO: open new level menu
-				return;
-			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItems.QUIT.getDisplayName())) {
-				event.setCancelled(true);
-				BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
-				return;
+		}
+
+		File f;
+		try {
+			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
+		} catch (FilenameException e) {
+			// TODO notify player/sender
+			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+			e.printStackTrace();
+			return;
+		}
+
+		Region levelRegion = LevelUtils.getLevelRegion(getMainWorld(), chunkZ);
+		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
+		clipboard.setOrigin(levelRegion.getMinimumPoint());
+		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
+		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, BukkitUtil.toWorld(getMainWorld()).getWorldData(), f)));
+	}
+
+	@Override
+	public void tick(long currentTick) {
+		this.currentTick = currentTick;
+		if (this.currentTick == 1) {
+			MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld());
+			try {
+				plugin.getBuilderTask().offer(createPasteOperation(LevelUtils.createLobbyFloor(this.getMainWorld())));
+			} catch (MinecraftMakerException e) {
+				e.printStackTrace();
+			}
+			return;
+		}
+		// tick levels
+		for (MakerLevel level : new ArrayList<MakerLevel>(levelMap.values())) {
+			if (level != null) {
+				TickableUtils.tickSafely(level, currentTick);
+			}
+		}
+		// tick players
+		for (MakerPlayer mPlayer : new ArrayList<MakerPlayer>(playerMap.values())) {
+			if (mPlayer != null) {
+				TickableUtils.tickSafely(mPlayer, currentTick);
 			}
 		}
 	}

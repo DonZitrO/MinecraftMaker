@@ -15,6 +15,14 @@ public class EventUtils {
 		return Action.RIGHT_CLICK_AIR.equals(event.getAction()) || Action.RIGHT_CLICK_BLOCK.equals(event.getAction());
 	}
 
+	public static boolean isLeftClickBlock(PlayerInteractEvent event) {
+		return Action.RIGHT_CLICK_BLOCK.equals(event.getAction());
+	}
+
+	public static boolean isLeftClickBlock(PlayerInteractEvent event, Material blockMaterial) {
+		return Action.LEFT_CLICK_BLOCK.equals(event.getAction()) && event.getClickedBlock().getType().equals(blockMaterial);
+	}
+
 	public static boolean isSignRightClick(PlayerInteractEvent event) {
 		return isBlockRightClick(event) && event.getClickedBlock().getState() instanceof Sign;
 	}

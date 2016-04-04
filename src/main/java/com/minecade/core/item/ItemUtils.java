@@ -18,14 +18,9 @@ public class ItemUtils {
 	}
 
 	public static boolean itemNameEquals(ItemStack stack, String itemName) {
-		if (stack.getItemMeta() == null || itemName == null) {
+		if (stack == null || !stack.hasItemMeta() || !stack.getItemMeta().hasDisplayName() || itemName == null) {
 			return false;
 		}
-		String s = ChatColor.stripColor(stack.getItemMeta().getDisplayName());
-		if (s == null) {
-			return false;
-		}
-
 		return (ChatColor.stripColor(itemName).equals(ChatColor.stripColor(stack.getItemMeta().getDisplayName())));
 	}
 

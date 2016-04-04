@@ -1,10 +1,10 @@
 package com.minecade.minecraftmaker.schematic.world;
 
+import com.minecade.minecraftmaker.function.mask.Mask;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BaseItem;
 import com.minecade.minecraftmaker.schematic.block.BaseItemStack;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
-import com.minecade.minecraftmaker.schematic.function.mask.Mask;
 
 /**
  * Represents a world (dimension).

@@ -2,9 +2,9 @@ package com.minecade.minecraftmaker.util;
 
 import org.bukkit.World;
 
-import com.minecade.minecraftmaker.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
+import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
@@ -72,12 +72,6 @@ public class LevelUtils {
 				clipboard.setBlock(new Vector(x, maximumPoint.getBlockY(), z), barrier);
 			}
 		}
-		// floor blocks to start the level
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 64, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.STONE));
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 3, 64, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.STONE));
-		// default spawn point in back wall
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 65, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 66, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
 		// construct the floor (optional)
 		if (floorBlockId > 0) {
 			BaseBlock floorBlock = new BaseBlock(floorBlockId);
@@ -88,6 +82,10 @@ public class LevelUtils {
 				}
 			}
 		}
+		// floor block to start the level
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 64, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.BEACON));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 65, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 66, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
 		return clipboard;
 	}
 

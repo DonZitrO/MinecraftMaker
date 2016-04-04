@@ -2,9 +2,9 @@ package com.minecade.minecraftmaker.schematic.world;
 
 import javax.annotation.Nullable;
 
+import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
-import com.minecade.minecraftmaker.schematic.function.operation.Operation;
 
 /**
  * Accepts block and entity changes.

@@ -5,11 +5,11 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
-import com.minecade.minecraftmaker.schematic.function.operation.Operation;
 import com.minecade.minecraftmaker.schematic.util.Location;
 
 /**
