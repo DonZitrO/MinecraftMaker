@@ -3,10 +3,14 @@ package com.minecade.minecraftmaker.listener;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -42,11 +46,35 @@ public class MakerListener implements Listener {
 	}
 
 	@EventHandler
+	public void onBlockBreak(BlockBreakEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockBreak - block type: [%s] - location: [%s] - cancelled: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.isCancelled()));
+		}
+		plugin.getController().onBlockBreak(event);
+	}
+
+	@EventHandler
+	public void onBlockPlace(BlockPlaceEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockPlace - block type: [%s] - location: [%s] - cancelled: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.isCancelled()));
+		}
+		plugin.getController().onBlockPlace(event);
+	}
+
+	@EventHandler
 	public void onEntityCombust(EntityCombustEvent event) {
 		// prevents mobs from burning in the daylight
 		if (event.getDuration() == 8 && !(event.getEntity() instanceof Player)) {
 			event.setCancelled(true);
 		}
+	}
+
+	@EventHandler
+	public void onEntityDamage(final EntityDamageEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityDamage - Entity: [%s] - Cause: [%s] - Damage: [%s] - Cancelled: [%s]", event.getEntity().getName(), event.getCause(), event.getDamage(), event.isCancelled()));
+		}
+		plugin.getController().onEntityDamage(event);
 	}
 
 	@EventHandler(ignoreCancelled = true)
@@ -63,8 +91,14 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerInteract - Player: [%s] -  Action: [%s] - Cancelled: [%s]", event.getPlayer().getName(), event.getAction(), event.isCancelled()));
 		}
 		// prevent barrier breaking
-		if (EventUtils.isLeftClickBlock(event, Material.BARRIER)) {
+		if (EventUtils.isBlockLeftClick(event, Material.BARRIER)) {
 			event.setCancelled(true);
+			return;
+		}
+		// allow to build around the beacons without interacting with them
+		if (EventUtils.isBlockClick(event, Material.BEACON)) {
+			event.setUseInteractedBlock(Result.DENY);
+			event.setUseItemInHand(Result.ALLOW);
 			return;
 		}
 		// delegate to controller for specific behavior

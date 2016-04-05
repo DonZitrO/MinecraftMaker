@@ -15,11 +15,11 @@ public class EventUtils {
 		return Action.RIGHT_CLICK_AIR.equals(event.getAction()) || Action.RIGHT_CLICK_BLOCK.equals(event.getAction());
 	}
 
-	public static boolean isLeftClickBlock(PlayerInteractEvent event) {
-		return Action.RIGHT_CLICK_BLOCK.equals(event.getAction());
+	public static boolean isBlockLeftClick(PlayerInteractEvent event) {
+		return Action.LEFT_CLICK_BLOCK.equals(event.getAction());
 	}
 
-	public static boolean isLeftClickBlock(PlayerInteractEvent event, Material blockMaterial) {
+	public static boolean isBlockLeftClick(PlayerInteractEvent event, Material blockMaterial) {
 		return Action.LEFT_CLICK_BLOCK.equals(event.getAction()) && event.getClickedBlock().getType().equals(blockMaterial);
 	}
 
@@ -45,6 +45,10 @@ public class EventUtils {
 
 	public static boolean isPressurePlateClick(PlayerInteractEvent event) {
 		return event.getClickedBlock() != null && (event.getClickedBlock().getType() == Material.WOOD_PLATE || event.getClickedBlock().getType() == Material.STONE_PLATE || event.getClickedBlock().getType() == Material.IRON_PLATE);
+	}
+
+	public static boolean isBlockClick(PlayerInteractEvent event, Material blockMaterial) {
+		return (Action.LEFT_CLICK_BLOCK.equals(event.getAction()) || Action.RIGHT_CLICK_BLOCK.equals(event.getAction())) && event.getClickedBlock().getType().equals(blockMaterial);
 	}
 
 }

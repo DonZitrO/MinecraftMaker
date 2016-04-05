@@ -36,7 +36,8 @@ public class MakerBuilderTask extends BukkitRunnable {
 		try {
 			operationQueue.resume(new LimitedTimeRunContext(MAX_TIME_PER_TICK_NANOSECONDS));
 			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().info(String.format("MakerBuilderTask.run - operation took: [%s] nanoseconds", System.nanoTime() - startNanoTime));
+				// only enable this for specific debugging
+				// Bukkit.getLogger().info(String.format("MakerBuilderTask.run - operation took: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 			}
 		} catch (MinecraftMakerException e) {
 			Bukkit.getLogger().severe(String.format("MakerBuilderTask.run - a severe exception occurred on the Builder Task: %s", e.getMessage()));

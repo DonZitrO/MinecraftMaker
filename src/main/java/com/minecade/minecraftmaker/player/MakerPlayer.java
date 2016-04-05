@@ -17,6 +17,7 @@ import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.player.PlayerUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
+import com.minecade.minecraftmaker.inventory.LevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
@@ -37,10 +38,25 @@ public class MakerPlayer implements Tickable {
 	private long currentTick;
 	private boolean enabled = true;
 	private AbstractMakerMenu inventoryToOpen;
+	private Location teleportDestination;
 
 	public MakerPlayer(Player player, MakerPlayerData data) {
 		this.player = player;
 		this.data = data;
+	}
+
+	public void cancelPendingOperation() {
+		// TODO keep track of all operations related to this player and cancel
+		// them.
+	}
+
+	public void clearInventory() {
+		player.getInventory().clear();
+		updateInventoryOnNextTick();
+	}
+
+	public void closeInventory() {
+		player.closeInventory();
 	}
 
 	@Override
@@ -55,6 +71,10 @@ public class MakerPlayer implements Tickable {
 	@Override
 	public void enable() {
 		throw new UnsupportedOperationException("A Player is enabled by default");
+	}
+
+	public MakerLevel getCurrentLevel() {
+		return currentLevel;
 	}
 
 	@Override
@@ -89,9 +109,30 @@ public class MakerPlayer implements Tickable {
 		return inventoryToOpen != null;
 	}
 
+	public boolean hasPendingOperation() {
+		// TODO check if the player is currently waiting for an operation to complete
+		return false;
+	}
+
+	public boolean isEditingLevel() {
+		return this.currentLevel != null && GameMode.CREATIVE.equals(player.getGameMode());
+	}
+
 	@Override
 	public boolean isEnabled() {
 		return enabled;
+	}
+
+	public boolean isInLobby() {
+		return this.currentLevel == null;
+	}
+
+	public boolean onInventoryClick(Inventory inventory, int slot) {
+		if (personalMenus.containsKey(inventory.getName())) {
+			personalMenus.get(inventory.getName()).onClick(this, slot);
+			return true;
+		}
+		return false;
 	}
 
 	private void openInventoryIfAvailable() {
@@ -99,6 +140,15 @@ public class MakerPlayer implements Tickable {
 			inventoryToOpen.open(player);
 			inventoryToOpen = null;
 		}
+	}
+
+	public void openLevelOptionsMenu() {
+		AbstractMakerMenu menu = personalMenus.get(LevelOptionsMenu.getInstance().getName());
+		if (menu == null) {
+			menu = LevelOptionsMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
 	}
 
 	public void openLevelTemplateMenu() {
@@ -148,12 +198,42 @@ public class MakerPlayer implements Tickable {
 		}
 	}
 
+	public void setCurrentLevel(MakerLevel level) {
+		this.currentLevel = level;
+	}
+
+	public void setFlying(boolean flying) {
+		player.setAllowFlight(true);
+		player.setFlying(flying);
+	}
+
+	public void setGameMode(GameMode mode) {
+		player.setGameMode(mode);
+	}
+
+	public boolean teleport(Location location, TeleportCause cause) {
+		return player.teleport(location, cause);
+	}
+
+	public void teleportOnNextTick(Location destination) {
+		this.teleportDestination = destination;
+	}
+
 	@Override
 	public void tick(long currentTick) {
 		this.currentTick = currentTick;
 		// every tick tasks
+		teleportIfRequested();
 		updateInventoryIfDirty();
 		openInventoryIfAvailable();
+	}
+
+	private void teleportIfRequested() {
+		if (teleportDestination != null) {
+			if (player.teleport(teleportDestination, TeleportCause.PLUGIN)) {
+				teleportDestination = null;
+			}
+		}
 	}
 
 	private void updateInventoryIfDirty() {
@@ -163,60 +243,8 @@ public class MakerPlayer implements Tickable {
 		}
 	}
 
-	public boolean onInventoryClick(Inventory inventory, int slot) {
-		if (personalMenus.containsKey(inventory.getName())) {
-			personalMenus.get(inventory.getName()).onClick(this, slot);
-			return true;
-		}
-		return false;
-	}
-
 	public void updateInventoryOnNextTick() {
 		dirtyInventory = true;
-	}
-
-	public boolean isEditingLevel() {
-		return this.currentLevel != null && GameMode.CREATIVE.equals(player.getGameMode());
-	}
-
-	public void closeInventory() {
-		player.closeInventory();
-	}
-
-	public boolean isInLobby() {
-		return this.currentLevel == null;
-	}
-
-	public void cancelPendingOperation() {
-		// TODO keep track of all operations related to this player and cancel
-		// them.
-	}
-
-	public boolean hasPendingOperation() {
-		// TODO check if the player is currently waiting for an operation to complete
-		return false;
-	}
-
-	public boolean teleport(Location location, TeleportCause cause) {
-		return player.teleport(location, cause);
-	}
-
-	public void setGameMode(GameMode mode) {
-		player.setGameMode(mode);
-	}
-
-	public void setCurrentLevel(MakerLevel level) {
-		this.currentLevel = level;
-	}
-
-	public void clearInventory() {
-		player.getInventory().clear();
-		updateInventoryOnNextTick();
-	}
-
-	public void setFlying(boolean flying) {
-		player.setAllowFlight(true);
-		player.setFlying(flying);
 	}
 
 }

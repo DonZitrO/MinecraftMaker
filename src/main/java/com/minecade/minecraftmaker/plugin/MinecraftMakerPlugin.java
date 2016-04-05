@@ -17,6 +17,7 @@ import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
+import com.minecade.minecraftmaker.items.LevelOptionItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.listener.MakerListener;
@@ -142,6 +143,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		}
 		// translate general menu items
 		for (GeneralMenuItem item : GeneralMenuItem.values()) {
+			item.translate(this);
+		}
+		// translate level option menu items
+		for (LevelOptionItem item : LevelOptionItem.values()) {
 			item.translate(this);
 		}
 	}

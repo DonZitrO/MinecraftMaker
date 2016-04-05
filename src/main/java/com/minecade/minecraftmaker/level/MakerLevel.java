@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.util.Vector;
 
+import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
@@ -57,7 +58,7 @@ public class MakerLevel implements Tickable {
 	public MakerLevel(MinecraftMakerPlugin plugin, short chunkZ) {
 		this.plugin = plugin;
 		this.chunkZ = chunkZ;
-		this.startLocation = new Vector(2.5, 64, (chunkZ * 16) + 6.5).toLocation(plugin.getController().getMainWorld(), -90f, 0f);
+		this.startLocation = new Vector(2.5, 65, (chunkZ * 16) + 6.5).toLocation(plugin.getController().getMainWorld(), -90f, 0f);
 		this.status = LevelStatus.BUSY;
 		this.levelId = UUID.randomUUID();
 	}
@@ -113,12 +114,18 @@ public class MakerLevel implements Tickable {
 		if (mPlayer.teleport(startLocation, TeleportCause.PLUGIN)) {
 			mPlayer.setFlying(true);
 			mPlayer.clearInventory();
+			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.LEVEL_OPTIONS.getItem());
+			mPlayer.updateInventoryOnNextTick();
 			mPlayer.setCurrentLevel(this);
 			mPlayer.setGameMode(GameMode.CREATIVE);
 			status = LevelStatus.READY;
 		} else {
 			// TODO: disable/unload level
 		}
+	}
+
+	public Location getStartLocation() {
+		return startLocation.clone();
 	}
 
 }

@@ -17,6 +17,10 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
@@ -41,6 +45,7 @@ import com.minecade.minecraftmaker.function.operation.ReadyLevelForEditionOperat
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.function.operation.SchematicWriteOperation;
+import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
@@ -179,7 +184,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void createEmptyLevel(MakerPlayer author, Material material) {
+	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
 		if (!author.isInLobby() || author.hasPendingOperation()) {
 			author.sendMessage(plugin, "level.create.error.author-busy");
 		}
@@ -191,8 +196,7 @@ public class MakerController implements Runnable, Tickable {
 		level.setAuthorId(author.getUniqueId());
 		author.sendMessage(plugin, "level.loading");
 		try {
-			@SuppressWarnings("deprecation")
-			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), level.getChunkZ(), material.getId());
+			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), level.getChunkZ(), floorBlockId);
 			Operation copy = createPasteOperation(clipboard);
 			plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new ReadyLevelForEditionOperation(level)));
 		} catch (MinecraftMakerException e) {
@@ -415,6 +419,41 @@ public class MakerController implements Runnable, Tickable {
 		Bukkit.getPluginManager().callEvent(new AsyncAccountDataLoadEvent(data));
 	}
 
+	public void onBlockBreak(BlockBreakEvent event) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void onBlockPlace(BlockPlaceEvent event) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void onEntityDamage(EntityDamageEvent event) {
+		if (!(event.getEntity() instanceof Player)) {
+			return;
+		}
+
+		Player damagedPlayer = (Player)event.getEntity();
+
+		final MakerPlayer mPlayer = getPlayer(damagedPlayer);
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onEntityDamage - Untracked player getting damage: [%s] - cause: [%s]", damagedPlayer.getName(), event.getCause()));
+			damagedPlayer.teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN);
+			event.setCancelled(true);
+			return;
+		}
+
+		// level creator back to spawn from void
+		if (mPlayer.isEditingLevel()) {
+			if (event.getCause() == DamageCause.VOID) {	
+				mPlayer.teleportOnNextTick(mPlayer.getCurrentLevel().getStartLocation());
+			}
+			event.setCancelled(true);
+			return;
+		}
+	}
+
 	public void onInventoryClick(InventoryClickEvent event) {
 		Player bukkitPlayer = (Player) event.getWhoClicked();
 		final MakerPlayer mPlayer = getPlayer(bukkitPlayer);
@@ -423,9 +462,9 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		// FIXME: or is not in lobby?
-		if (mPlayer.isEditingLevel()) {
-			return;
-		}
+//		if (mPlayer.isEditingLevel()) {
+//			return;
+//		}
 		// cancel inventory right click entirely
 		if (event.isRightClick()) {
 			event.setCancelled(true);
@@ -442,7 +481,34 @@ public class MakerController implements Runnable, Tickable {
 				}
 			}
 			return;
+		} else if (event.getSlotType() == SlotType.QUICKBAR) {
+			if (onMenuItemClick(mPlayer, event.getCurrentItem())) {
+				event.setCancelled(true);
+				return;
+			}
 		}
+	}
+
+	private boolean onMenuItemClick(MakerPlayer mPlayer, ItemStack item) {
+		if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
+			return false;
+		}
+		if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SERVER_BROWSER.getDisplayName())) {
+			mPlayer.openServerBrowserMenu();
+			return true;
+		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
+			mPlayer.updateInventoryOnNextTick();
+			mPlayer.openLevelTemplateMenu();
+			return true;
+		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.LEVEL_OPTIONS.getDisplayName())) {
+			mPlayer.updateInventoryOnNextTick();
+			mPlayer.openLevelOptionsMenu();
+			return true;
+		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
+			BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
+			return true;
+		}
+		return false;
 	}
 
 	public void onPlayerInteract(PlayerInteractEvent event) {
@@ -455,23 +521,10 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
+		// TODO: check if we should also allow left clicks
 		if (EventUtils.isItemRightClick(event)) {
-			ItemStack item = event.getItem();
-			if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
-				return;
-			}
-			if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SERVER_BROWSER.getDisplayName())) {
+			if (onMenuItemClick(mPlayer, event.getItem())) {
 				event.setCancelled(true);
-				mPlayer.openServerBrowserMenu();
-				return;
-			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
-				event.setCancelled(true);
-				mPlayer.updateInventoryOnNextTick();
-				mPlayer.openLevelTemplateMenu();
-				return;
-			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
-				event.setCancelled(true);
-				BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
 				return;
 			}
 		}

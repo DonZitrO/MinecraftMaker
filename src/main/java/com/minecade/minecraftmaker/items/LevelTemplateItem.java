@@ -38,12 +38,12 @@ public enum LevelTemplateItem implements Translatable {
 
 	@Override
 	public void translate(Internationalizable plugin) {
-		String translationKey = String.format("level.template.%s.display-name", name().toLowerCase().replace('_','-'));
+		String translationKey = String.format("menu.level-template.%s.display-name", name().toLowerCase().replace('_','-'));
 		String displayName = plugin.getMessage(translationKey);
 		if (displayName != translationKey) {
 			builder.withDisplayName(displayName);
 		}
-		translationKey = String.format("level.template.%s.lore", name().toLowerCase().replace('_','-'));
+		translationKey = String.format("menu.level-template.%s.lore", name().toLowerCase().replace('_','-'));
 		List<String> translatedLore = I18NUtils.translateAndSplitSingleLine(plugin, translationKey);
 		if (!translatedLore.isEmpty() && !translationKey.equals(translatedLore.get(0))) {
 			builder.withLore(translatedLore);
