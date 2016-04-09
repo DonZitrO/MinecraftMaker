@@ -5,7 +5,6 @@ import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -29,34 +28,57 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-		// only console and op players allowed
-		if (!(sender instanceof ConsoleCommandSender) && !(sender instanceof Player)) {
+		// only player ops are allowed
+		if (!(sender instanceof Player)) {
 			sender.sendMessage(command.getPermissionMessage());
 			return true;
 		}
-		// if sender is player it must be op
-		if (sender instanceof Player && !((Player) sender).isOp()) {
+		if (args.length < 1) {
+			sender.sendMessage(command.getUsage());
+			return true;
+		}
+		if (args[0].equalsIgnoreCase("rename")) {
+			if (args.length < 2) {
+				sender.sendMessage(plugin.getMessage("level.error.empty-name"));
+				return true;
+			}
+			if (!isValidLevelName(args[1])) {
+				sender.sendMessage(command.getUsage());
+				return true;
+			}
+			plugin.getController().renameLevel((Player)sender, args[1]);
+			return true;
+		}
+		// op-only sub-commands below
+		if (!((Player) sender).isOp()) {
 			sender.sendMessage(command.getPermissionMessage());
 			return true;
 		}
-		if (args.length < 3) {
+		if (!isValidLevelName(args[1])) {
 			sender.sendMessage(command.getUsage());
 			return true;
 		}
-		if (!isValidLevelName(args[1]) || !isValidChunkCoordinate(args[2])) {
-			sender.sendMessage(command.getUsage());
-			return true;
-		}
+		//  || !isValidChunkCoordinate(args[2])
 		if (args[0].equalsIgnoreCase("create")) {
-			plugin.getController().createEmptyLevel(args[1], Short.parseShort(args[2]), optionalBlockId(args, 3));
+			plugin.getController().createEmptyLevel(((Player)sender).getUniqueId(), optionalBlockId(args, 1));
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("load")) {
-			plugin.getController().loadLevel(args[1], Short.parseShort(args[2]));
+			if (args.length < 2) {
+				sender.sendMessage(plugin.getMessage("level.error.empty-name"));
+				return true;
+			}
+			if (!isValidLevelName(args[1])) {
+				sender.sendMessage(command.getUsage());
+				return true;
+			}
+			// FIXME: remove chunk coordinate
+			plugin.getController().loadLevel(((Player)sender).getUniqueId(), args[1], Short.parseShort(args[2]));
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("save")) {
-			plugin.getController().saveLevel(args[1], Short.parseShort(args[2]));
+			// FIXME: remove chunk coordinate and maybe name
+			plugin.getController().saveLevel(((Player)sender).getUniqueId(), args[1], Short.parseShort(args[2]));
 			return true;
 		}
 		return true;

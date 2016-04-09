@@ -13,7 +13,7 @@ import com.minecade.core.item.ItemStackBuilder;
 
 public enum LevelOptionItem implements Translatable {
 
-	SWITCH_MODE(Material.LEVER),
+	PLAY_MODE(Material.LEVER),
 	SAVE(Material.BOOK_AND_QUILL),
 	EXIT(Material.TRAP_DOOR);
 

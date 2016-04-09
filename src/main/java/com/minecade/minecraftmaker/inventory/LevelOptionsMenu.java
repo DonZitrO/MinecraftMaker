@@ -1,5 +1,6 @@
 package com.minecade.minecraftmaker.inventory;
 
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.item.ItemUtils;
@@ -35,6 +36,9 @@ public class LevelOptionsMenu extends AbstractMakerMenu {
 
 	@Override
 	public void onClick(MakerPlayer mPlayer, int slot) {
+		if (!mPlayer.isEditingLevel()) {
+			Bukkit.getLogger().warning(String.format("LevelOptionsMenu.onClick - This menu should be available to level editors only! - clicked by: [%s]", mPlayer.getName()));
+		}
 		if (slot >= items.length) {
 			return;
 		}
@@ -42,7 +46,13 @@ public class LevelOptionsMenu extends AbstractMakerMenu {
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
 			return;
 		}
-		// TODO: wire up each option
+		if (ItemUtils.itemNameEquals(clickedItem, LevelOptionItem.PLAY_MODE.getDisplayName())) {
+			mPlayer.getCurrentLevel().startPlaying(mPlayer);
+		} else if (ItemUtils.itemNameEquals(clickedItem, LevelOptionItem.SAVE.getDisplayName())) {
+			// TODO: implement
+		} else if (ItemUtils.itemNameEquals(clickedItem, LevelOptionItem.EXIT.getDisplayName())) {
+			mPlayer.getCurrentLevel().endEditing();
+		}
 	}
 
 	@Override

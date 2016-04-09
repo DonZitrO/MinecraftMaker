@@ -147,7 +147,7 @@ public class MakerController implements Runnable, Tickable {
 		// TODO: welcome stuff if needed
 	}
 
-	private void addPlayerToMainLobby(MakerPlayer mPlayer) {
+	public void addPlayerToMainLobby(MakerPlayer mPlayer) {
 		// reset player
 		mPlayer.resetPlayer();
 		// teleport to spawn point
@@ -184,13 +184,23 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void createEmptyLevel(UUID authorId, int floorBlockId) {
+		MakerPlayer author = getPlayer(authorId);
+		if (author == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
+			return;
+		}
+		createEmptyLevel(author, floorBlockId);
+	}
+
 	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
 		if (!author.isInLobby() || author.hasPendingOperation()) {
 			author.sendMessage(plugin, "level.create.error.author-busy");
+			return;
 		}
 		MakerLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
-			author.sendMessage(plugin, "level.full");
+			author.sendMessage(plugin, "level.error.full");
 			return;
 		}
 		level.setAuthorId(author.getUniqueId());
@@ -199,18 +209,6 @@ public class MakerController implements Runnable, Tickable {
 			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), level.getChunkZ(), floorBlockId);
 			Operation copy = createPasteOperation(clipboard);
 			plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new ReadyLevelForEditionOperation(level)));
-		} catch (MinecraftMakerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	public void createEmptyLevel(String string, short chunkZ, int floorBlockId) {
-		// TODO register level on slot
-		try {
-			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), (short) chunkZ, floorBlockId);
-			Operation copy = createPasteOperation(clipboard);
-			plugin.getBuilderTask().offer(copy);
 		} catch (MinecraftMakerException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -313,7 +311,7 @@ public class MakerController implements Runnable, Tickable {
 		return enabled;
 	}
 
-	public void loadLevel(String levelName, short chunkZ) {
+	public void loadLevel(UUID authorId, String levelName, short chunkZ) {
 		File schematicsFolder = new File(plugin.getDataFolder(), "test");
 		// if the directory does not exist, create it
 		if (!schematicsFolder.exists()) {
@@ -500,7 +498,7 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.updateInventoryOnNextTick();
 			mPlayer.openLevelTemplateMenu();
 			return true;
-		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.LEVEL_OPTIONS.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();
 			mPlayer.openLevelOptionsMenu();
 			return true;
@@ -607,7 +605,7 @@ public class MakerController implements Runnable, Tickable {
 		tick(getCurrentTick() + 1);
 	}
 
-	public void saveLevel(String levelName, short chunkZ) {
+	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
 		File schematicsFolder = new File(plugin.getDataFolder(), "test");
 		// if the directory does not exist, create it
 		if (!schematicsFolder.exists()) {
@@ -634,7 +632,11 @@ public class MakerController implements Runnable, Tickable {
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
 		clipboard.setOrigin(levelRegion.getMinimumPoint());
 		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
-		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, BukkitUtil.toWorld(getMainWorld()).getWorldData(), f)));
+		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
+	}
+
+	public WorldData getMainWorldData() {
+		return BukkitUtil.toWorld(getMainWorld()).getWorldData();
 	}
 
 	@Override
@@ -661,6 +663,27 @@ public class MakerController implements Runnable, Tickable {
 				TickableUtils.tickSafely(mPlayer, currentTick);
 			}
 		}
+	}
+
+	public void saveAndUnloadLevel(MakerLevel makerLevel) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void renameLevel(Player player, String newName) {
+		final MakerPlayer mPlayer = getPlayer(player);
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.renameLevel - untracked Player: [%s]", player.getName()));
+			player.sendMessage(plugin.getMessage("level.rename.error"));
+			return;
+		}
+		// needs to be editing that level
+		if (!mPlayer.isEditingLevel()) {
+			player.sendMessage(plugin.getMessage("level.rename.error.no-editing"));
+			return;
+		}
+		// rename
+		mPlayer.getCurrentLevel().rename(newName);
 	}
 
 }

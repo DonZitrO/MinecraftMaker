@@ -14,7 +14,8 @@ import com.minecade.core.item.ItemStackBuilder;
 public enum GeneralMenuItem implements Translatable {
 
 	EXIT_MENU(Material.ARROW),
-	LEVEL_OPTIONS(Material.ENDER_CHEST);
+	EDIT_LEVEL_OPTIONS(Material.ENDER_CHEST), 
+	PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST);
 
 	private final ItemStackBuilder builder;
 

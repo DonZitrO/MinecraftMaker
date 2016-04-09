@@ -18,6 +18,8 @@ public class MakerLevel implements Tickable {
 
 	public static enum LevelStatus {
 		BUSY,
+		EDITING,
+		PLAYING,
 		READY;
 	}
 
@@ -71,6 +73,10 @@ public class MakerLevel implements Tickable {
 		this.authorId = authorId;
 	}
 
+	public LevelStatus getStatus() {
+		return status;
+	}
+
 	public short getChunkZ() {
 		return chunkZ;
 	}
@@ -105,6 +111,7 @@ public class MakerLevel implements Tickable {
 	}
 
 	public void startEdition() {
+		// TODO: level must be on the right status to allow edition
 		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
 		if (mPlayer == null || !mPlayer.isInLobby()) {
 			// TODO: disable/unload level
@@ -112,13 +119,13 @@ public class MakerLevel implements Tickable {
 		}
 		mPlayer.sendMessage(plugin, "level.create.start");
 		if (mPlayer.teleport(startLocation, TeleportCause.PLUGIN)) {
+			mPlayer.setGameMode(GameMode.CREATIVE);
 			mPlayer.setFlying(true);
 			mPlayer.clearInventory();
-			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.LEVEL_OPTIONS.getItem());
+			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getItem());
 			mPlayer.updateInventoryOnNextTick();
 			mPlayer.setCurrentLevel(this);
-			mPlayer.setGameMode(GameMode.CREATIVE);
-			status = LevelStatus.READY;
+			status = LevelStatus.EDITING;
 		} else {
 			// TODO: disable/unload level
 		}
@@ -126,6 +133,74 @@ public class MakerLevel implements Tickable {
 
 	public Location getStartLocation() {
 		return startLocation.clone();
+	}
+
+	public void startPlaying(MakerPlayer mPlayer) {
+		if (!LevelStatus.READY.equals(getStatus())) {
+			mPlayer.sendMessage(plugin, "level.play.error.status");
+			return;
+		}
+		mPlayer.sendMessage(plugin, "level.play.start");
+		if (mPlayer.teleport(startLocation, TeleportCause.PLUGIN)) {
+			mPlayer.setGameMode(GameMode.ADVENTURE);
+			mPlayer.setFlying(false);
+			mPlayer.clearInventory();
+			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.PLAY_LEVEL_OPTIONS.getItem());
+			mPlayer.updateInventoryOnNextTick();
+			mPlayer.setCurrentLevel(this);
+			status = LevelStatus.PLAYING;
+		} else {
+			// TODO: error message to player
+		}
+	}
+
+	public void endEditing() {
+		// TODO: maybe verify EDITING status
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer != null) {
+			plugin.getController().addPlayerToMainLobby(mPlayer);
+		}
+		saveAndUnload();
+
+	}
+
+	private void saveAndUnload() {
+		plugin.getController().saveAndUnloadLevel(this);
+	}
+
+	public void rename(String newName) {
+		// TODO: additional name validation?
+		this.levelName = newName;
+		save();
+	}
+
+	private void save() {
+		// TODO Auto-generated method stub
+
+	}
+
+	public UUID getLevelId() {
+		return levelId;
+	}
+
+	public String getLevelName() {
+		return levelName != null ? levelName : levelId.toString();
+	}
+
+	public long getFavs() {
+		return favs;
+	}
+
+	public long getLikes() {
+		return likes;
+	}
+
+	public long getDislikes() {
+		return dislikes;
+	}
+
+	public Clipboard getClipboard() {
+		return clipboard;
 	}
 
 }

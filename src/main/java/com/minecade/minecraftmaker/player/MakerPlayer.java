@@ -247,4 +247,8 @@ public class MakerPlayer implements Tickable {
 		dirtyInventory = true;
 	}
 
+	public String getName() {
+		return player.getName();
+	}
+
 }

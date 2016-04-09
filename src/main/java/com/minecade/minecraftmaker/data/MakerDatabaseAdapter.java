@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.data;
 
+import java.io.BufferedOutputStream;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -14,7 +16,10 @@ import org.bukkit.configuration.ConfigurationSection;
 import com.minecade.core.data.DatabaseException;
 import com.minecade.core.data.MinecadeAccountData;
 import com.minecade.core.data.Rank;
+import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
+import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
+import com.minecade.minecraftmaker.schematic.io.ClipboardWriter;
 
 public class MakerDatabaseAdapter {
 	
@@ -148,6 +153,72 @@ public class MakerDatabaseAdapter {
 	 */
 	protected synchronized void loadAdditionalData(MakerPlayerData data) throws SQLException {
 
+	}
+
+	public synchronized void saveLevel(MakerLevel level) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		// TODO: enhance this to try the update first and then insert if zero rows are updated and try to remove nesting
+		String levelId = level.getLevelId().toString().replace("-", "");
+		String authorId = level.getAuthorId().toString().replace("-", "");
+		Blob data = null;
+		try (PreparedStatement byBinaryUUID = getConnection().prepareStatement(String.format("SELECT level_id FROM mcmaker.levels WHERE level_id = UNHEX(?)"))) {
+			byBinaryUUID.setString(1, levelId);
+			ResultSet byBinaryUUIDResult = byBinaryUUID.executeQuery();
+			if (!byBinaryUUIDResult.first()) {
+				// level does not exist yet, create it.
+				if (Bukkit.getLogger().isLoggable(Level.INFO)) {
+					Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.saveLevel - inserting data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+				}
+				try (PreparedStatement insertLevelSt = getConnection().prepareStatement(String.format("INSERT INTO mcmaker.levels(level_id, author_id, level_name, favs, likes, dislikes) VALUES (UNHEX(?), UNHEX(?), ?, ?, ?, ?)"))) {
+					insertLevelSt.setString(1, levelId);
+					insertLevelSt.setString(2, authorId);
+					insertLevelSt.setString(3, level.getLevelName());
+					insertLevelSt.setLong(4, level.getFavs());
+					insertLevelSt.setLong(5, level.getLikes());
+					insertLevelSt.setLong(6, level.getDislikes());
+					insertLevelSt.executeUpdate();
+				}
+				if (Bukkit.getLogger().isLoggable(Level.INFO)) {
+					Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.saveLevel - inserted data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+				}
+			} else {
+				try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `level_name` =  ?, `favs` = ?, `likes` = ?, `dislikes` = ? WHERE `level_id` = UNHEX(?)")) {
+					updateLevelSt.setString(1, level.getLevelName());
+					updateLevelSt.setLong(2, level.getFavs());
+					updateLevelSt.setLong(3, level.getLikes());
+					updateLevelSt.setLong(4, level.getDislikes());
+					updateLevelSt.setString(5, levelId);
+					updateLevelSt.executeUpdate();
+				}
+			}
+			if (level.getClipboard() != null) {
+				data = getConnection().createBlob();
+				try (BufferedOutputStream bos = new BufferedOutputStream(data.setBinaryStream(1));
+				        ClipboardWriter writer = ClipboardFormat.SCHEMATIC.getWriter(bos);
+				        PreparedStatement insertLevelBinaryData = getConnection().prepareStatement("INSERT INTO `mcmaker`.`schematics` (level_id, data) VALUES (UNHEX(?), ?)")) {
+					writer.write(level.getClipboard(), plugin.getController().getMainWorldData());
+					insertLevelBinaryData.setString(1, levelId);
+					insertLevelBinaryData.setBlob(2, data);
+					insertLevelBinaryData.executeUpdate();
+				}
+			}
+			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
+				Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.saveLevel - level saved without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+			}
+		} catch (Exception e) {
+			// FIXME: handle this
+			e.printStackTrace();
+		} finally {
+			if (data!= null) {
+				try {
+				data.free();
+				} catch (SQLException e) {
+					// no-op
+				}
+			}
+		}
 	}
 
 	public synchronized void disconnect() {
