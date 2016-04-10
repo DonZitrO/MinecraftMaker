@@ -17,7 +17,7 @@ import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.player.PlayerUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
-import com.minecade.minecraftmaker.inventory.LevelOptionsMenu;
+import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
@@ -143,9 +143,9 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void openLevelOptionsMenu() {
-		AbstractMakerMenu menu = personalMenus.get(LevelOptionsMenu.getInstance().getName());
+		AbstractMakerMenu menu = personalMenus.get(EditLevelOptionsMenu.getInstance().getName());
 		if (menu == null) {
-			menu = LevelOptionsMenu.getInstance();
+			menu = EditLevelOptionsMenu.getInstance();
 			personalMenus.put(menu.getName(), menu);
 		}
 		inventoryToOpen = menu;

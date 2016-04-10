@@ -17,21 +17,24 @@ import com.minecade.minecraftmaker.util.Tickable;
 public class MakerLevel implements Tickable {
 
 	public static enum LevelStatus {
-		BUSY,
+		LOADING,
+		EDIT_READY,
 		EDITING,
+		PLAY_READY,
 		PLAYING,
-		READY;
+		SAVE_READY,
+		SAVING,
+		DISABLED;
 	}
 
 	private final MinecraftMakerPlugin plugin;
 	private final short chunkZ;
-
-	private UUID levelId;
-	private UUID authorId;
+	private final UUID levelId;
+	private final UUID authorId;
+	private final String authorName;
 
 	private LevelStatus status;
 
-	private String authorName;
 	private String levelName;
 
 	private Region region;
@@ -46,22 +49,14 @@ public class MakerLevel implements Tickable {
 	private Location startLocation;
 
 	private long currentTick;
-	private boolean enabled = false;
 
-	public MakerLevel(MinecraftMakerPlugin plugin, MakerPlayer creator, short chunkZ) {
+	public MakerLevel(MinecraftMakerPlugin plugin, MakerPlayer author, short chunkZ) {
 		this.plugin = plugin;
-		this.levelId = UUID.randomUUID();
-		this.status = LevelStatus.BUSY;
-		this.authorId = creator.getUniqueId();
-		this.chunkZ = chunkZ;
-		// TODO Auto-generated constructor stub
-	}
-
-	public MakerLevel(MinecraftMakerPlugin plugin, short chunkZ) {
-		this.plugin = plugin;
+		this.authorId = author.getUniqueId();
+		this.authorName = author.getName();
 		this.chunkZ = chunkZ;
 		this.startLocation = new Vector(2.5, 65, (chunkZ * 16) + 6.5).toLocation(plugin.getController().getMainWorld(), -90f, 0f);
-		this.status = LevelStatus.BUSY;
+		this.status = LevelStatus.LOADING;
 		this.levelId = UUID.randomUUID();
 	}
 
@@ -69,8 +64,8 @@ public class MakerLevel implements Tickable {
 		return authorId;
 	}
 
-	public void setAuthorId(UUID authorId) {
-		this.authorId = authorId;
+	public String getAuthorName() {
+		return authorName;
 	}
 
 	public LevelStatus getStatus() {
@@ -83,11 +78,11 @@ public class MakerLevel implements Tickable {
 
 	@Override
 	public void disable() {
-		if (!enabled) {
+		if (!isEnabled()) {
 			return;
 		}
 		// TODO: disable logic
-		enabled = false;
+		status = LevelStatus.DISABLED;
 	}
 
 	@Override
@@ -102,7 +97,7 @@ public class MakerLevel implements Tickable {
 
 	@Override
 	public boolean isEnabled() {
-		return enabled;
+		return !LevelStatus.DISABLED.equals(getStatus());
 	}
 
 	@Override
@@ -136,7 +131,7 @@ public class MakerLevel implements Tickable {
 	}
 
 	public void startPlaying(MakerPlayer mPlayer) {
-		if (!LevelStatus.READY.equals(getStatus())) {
+		if (!LevelStatus.PLAY_READY.equals(getStatus())) {
 			mPlayer.sendMessage(plugin, "level.play.error.status");
 			return;
 		}
@@ -161,8 +156,8 @@ public class MakerLevel implements Tickable {
 			plugin.getController().addPlayerToMainLobby(mPlayer);
 		}
 		saveAndUnload();
-
 	}
+
 
 	private void saveAndUnload() {
 		plugin.getController().saveAndUnloadLevel(this);
@@ -171,12 +166,7 @@ public class MakerLevel implements Tickable {
 	public void rename(String newName) {
 		// TODO: additional name validation?
 		this.levelName = newName;
-		save();
-	}
-
-	private void save() {
-		// TODO Auto-generated method stub
-
+		// TODO: implement
 	}
 
 	public UUID getLevelId() {
@@ -184,7 +174,7 @@ public class MakerLevel implements Tickable {
 	}
 
 	public String getLevelName() {
-		return levelName != null ? levelName : levelId.toString();
+		return levelName != null ? levelName : levelId.toString().replace("-", "");
 	}
 
 	public long getFavs() {
@@ -201,6 +191,10 @@ public class MakerLevel implements Tickable {
 
 	public Clipboard getClipboard() {
 		return clipboard;
+	}
+
+	public void setClipboard(Clipboard clipboard) {
+		this.clipboard = clipboard;
 	}
 
 }

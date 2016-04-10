@@ -152,8 +152,12 @@ public class MakerController implements Runnable, Tickable {
 		mPlayer.resetPlayer();
 		// teleport to spawn point
 		if (mPlayer.getPlayer().getLocation().distanceSquared(getDefaultSpawnLocation()) > 4d) {
-			mPlayer.getPlayer().teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN);
+			if (!mPlayer.getPlayer().teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN)) {
+				mPlayer.getPlayer().kickPlayer(plugin.getMessage("lobby.join.error.teleport"));
+			}
 		}
+		// current level
+		mPlayer.setCurrentLevel(null);
 		// set lobby inventory
 		mPlayer.resetLobbyInventory();
 		// reset display name
@@ -198,24 +202,23 @@ public class MakerController implements Runnable, Tickable {
 			author.sendMessage(plugin, "level.create.error.author-busy");
 			return;
 		}
-		MakerLevel level = getEmptyLevelIfAvailable();
+		MakerLevel level = getEmptyLevelIfAvailable(author);
 		if (level == null) {
 			author.sendMessage(plugin, "level.error.full");
 			return;
 		}
-		level.setAuthorId(author.getUniqueId());
 		author.sendMessage(plugin, "level.loading");
 		try {
-			Clipboard clipboard = LevelUtils.createEmptyLevel(getMainWorld(), level.getChunkZ(), floorBlockId);
-			Operation copy = createPasteOperation(clipboard);
-			plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new ReadyLevelForEditionOperation(level)));
+			level.setClipboard(LevelUtils.createEmptyLevel(getMainWorld(), level.getChunkZ(), floorBlockId));
+			plugin.getBuilderTask().offer(new ResumableOperationQueue(createPasteOperation(level.getClipboard()), new ReadyLevelForEditionOperation(level)));
 		} catch (MinecraftMakerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
+			level.disable();
+			levelMap.remove(level.getChunkZ());
 		}
 	}
 
-	public Operation createPasteOperation(Clipboard clipboard) {
+	private Operation createPasteOperation(Clipboard clipboard) {
 		Region region = clipboard.getRegion();
 		com.minecade.minecraftmaker.schematic.world.World world = region.getWorld();
 		com.minecade.minecraftmaker.schematic.world.WorldData worldData = world.getWorldData();
@@ -265,10 +268,10 @@ public class MakerController implements Runnable, Tickable {
 		return spawnVector.toLocation(getMainWorld(), spawnYaw, spawnPitch);
 	}
 
-	private MakerLevel getEmptyLevelIfAvailable() {
+	private MakerLevel getEmptyLevelIfAvailable(MakerPlayer author) {
 		for (short i = 0; i < maxLevels; i++) {
 			if (!levelMap.containsKey(i)) {
-				MakerLevel level = new MakerLevel(plugin, i);
+				MakerLevel level = new MakerLevel(plugin, author, i);
 				levelMap.put(i, level);
 				return level;
 			}
@@ -605,6 +608,11 @@ public class MakerController implements Runnable, Tickable {
 		tick(getCurrentTick() + 1);
 	}
 
+	public void readyForSave(MakerLevel makerLevel) {
+		// TODO Auto-generated method stub
+
+	}
+
 	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
 		File schematicsFolder = new File(plugin.getDataFolder(), "test");
 		// if the directory does not exist, create it
@@ -666,8 +674,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void saveAndUnloadLevel(MakerLevel makerLevel) {
-		// TODO Auto-generated method stub
-
+		plugin.saveLevelAsync(makerLevel);
 	}
 
 	public void renameLevel(Player player, String newName) {

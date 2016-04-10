@@ -16,13 +16,15 @@ import com.minecade.core.util.EmptyGenerator;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
+import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
-import com.minecade.minecraftmaker.items.LevelOptionItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
+import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
 import com.minecade.minecraftmaker.nms.schematic.Spigot_v1_9_R1;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
+import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
 import com.minecade.minecraftmaker.task.MakerBuilderTask;
 
 public class MinecraftMakerPlugin extends JavaPlugin implements Internationalizable {
@@ -37,6 +39,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 
 	private MakerDatabaseAdapter databaseAdapter;
 	private MakerController controller;
+	private AsyncLevelSaverTask asyncLevelSaver;
 	private MakerBuilderTask builderTask;
 	private BukkitImplAdapter bukkitImplAdapter;
 	private ResourceBundle messages;
@@ -93,6 +96,9 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		// register commands
 		getCommand("level").setExecutor(new LevelCommandExecutor(this));
 		databaseAdapter = new MakerDatabaseAdapter(this);
+		// async player data saver
+		asyncLevelSaver = new AsyncLevelSaverTask(this);
+		asyncLevelSaver.runTaskTimerAsynchronously(this, 0, 0);
 		// instantiate and init main controller
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
 		controller.enable();
@@ -128,6 +134,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		translateGeneralStuff();
 	}
 
+	public void saveLevelAsync(MakerLevel level) {
+		asyncLevelSaver.saveLevelAsync(level);
+	}
+
 	private void translateGeneralStuff() {
 		// translate ranks
 		for (Rank rank : Rank.values()) {
@@ -146,7 +156,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 			item.translate(this);
 		}
 		// translate level option menu items
-		for (LevelOptionItem item : LevelOptionItem.values()) {
+		for (EditLevelOptionItem item : EditLevelOptionItem.values()) {
 			item.translate(this);
 		}
 	}

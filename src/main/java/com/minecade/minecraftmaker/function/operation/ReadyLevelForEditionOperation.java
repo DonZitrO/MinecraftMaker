@@ -22,14 +22,12 @@ public class ReadyLevelForEditionOperation implements Operation {
 
 	@Override
 	public void cancel() {
-		// TODO Auto-generated method stub
-
+		// no-op
 	}
 
 	@Override
 	public void addStatusMessages(List<String> messages) {
-		// TODO Auto-generated method stub
-
+		// no-op
 	}
 
 }

@@ -5,29 +5,29 @@ import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
-import com.minecade.minecraftmaker.items.LevelOptionItem;
+import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelOptionsMenu extends AbstractMakerMenu {
+public class EditLevelOptionsMenu extends AbstractMakerMenu {
 
-	private static LevelOptionsMenu instance;
+	private static EditLevelOptionsMenu instance;
 
-	public static LevelOptionsMenu getInstance() {
+	public static EditLevelOptionsMenu getInstance() {
 		if (instance == null) {
-			instance = new LevelOptionsMenu(MinecraftMakerPlugin.getInstance());
+			instance = new EditLevelOptionsMenu(MinecraftMakerPlugin.getInstance());
 		}
 		return instance;
 	}
 
-	private LevelOptionsMenu(MinecraftMakerPlugin plugin) {
+	private EditLevelOptionsMenu(MinecraftMakerPlugin plugin) {
 		super(plugin, plugin.getMessage("menu.level-options.title"), 9);
 		init();
 	}
 
 	private void init() {
 		int i = 0;
-		for (LevelOptionItem item : LevelOptionItem.values()) {
+		for (EditLevelOptionItem item : EditLevelOptionItem.values()) {
 			items[i] = item.getItem();
 			i++;
 		}
@@ -46,11 +46,11 @@ public class LevelOptionsMenu extends AbstractMakerMenu {
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
 			return;
 		}
-		if (ItemUtils.itemNameEquals(clickedItem, LevelOptionItem.PLAY_MODE.getDisplayName())) {
+		if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PLAY_MODE.getDisplayName())) {
 			mPlayer.getCurrentLevel().startPlaying(mPlayer);
-		} else if (ItemUtils.itemNameEquals(clickedItem, LevelOptionItem.SAVE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.SAVE.getDisplayName())) {
 			// TODO: implement
-		} else if (ItemUtils.itemNameEquals(clickedItem, LevelOptionItem.EXIT.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.EXIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().endEditing();
 		}
 	}
