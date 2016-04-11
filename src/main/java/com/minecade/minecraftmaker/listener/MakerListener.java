@@ -11,11 +11,15 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import com.minecade.core.event.AsyncAccountDataLoadEvent;
 import com.minecade.core.event.EventUtils;
@@ -85,6 +89,24 @@ public class MakerListener implements Listener {
 		plugin.getController().onInventoryClick(event);
 	}
 
+	@EventHandler (priority = EventPriority.LOW)
+	public void onPlayerDeath(PlayerDeathEvent event) {
+		plugin.getController().onPlayerDeath(event);
+	}
+
+	@EventHandler
+	public void onPlayerDropItem(PlayerDropItemEvent event) {
+		event.setCancelled(true);
+		final Player player = event.getPlayer();
+		new BukkitRunnable() {
+			public void run() {
+				if (player.isOnline()) {
+					player.updateInventory();
+				}
+			}
+		}.runTask(plugin);
+	}
+
 	@EventHandler
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		if (plugin.isDebugMode()) {
@@ -106,6 +128,20 @@ public class MakerListener implements Listener {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerInteract - Exit - Player: [%s] - Action: [%s] - Cancelled: [%s]", event.getPlayer().getName(), event.getAction(), event.isCancelled()));
 		}
+	}
+
+	@EventHandler
+	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerInteractEntity - Player: [%s] - Entity type: [%s]", event.getPlayer().getName(), event.getRightClicked().getType()));
+		}
+		// disable interactions with item frames // FIXME: uncomment and make it lobby only
+//		if (event.getRightClicked() instanceof ItemFrame) {
+//			event.setCancelled(true);
+//			return;
+//		}
+		// delegate to controller for specific behavior
+		plugin.getController().onPlayerInteractEntity(event);
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)

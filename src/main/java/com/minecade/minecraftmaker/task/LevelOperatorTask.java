@@ -11,14 +11,14 @@ import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 
-public class MakerBuilderTask extends BukkitRunnable {
+public class LevelOperatorTask extends BukkitRunnable {
 
 	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 5000000; // 5ms to build per tick
 
 	private final MinecraftMakerPlugin plugin;
 	private final ResumableOperationQueue operationQueue = new ResumableOperationQueue();
 
-	public MakerBuilderTask(MinecraftMakerPlugin plugin) {
+	public LevelOperatorTask(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
 	}
 

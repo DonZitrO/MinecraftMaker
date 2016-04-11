@@ -49,6 +49,7 @@ public class ResumableForwardExtentCopy implements Operation {
 	private Transform currentTransform = null;
 	private ResumableRegionVisitor lastVisitor;
 	private int affected;
+	private boolean firstRun = true;
 
 	/**
 	 * Create a new copy using the region's lowest minimum point as the "from"
@@ -217,17 +218,18 @@ public class ResumableForwardExtentCopy implements Operation {
 
 	@Override
 	public Operation resume(RunContext run) throws MinecraftMakerException {
-		Operation toResume = null;
 		long startNanoTime = 0;
-		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | PausableForwardExtentCopy.resume - start..."));
+		if (MinecraftMakerPlugin.getInstance().isDebugMode() && firstRun) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - start..."));
 			startNanoTime = System.nanoTime();
 		}
+		firstRun = false;
 		if (lastVisitor != null) {
 			affected += lastVisitor.getAffected();
 			lastVisitor = null;
 		}
 
+		Operation toResume = null;
 		if (repetitions > 0) {
 			repetitions--;
 
@@ -248,9 +250,8 @@ public class ResumableForwardExtentCopy implements Operation {
 			lastVisitor = blockVisitor;
 			currentTransform = currentTransform.combine(transform);
 			toResume = new DelegateOperation(this, new ResumableOperationQueue(blockVisitor, entityVisitor));
-		}
-		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | PausableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
+		} else if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		}
 		return toResume;
 	}

@@ -2,11 +2,13 @@ package com.minecade.minecraftmaker.level;
 
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.util.Vector;
 
+import com.minecade.minecraftmaker.function.operation.LevelClipboardCopyOperation;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -15,17 +17,6 @@ import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.util.Tickable;
 
 public class MakerLevel implements Tickable {
-
-	public static enum LevelStatus {
-		LOADING,
-		EDIT_READY,
-		EDITING,
-		PLAY_READY,
-		PLAYING,
-		SAVE_READY,
-		SAVING,
-		DISABLED;
-	}
 
 	private final MinecraftMakerPlugin plugin;
 	private final short chunkZ;
@@ -60,24 +51,8 @@ public class MakerLevel implements Tickable {
 		this.levelId = UUID.randomUUID();
 	}
 
-	public UUID getAuthorId() {
-		return authorId;
-	}
-
-	public String getAuthorName() {
-		return authorName;
-	}
-
-	public LevelStatus getStatus() {
-		return status;
-	}
-
-	public short getChunkZ() {
-		return chunkZ;
-	}
-
 	@Override
-	public void disable() {
+	public synchronized void disable() {
 		if (!isEnabled()) {
 			return;
 		}
@@ -90,9 +65,53 @@ public class MakerLevel implements Tickable {
 		throw new UnsupportedOperationException("An Arena is enabled by default");
 	}
 
+	public UUID getAuthorId() {
+		return authorId;
+	}
+
+	public String getAuthorName() {
+		return authorName;
+	}
+
+	public short getChunkZ() {
+		return chunkZ;
+	}
+
+	public Clipboard getClipboard() {
+		return clipboard;
+	}
+
 	@Override
 	public long getCurrentTick() {
 		return currentTick;
+	}
+
+	public long getDislikes() {
+		return dislikes;
+	}
+
+	public long getFavs() {
+		return favs;
+	}
+
+	public UUID getLevelId() {
+		return levelId;
+	}
+
+	public String getLevelName() {
+		return levelName != null ? levelName : levelId.toString().replace("-", "");
+	}
+
+	public long getLikes() {
+		return likes;
+	}
+
+	public Location getStartLocation() {
+		return startLocation.clone();
+	}
+
+	public LevelStatus getStatus() {
+		return status;
 	}
 
 	@Override
@@ -100,9 +119,47 @@ public class MakerLevel implements Tickable {
 		return !LevelStatus.DISABLED.equals(getStatus());
 	}
 
-	@Override
-	public void tick(long currentTick) {
-		this.currentTick = currentTick;
+	public void rename(String newName) {
+		// TODO: additional name validation?
+		this.levelName = newName;
+		// TODO: implement
+	}
+
+	public synchronized void exitEditing() {
+		// TODO: maybe verify EDITING status
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer != null) {
+			plugin.getController().addPlayerToMainLobby(mPlayer);
+		}
+		this.status = LevelStatus.UNLOAD_READY;
+	}
+
+	public void exitPlaying() {
+		// TODO Auto-generated method stub
+
+	}
+
+	public synchronized void saveLevel() {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer != null) {
+			plugin.getController().addPlayerToMainLobby(mPlayer);
+		}
+		// FIXME: re-think status name
+		this.status = LevelStatus.EDITED;
+		plugin.getController().addPlayerToMainLobby(mPlayer);
+	}
+
+	public synchronized void saveAndPlay() {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer != null) {
+			mPlayer.sendActionMessage(plugin, "level.loading");
+		}
+		this.currentPlayerId = authorId;
+		saveLevel();
+	}
+
+	public void setClipboard(Clipboard clipboard) {
+		this.clipboard = clipboard;
 	}
 
 	public void startEdition() {
@@ -112,7 +169,7 @@ public class MakerLevel implements Tickable {
 			// TODO: disable/unload level
 			return;
 		}
-		mPlayer.sendMessage(plugin, "level.create.start");
+		mPlayer.sendActionMessage(plugin, "level.create.start");
 		if (mPlayer.teleport(startLocation, TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.CREATIVE);
 			mPlayer.setFlying(true);
@@ -126,16 +183,12 @@ public class MakerLevel implements Tickable {
 		}
 	}
 
-	public Location getStartLocation() {
-		return startLocation.clone();
-	}
-
 	public void startPlaying(MakerPlayer mPlayer) {
 		if (!LevelStatus.PLAY_READY.equals(getStatus())) {
 			mPlayer.sendMessage(plugin, "level.play.error.status");
 			return;
 		}
-		mPlayer.sendMessage(plugin, "level.play.start");
+		mPlayer.sendActionMessage(plugin, "level.play.start");
 		if (mPlayer.teleport(startLocation, TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.ADVENTURE);
 			mPlayer.setFlying(false);
@@ -149,52 +202,83 @@ public class MakerLevel implements Tickable {
 		}
 	}
 
-	public void endEditing() {
-		// TODO: maybe verify EDITING status
-		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
-		if (mPlayer != null) {
-			plugin.getController().addPlayerToMainLobby(mPlayer);
+	public void startPlaying(UUID playerId) {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(playerId);
+		if (mPlayer == null) {
+			return;
 		}
-		saveAndUnload();
+		startPlaying(mPlayer);
 	}
 
-
-	private void saveAndUnload() {
-		plugin.getController().saveAndUnloadLevel(this);
+	@Override
+	public void tick(long currentTick) {
+		this.currentTick = currentTick;
+		tickStatus();
 	}
 
-	public void rename(String newName) {
-		// TODO: additional name validation?
-		this.levelName = newName;
-		// TODO: implement
+	private void tickEdited() {
+		this.status = LevelStatus.CLIPBOARD_COPY_READY;
+		plugin.getBuilderTask().offer(new LevelClipboardCopyOperation(plugin, this));
 	}
 
-	public UUID getLevelId() {
-		return levelId;
+	private void tickEditReady() {
+		// TODO Auto-generated method stub
+
 	}
 
-	public String getLevelName() {
-		return levelName != null ? levelName : levelId.toString().replace("-", "");
+	private void tickSaved() {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer!=null) {
+			mPlayer.sendActionMessage(plugin, "level.save.success");
+		}
+		if (currentPlayerId != null) {
+			this.status = LevelStatus.PLAY_READY;
+			startPlaying(currentPlayerId);
+		} else {
+			plugin.getController().unloadLevel(this);
+		}
 	}
 
-	public long getFavs() {
-		return favs;
+	private synchronized void tickStatus() {
+		switch (getStatus()) {
+		case EDIT_READY:
+			tickEditReady();
+			break;
+		case EDITED:
+			tickEdited();
+			break;
+		case SAVED:
+			tickSaved();
+			break;
+		case CLIPBOARD_COPIED:
+			tickClipboardCopied();
+			break;
+		case UNLOAD_READY:
+			tickUnloadReady();
+			break;
+		default:
+			break;
+		}
 	}
 
-	public long getLikes() {
-		return likes;
+	private void tickUnloadReady() {
+		plugin.getController().unloadLevel(this);
 	}
 
-	public long getDislikes() {
-		return dislikes;
+	private void tickClipboardCopied() {
+		this.status = LevelStatus.SAVE_READY;
+		plugin.saveLevelAsync(this);
 	}
 
-	public Clipboard getClipboard() {
-		return clipboard;
-	}
-
-	public void setClipboard(Clipboard clipboard) {
-		this.clipboard = clipboard;
+	public synchronized boolean tryStatusTransition(LevelStatus from, LevelStatus to) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.tryStatusTransition - current status: [%s] - requested from: [%s] - requested to: [%s]", getStatus(), from, to));
+		}
+		if (!from.equals(getStatus())) {
+			return false;
+		}
+		this.status = to;
+		return true;
 	}
 
 }

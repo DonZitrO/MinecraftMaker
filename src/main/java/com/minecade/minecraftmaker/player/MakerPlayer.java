@@ -23,6 +23,7 @@ import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.util.Tickable;
+import com.minecade.nms.NMSUtils;
 
 public class MakerPlayer implements Tickable {
 
@@ -142,7 +143,7 @@ public class MakerPlayer implements Tickable {
 		}
 	}
 
-	public void openLevelOptionsMenu() {
+	public void openEditLevelOptionsMenu() {
 		AbstractMakerMenu menu = personalMenus.get(EditLevelOptionsMenu.getInstance().getName());
 		if (menu == null) {
 			menu = EditLevelOptionsMenu.getInstance();
@@ -155,6 +156,15 @@ public class MakerPlayer implements Tickable {
 		AbstractMakerMenu menu = personalMenus.get(LevelTemplateMenu.getInstance().getName());
 		if (menu == null) {
 			menu = LevelTemplateMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
+	public void openPlayLevelOptionsMenu() {
+		AbstractMakerMenu menu = personalMenus.get(EditLevelOptionsMenu.getInstance().getName());
+		if (menu == null) {
+			menu = EditLevelOptionsMenu.getInstance();
 			personalMenus.put(menu.getName(), menu);
 		}
 		inventoryToOpen = menu;
@@ -249,6 +259,14 @@ public class MakerPlayer implements Tickable {
 
 	public String getName() {
 		return player.getName();
+	}
+
+	public void sendActionMessage(Internationalizable plugin, String key, Object... args) {
+		if (player.isOnline()) {
+			if (!StringUtils.isEmpty(key)) {
+				NMSUtils.sendActionMessage(player, plugin.getMessage(key, args));
+			}
+		}
 	}
 
 }

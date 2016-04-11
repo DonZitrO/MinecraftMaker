@@ -29,7 +29,7 @@ public class LevelUtils {
 		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
 	}
 
-	public static Clipboard createEmptyLevel(World world, short chunkZ, int floorBlockId) throws MinecraftMakerException {
+	public static Clipboard createEmptyLevelClipboard(World world, short chunkZ, int floorBlockId) throws MinecraftMakerException {
 
 		Region region = getLevelRegion(world, chunkZ);
 		Vector minimumPoint = region.getMinimumPoint();
@@ -104,7 +104,7 @@ public class LevelUtils {
 		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
 	}
 
-	public static Clipboard createLobbyFloor(World world) throws MinecraftMakerException {
+	public static Clipboard createLobbyClipboard(World world) throws MinecraftMakerException {
 		Region region = getLobbyRegion(world);
 		Vector minimumPoint = region.getMinimumPoint();
 		Vector maximumPoint = region.getMaximumPoint();

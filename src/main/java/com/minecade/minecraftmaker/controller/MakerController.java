@@ -21,10 +21,12 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
@@ -79,7 +81,7 @@ public class MakerController implements Runnable, Tickable {
 	private static final Transform IDENTITY_TRANSFORM = new Identity();
 
 	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.5d, 65.0d, 16.5d);
-	private static final float DEFAULT_SPAWN_YAW = 180f;
+	private static final float DEFAULT_SPAWN_YAW = -90f;
 	private static final float DEFAULT_SPAWN_PITCH = 0f;
 
 	private final MinecraftMakerPlugin plugin;
@@ -188,6 +190,27 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
+		if (!author.isInLobby() || author.hasPendingOperation()) {
+			author.sendActionMessage(plugin, "level.create.error.author-busy");
+			return;
+		}
+		MakerLevel level = getEmptyLevelIfAvailable(author);
+		if (level == null) {
+			author.sendActionMessage(plugin, "level.error.full");
+			return;
+		}
+		author.sendActionMessage(plugin, "level.loading");
+		try {
+			level.setClipboard(LevelUtils.createEmptyLevelClipboard(getMainWorld(), level.getChunkZ(), floorBlockId));
+			plugin.getBuilderTask().offer(new ResumableOperationQueue(createPasteOperation(level.getClipboard()), new ReadyLevelForEditionOperation(level)));
+		} catch (MinecraftMakerException e) {
+			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
+			level.disable();
+			levelMap.remove(level.getChunkZ());
+		}
+	}
+
 	public void createEmptyLevel(UUID authorId, int floorBlockId) {
 		MakerPlayer author = getPlayer(authorId);
 		if (author == null) {
@@ -195,27 +218,6 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		createEmptyLevel(author, floorBlockId);
-	}
-
-	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
-		if (!author.isInLobby() || author.hasPendingOperation()) {
-			author.sendMessage(plugin, "level.create.error.author-busy");
-			return;
-		}
-		MakerLevel level = getEmptyLevelIfAvailable(author);
-		if (level == null) {
-			author.sendMessage(plugin, "level.error.full");
-			return;
-		}
-		author.sendMessage(plugin, "level.loading");
-		try {
-			level.setClipboard(LevelUtils.createEmptyLevel(getMainWorld(), level.getChunkZ(), floorBlockId));
-			plugin.getBuilderTask().offer(new ResumableOperationQueue(createPasteOperation(level.getClipboard()), new ReadyLevelForEditionOperation(level)));
-		} catch (MinecraftMakerException e) {
-			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
-			level.disable();
-			levelMap.remove(level.getChunkZ());
-		}
 	}
 
 	private Operation createPasteOperation(Clipboard clipboard) {
@@ -288,6 +290,10 @@ public class MakerController implements Runnable, Tickable {
 			this.mainWorld = MakerWorldUtils.createOrLoadWorld(this.plugin, this.mainWorldName, DEFAULT_SPAWN_VECTOR);
 		}
 		return this.mainWorld;
+	}
+
+	public WorldData getMainWorldData() {
+		return BukkitUtil.toWorld(getMainWorld()).getWorldData();
 	}
 
 	public MakerExtent getMakerExtent() {
@@ -497,19 +503,32 @@ public class MakerController implements Runnable, Tickable {
 		if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SERVER_BROWSER.getDisplayName())) {
 			mPlayer.openServerBrowserMenu();
 			return true;
+		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.STEVE_CHALLENGE.getDisplayName())) {
+			mPlayer.sendActionMessage(plugin, "general.coming-soon");
+			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();
 			mPlayer.openLevelTemplateMenu();
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();
-			mPlayer.openLevelOptionsMenu();
+			mPlayer.openEditLevelOptionsMenu();
+			return true;
+		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
+			mPlayer.updateInventoryOnNextTick();
+			mPlayer.openPlayLevelOptionsMenu();
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
 			BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
 			return true;
 		}
 		return false;
+	}
+
+	public void onPlayerDeath(PlayerDeathEvent event) {
+		event.setDeathMessage("");
+		event.getDrops().clear();
+		event.setDroppedExp(0);
 	}
 
 	public void onPlayerInteract(PlayerInteractEvent event) {
@@ -528,6 +547,19 @@ public class MakerController implements Runnable, Tickable {
 				event.setCancelled(true);
 				return;
 			}
+		}
+	}
+
+	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerInteractEntity - untracked Player: [%s]", event.getPlayer().getName()));
+			event.setCancelled(true);
+			return;
+		}
+		if (mPlayer.isInLobby()) {
+			event.setCancelled(true);
+			return;
 		}
 	}
 
@@ -603,14 +635,25 @@ public class MakerController implements Runnable, Tickable {
 //		}
 	}
 
+	public void renameLevel(Player player, String newName) {
+		final MakerPlayer mPlayer = getPlayer(player);
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.renameLevel - untracked Player: [%s]", player.getName()));
+			player.sendMessage(plugin.getMessage("level.rename.error"));
+			return;
+		}
+		// needs to be editing that level
+		if (!mPlayer.isEditingLevel()) {
+			player.sendMessage(plugin.getMessage("level.rename.error.no-editing"));
+			return;
+		}
+		// rename
+		mPlayer.getCurrentLevel().rename(newName);
+	}
+
 	@Override
 	public void run() {
 		tick(getCurrentTick() + 1);
-	}
-
-	public void readyForSave(MakerLevel makerLevel) {
-		// TODO Auto-generated method stub
-
 	}
 
 	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
@@ -643,17 +686,13 @@ public class MakerController implements Runnable, Tickable {
 		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
 	}
 
-	public WorldData getMainWorldData() {
-		return BukkitUtil.toWorld(getMainWorld()).getWorldData();
-	}
-
 	@Override
 	public void tick(long currentTick) {
 		this.currentTick = currentTick;
 		if (this.currentTick == 1) {
 			MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld());
 			try {
-				plugin.getBuilderTask().offer(createPasteOperation(LevelUtils.createLobbyFloor(this.getMainWorld())));
+				plugin.getBuilderTask().offer(createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld())));
 			} catch (MinecraftMakerException e) {
 				e.printStackTrace();
 			}
@@ -673,24 +712,10 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void saveAndUnloadLevel(MakerLevel makerLevel) {
-		plugin.saveLevelAsync(makerLevel);
-	}
-
-	public void renameLevel(Player player, String newName) {
-		final MakerPlayer mPlayer = getPlayer(player);
-		if (mPlayer == null) {
-			Bukkit.getLogger().warning(String.format("MakerController.renameLevel - untracked Player: [%s]", player.getName()));
-			player.sendMessage(plugin.getMessage("level.rename.error"));
-			return;
-		}
-		// needs to be editing that level
-		if (!mPlayer.isEditingLevel()) {
-			player.sendMessage(plugin.getMessage("level.rename.error.no-editing"));
-			return;
-		}
-		// rename
-		mPlayer.getCurrentLevel().rename(newName);
+	public void unloadLevel(MakerLevel makerLevel) {
+		// FIXME: review this
+		makerLevel.disable();
+		levelMap.remove(makerLevel.getChunkZ());
 	}
 
 }

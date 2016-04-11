@@ -16,6 +16,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import com.minecade.core.data.DatabaseException;
 import com.minecade.core.data.MinecadeAccountData;
 import com.minecade.core.data.Rank;
+import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
@@ -159,6 +160,11 @@ public class MakerDatabaseAdapter {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
+		if (!level.tryStatusTransition(LevelStatus.SAVE_READY, LevelStatus.SAVING)) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.saveLevel - Level with id: [%s] and slot [%s] is not ready for saving!", level.getLevelId(), level.getChunkZ()));
+			level.disable();
+			return;
+		}
 		// TODO: enhance this to try the update first and then insert if zero rows are updated and try to remove nesting
 		String levelId = level.getLevelId().toString().replace("-", "");
 		String authorId = level.getAuthorId().toString().replace("-", "");
@@ -204,17 +210,19 @@ public class MakerDatabaseAdapter {
 					insertLevelBinaryData.executeUpdate();
 				}
 			}
+			level.tryStatusTransition(LevelStatus.SAVING, LevelStatus.SAVED);
 			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
 				Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.saveLevel - level saved without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
 			}
 		} catch (Exception e) {
-			// FIXME: handle this
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.saveLevel - error while saving Level with id: [%s] and slot [%s] - %s", level.getLevelId(), level.getChunkZ(), e.getMessage()));
 			e.printStackTrace();
+			level.disable();
 		} finally {
 			if (data!= null) {
 				try {
 				data.free();
-				} catch (SQLException e) {
+				} catch (SQLException sqle) {
 					// no-op
 				}
 			}

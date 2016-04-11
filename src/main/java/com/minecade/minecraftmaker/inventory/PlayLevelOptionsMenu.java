@@ -6,28 +6,29 @@ import org.bukkit.inventory.ItemStack;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
+import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class EditLevelOptionsMenu extends AbstractMakerMenu {
+public class PlayLevelOptionsMenu extends AbstractMakerMenu {
 
-	private static EditLevelOptionsMenu instance;
+	private static PlayLevelOptionsMenu instance;
 
-	public static EditLevelOptionsMenu getInstance() {
+	public static PlayLevelOptionsMenu getInstance() {
 		if (instance == null) {
-			instance = new EditLevelOptionsMenu(MinecraftMakerPlugin.getInstance());
+			instance = new PlayLevelOptionsMenu(MinecraftMakerPlugin.getInstance());
 		}
 		return instance;
 	}
 
-	private EditLevelOptionsMenu(MinecraftMakerPlugin plugin) {
-		super(plugin, plugin.getMessage("menu.edit-level-options.title"), 9);
+	private PlayLevelOptionsMenu(MinecraftMakerPlugin plugin) {
+		super(plugin, plugin.getMessage("menu.play-level-options.title"), 9);
 		init();
 	}
 
 	private void init() {
 		int i = 0;
-		for (EditLevelOptionItem item : EditLevelOptionItem.values()) {
+		for (PlayLevelOptionItem item : PlayLevelOptionItem.values()) {
 			items[i] = item.getItem();
 			i++;
 		}
@@ -46,12 +47,12 @@ public class EditLevelOptionsMenu extends AbstractMakerMenu {
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
 			return;
 		}
-		if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PLAY.getDisplayName())) {
-			mPlayer.getCurrentLevel().saveAndPlay();
-		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.SAVE.getDisplayName())) {
-			mPlayer.getCurrentLevel().saveLevel();
-		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.EXIT.getDisplayName())) {
-			mPlayer.getCurrentLevel().exitEditing();
+		if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.EXIT.getDisplayName())) {
+			mPlayer.getCurrentLevel().exitPlaying();
+//		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.SAVE.getDisplayName())) {
+//			mPlayer.getCurrentLevel().saveLevel();
+//		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.EXIT.getDisplayName())) {
+//			mPlayer.getCurrentLevel().exitEditing();
 		}
 	}
 

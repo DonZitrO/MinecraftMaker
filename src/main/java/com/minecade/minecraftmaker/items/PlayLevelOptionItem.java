@@ -11,23 +11,21 @@ import com.minecade.core.i18n.Translatable;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemStackBuilder;
 
-public enum EditLevelOptionItem implements Translatable {
+public enum PlayLevelOptionItem implements Translatable {
 
-	PLAY(Material.LEVER),
-	SAVE(Material.BOOK_AND_QUILL),
 	EXIT(Material.TRAP_DOOR);
 
 	private final ItemStackBuilder builder;
 
-	private EditLevelOptionItem(Material material) {
+	private PlayLevelOptionItem(Material material) {
 		this(material, 1);
 	}
 
-	private EditLevelOptionItem(Material material, int amount) {
+	private PlayLevelOptionItem(Material material, int amount) {
 		this(material, amount, (short) 0);
 	}
 
-	private EditLevelOptionItem(Material material, int amount, short data) {
+	private PlayLevelOptionItem(Material material, int amount, short data) {
 		this.builder = new ItemBuilder(material, amount, data);
 	}
 

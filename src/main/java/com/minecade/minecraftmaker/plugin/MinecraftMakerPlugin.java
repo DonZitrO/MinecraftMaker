@@ -20,12 +20,13 @@ import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
+import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
 import com.minecade.minecraftmaker.nms.schematic.Spigot_v1_9_R1;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
 import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
-import com.minecade.minecraftmaker.task.MakerBuilderTask;
+import com.minecade.minecraftmaker.task.LevelOperatorTask;
 
 public class MinecraftMakerPlugin extends JavaPlugin implements Internationalizable {
 
@@ -40,11 +41,11 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	private MakerDatabaseAdapter databaseAdapter;
 	private MakerController controller;
 	private AsyncLevelSaverTask asyncLevelSaver;
-	private MakerBuilderTask builderTask;
+	private LevelOperatorTask builderTask;
 	private BukkitImplAdapter bukkitImplAdapter;
 	private ResourceBundle messages;
 
-	public MakerBuilderTask getBuilderTask() {
+	public LevelOperatorTask getBuilderTask() {
 		return builderTask;
 	}
 
@@ -103,7 +104,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
 		controller.enable();
 		// start builder task
-		builderTask = new MakerBuilderTask(this);
+		builderTask = new LevelOperatorTask(this);
 		builderTask.runTaskTimer(this, 0, 0);
 		// register listeners
 		getServer().getPluginManager().registerEvents(new MakerListener(this), this);
@@ -155,8 +156,12 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		for (GeneralMenuItem item : GeneralMenuItem.values()) {
 			item.translate(this);
 		}
-		// translate level option menu items
+		// translate edit level option menu items
 		for (EditLevelOptionItem item : EditLevelOptionItem.values()) {
+			item.translate(this);
+		}
+		// translate play level option menu items
+		for (PlayLevelOptionItem item : PlayLevelOptionItem.values()) {
 			item.translate(this);
 		}
 	}
