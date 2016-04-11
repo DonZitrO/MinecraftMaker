@@ -135,8 +135,12 @@ public class MakerLevel implements Tickable {
 	}
 
 	public void exitPlaying() {
-		// TODO Auto-generated method stub
-
+		// TODO: maybe verify PLAYING status
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer != null) {
+			plugin.getController().addPlayerToMainLobby(mPlayer);
+		}
+		this.status = LevelStatus.UNLOAD_READY;
 	}
 
 	public synchronized void saveLevel() {
@@ -218,7 +222,7 @@ public class MakerLevel implements Tickable {
 
 	private void tickEdited() {
 		this.status = LevelStatus.CLIPBOARD_COPY_READY;
-		plugin.getBuilderTask().offer(new LevelClipboardCopyOperation(plugin, this));
+		plugin.getLevelOperatorTask().offer(new LevelClipboardCopyOperation(plugin, this));
 	}
 
 	private void tickEditReady() {

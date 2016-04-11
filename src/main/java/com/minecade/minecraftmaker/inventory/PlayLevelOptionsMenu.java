@@ -5,7 +5,6 @@ import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
-import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -37,8 +36,9 @@ public class PlayLevelOptionsMenu extends AbstractMakerMenu {
 
 	@Override
 	public void onClick(MakerPlayer mPlayer, int slot) {
-		if (!mPlayer.isEditingLevel()) {
-			Bukkit.getLogger().warning(String.format("LevelOptionsMenu.onClick - This menu should be available to level editors only! - clicked by: [%s]", mPlayer.getName()));
+		if (!mPlayer.isPlayingLevel()) {
+			Bukkit.getLogger().warning(String.format("PlayLevelOptionsMenu.onClick - This menu should be available to level editors only! - clicked by: [%s]", mPlayer.getName()));
+			return;
 		}
 		if (slot >= items.length) {
 			return;

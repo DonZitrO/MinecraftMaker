@@ -50,6 +50,7 @@ public class ResumableForwardExtentCopy implements Operation {
 	private ResumableRegionVisitor lastVisitor;
 	private int affected;
 	private boolean firstRun = true;
+	private long startNanoTime = 0;
 
 	/**
 	 * Create a new copy using the region's lowest minimum point as the "from"
@@ -218,7 +219,6 @@ public class ResumableForwardExtentCopy implements Operation {
 
 	@Override
 	public Operation resume(RunContext run) throws MinecraftMakerException {
-		long startNanoTime = 0;
 		if (MinecraftMakerPlugin.getInstance().isDebugMode() && firstRun) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - start..."));
 			startNanoTime = System.nanoTime();

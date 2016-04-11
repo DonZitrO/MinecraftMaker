@@ -41,12 +41,12 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	private MakerDatabaseAdapter databaseAdapter;
 	private MakerController controller;
 	private AsyncLevelSaverTask asyncLevelSaver;
-	private LevelOperatorTask builderTask;
+	private LevelOperatorTask levelOperatorTask;
 	private BukkitImplAdapter bukkitImplAdapter;
 	private ResourceBundle messages;
 
-	public LevelOperatorTask getBuilderTask() {
-		return builderTask;
+	public LevelOperatorTask getLevelOperatorTask() {
+		return levelOperatorTask;
 	}
 
 	public BukkitImplAdapter getBukkitImplAdapter() {
@@ -104,8 +104,8 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
 		controller.enable();
 		// start builder task
-		builderTask = new LevelOperatorTask(this);
-		builderTask.runTaskTimer(this, 0, 0);
+		levelOperatorTask = new LevelOperatorTask(this);
+		levelOperatorTask.runTaskTimer(this, 0, 0);
 		// register listeners
 		getServer().getPluginManager().registerEvents(new MakerListener(this), this);
 	}

@@ -19,6 +19,7 @@ import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
+import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.MakerLevel;
@@ -119,6 +120,10 @@ public class MakerPlayer implements Tickable {
 		return this.currentLevel != null && GameMode.CREATIVE.equals(player.getGameMode());
 	}
 
+	public boolean isPlayingLevel() {
+		return this.currentLevel != null && GameMode.ADVENTURE.equals(player.getGameMode());
+	}
+
 	@Override
 	public boolean isEnabled() {
 		return enabled;
@@ -162,9 +167,9 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void openPlayLevelOptionsMenu() {
-		AbstractMakerMenu menu = personalMenus.get(EditLevelOptionsMenu.getInstance().getName());
+		AbstractMakerMenu menu = personalMenus.get(PlayLevelOptionsMenu.getInstance().getName());
 		if (menu == null) {
-			menu = EditLevelOptionsMenu.getInstance();
+			menu = PlayLevelOptionsMenu.getInstance();
 			personalMenus.put(menu.getName(), menu);
 		}
 		inventoryToOpen = menu;

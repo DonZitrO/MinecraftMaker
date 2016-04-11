@@ -37,7 +37,8 @@ public class EditLevelOptionsMenu extends AbstractMakerMenu {
 	@Override
 	public void onClick(MakerPlayer mPlayer, int slot) {
 		if (!mPlayer.isEditingLevel()) {
-			Bukkit.getLogger().warning(String.format("LevelOptionsMenu.onClick - This menu should be available to level editors only! - clicked by: [%s]", mPlayer.getName()));
+			Bukkit.getLogger().warning(String.format("EditLevelOptionsMenu.onClick - This menu should be available to level editors only! - clicked by: [%s]", mPlayer.getName()));
+			return;
 		}
 		if (slot >= items.length) {
 			return;

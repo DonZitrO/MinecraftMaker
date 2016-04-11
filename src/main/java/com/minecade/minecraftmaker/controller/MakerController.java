@@ -203,7 +203,7 @@ public class MakerController implements Runnable, Tickable {
 		author.sendActionMessage(plugin, "level.loading");
 		try {
 			level.setClipboard(LevelUtils.createEmptyLevelClipboard(getMainWorld(), level.getChunkZ(), floorBlockId));
-			plugin.getBuilderTask().offer(new ResumableOperationQueue(createPasteOperation(level.getClipboard()), new ReadyLevelForEditionOperation(level)));
+			plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(createPasteOperation(level.getClipboard()), new ReadyLevelForEditionOperation(level)));
 		} catch (MinecraftMakerException e) {
 			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
 			level.disable();
@@ -364,7 +364,7 @@ public class MakerController implements Runnable, Tickable {
 			if (ignoreAirBlocks) {
 				copy.setSourceMask(new ExistingBlockMask(clipboard));
 			}
-			plugin.getBuilderTask().offer(copy);
+			plugin.getLevelOperatorTask().offer(copy);
 		} catch (IOException e) {
 			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to load level: %s", e.getMessage()));
 			e.printStackTrace();
@@ -683,7 +683,7 @@ public class MakerController implements Runnable, Tickable {
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
 		clipboard.setOrigin(levelRegion.getMinimumPoint());
 		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
-		plugin.getBuilderTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
+		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
 	}
 
 	@Override
@@ -692,7 +692,7 @@ public class MakerController implements Runnable, Tickable {
 		if (this.currentTick == 1) {
 			MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld());
 			try {
-				plugin.getBuilderTask().offer(createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld())));
+				plugin.getLevelOperatorTask().offer(createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld())));
 			} catch (MinecraftMakerException e) {
 				e.printStackTrace();
 			}
