@@ -16,7 +16,7 @@ public enum MakerLobbyItem implements Translatable {
 	SERVER_BROWSER(Material.WATCH),
 	STEVE_CHALLENGE(Material.SKULL_ITEM, 1, (short) 3),
 	CREATE_LEVEL(Material.EMPTY_MAP),
-	VIEW_LEVELS(Material.BOOKSHELF),
+	LEVEL_BROWSER(Material.BOOKSHELF),
 	QUIT(Material.TNT);
 
 	private final ItemStackBuilder builder;

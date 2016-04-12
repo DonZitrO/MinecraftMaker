@@ -13,6 +13,11 @@ import com.minecade.core.item.ItemStackBuilder;
 
 public enum GeneralMenuItem implements Translatable {
 
+	SEARCH(Material.COMPASS),
+	SORT(Material.RAILS),
+	CURRENT_PAGE(Material.PAPER),
+	PREVIOUS_PAGE(Material.RAW_FISH),
+	NEXT_PAGE(Material.SHEARS),
 	EXIT_MENU(Material.ARROW),
 	EDIT_LEVEL_OPTIONS(Material.ENDER_CHEST), 
 	PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST);
