@@ -1,12 +1,15 @@
 package com.minecade.minecraftmaker.data;
 
 import java.io.BufferedOutputStream;
+import java.nio.ByteBuffer;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -16,6 +19,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import com.minecade.core.data.DatabaseException;
 import com.minecade.core.data.MinecadeAccountData;
 import com.minecade.core.data.Rank;
+import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -34,7 +38,7 @@ public class MakerDatabaseAdapter {
 	private final String coinsColumn;
 
 	private Connection connection;
-	
+
 	public MakerDatabaseAdapter(MinecraftMakerPlugin plugin) {
 
 		this.plugin = plugin;
@@ -46,6 +50,28 @@ public class MakerDatabaseAdapter {
 		this.jdbcUrl = databaseConfig.getString("url");
 		this.dbUsername = databaseConfig.getString("username");
 		this.dbpassword = databaseConfig.getString("password");
+	}
+
+	public synchronized void disconnect() {
+		if (null != connection) {
+			try {
+				connection.close();
+			} catch (SQLException e) {
+				// no-op
+			}
+		}
+	}
+
+	private synchronized Connection getConnection() throws SQLException {
+		if (null != connection) {
+			if (connection.isValid(1)) {
+				return connection;
+			} else {
+				connection.close();
+			}
+		}
+		connection = DriverManager.getConnection(jdbcUrl, dbUsername, dbpassword);
+		return connection;
 	}
 
 	public MakerPlayerData loadAccountData(UUID uniqueId, String username) throws DatabaseException {
@@ -156,6 +182,35 @@ public class MakerDatabaseAdapter {
 
 	}
 
+	public void loadLevels(LevelSortBy sortBy, int offset, int limit) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should NOT be called from the main thread");
+		}
+		Map<UUID, MakerLevel> levels = new HashMap<>(); 
+		try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` order by ? desc limit ?,?", networkSchema))) {
+			testQuery.setString(1, sortBy.name());
+			testQuery.setInt(2, offset);
+			testQuery.setInt(3, limit);
+			ResultSet resultSet = testQuery.executeQuery();
+			while (resultSet.next()) {
+				ByteBuffer levelIdBytes = ByteBuffer.wrap(resultSet.getBytes("level_id"));
+				Bukkit.getLogger().info(String.format("[DEVELOPMENT] | MakerDatabaseAdapter.loadLevel - level id buffer remaining bytes [%s]", levelIdBytes.remaining()));
+				ByteBuffer authorIdBytes = ByteBuffer.wrap(resultSet.getBytes("author_id"));
+				MakerLevel level = new MakerLevel(plugin, new UUID(levelIdBytes.getLong(), levelIdBytes.getLong()), new UUID(authorIdBytes.getLong(), authorIdBytes.getLong()), resultSet.getString("author_name"));
+				level.setLevelSerial(resultSet.getLong("level_serial"));
+				levels.put(level.getLevelId(), level);
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
+			e.printStackTrace();
+		} 
+		plugin.getController().addServerBrowserLevels(levels, sortBy);
+	}
+
+	public void loadLevelsAsync(LevelSortBy sortBy, int offset, int limit) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadLevels(sortBy, offset, limit));
+	}
+
 	public synchronized void saveLevel(MakerLevel level) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
@@ -177,25 +232,21 @@ public class MakerDatabaseAdapter {
 				if (Bukkit.getLogger().isLoggable(Level.INFO)) {
 					Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.saveLevel - inserting data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
 				}
-				try (PreparedStatement insertLevelSt = getConnection().prepareStatement(String.format("INSERT INTO mcmaker.levels(level_id, author_id, level_name, favs, likes, dislikes) VALUES (UNHEX(?), UNHEX(?), ?, ?, ?, ?)"))) {
+				try (PreparedStatement insertLevelSt = getConnection().prepareStatement(String.format("INSERT INTO mcmaker.levels(level_id, author_id, level_name, author_name) VALUES (UNHEX(?), UNHEX(?), ?, ?)"))) {
 					insertLevelSt.setString(1, levelId);
 					insertLevelSt.setString(2, authorId);
 					insertLevelSt.setString(3, level.getLevelName());
-					insertLevelSt.setLong(4, level.getFavs());
-					insertLevelSt.setLong(5, level.getLikes());
-					insertLevelSt.setLong(6, level.getDislikes());
+					insertLevelSt.setString(4, level.getAuthorName());
 					insertLevelSt.executeUpdate();
 				}
 				if (Bukkit.getLogger().isLoggable(Level.INFO)) {
 					Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.saveLevel - inserted data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
 				}
 			} else {
-				try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `level_name` =  ?, `favs` = ?, `likes` = ?, `dislikes` = ? WHERE `level_id` = UNHEX(?)")) {
+				// update level name only (FIXME: test again after modification)
+				try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `level_name` =  ? WHERE `level_id` = UNHEX(?)")) {
 					updateLevelSt.setString(1, level.getLevelName());
-					updateLevelSt.setLong(2, level.getFavs());
-					updateLevelSt.setLong(3, level.getLikes());
-					updateLevelSt.setLong(4, level.getDislikes());
-					updateLevelSt.setString(5, levelId);
+					updateLevelSt.setString(2, levelId);
 					updateLevelSt.executeUpdate();
 				}
 			}
@@ -227,28 +278,6 @@ public class MakerDatabaseAdapter {
 				}
 			}
 		}
-	}
-
-	public synchronized void disconnect() {
-		if (null != connection) {
-			try {
-				connection.close();
-			} catch (SQLException e) {
-				// no-op
-			}
-		}
-	}
-
-	private synchronized Connection getConnection() throws SQLException {
-		if (null != connection) {
-			if (connection.isValid(1)) {
-				return connection;
-			} else {
-				connection.close();
-			}
-		}
-		connection = DriverManager.getConnection(jdbcUrl, dbUsername, dbpassword);
-		return connection;
 	}
 
 	public boolean testConnection() {

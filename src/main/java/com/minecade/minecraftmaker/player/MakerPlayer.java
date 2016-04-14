@@ -141,8 +141,7 @@ public class MakerPlayer implements Tickable {
 
 	public boolean onInventoryClick(Inventory inventory, int slot) {
 		if (personalMenus.containsKey(inventory.getName())) {
-			personalMenus.get(inventory.getName()).onClick(this, slot);
-			return true;
+			return personalMenus.get(inventory.getName()).onClick(this, slot);
 		}
 		return false;
 	}

@@ -19,11 +19,12 @@ import com.minecade.minecraftmaker.util.Tickable;
 public class MakerLevel implements Tickable {
 
 	private final MinecraftMakerPlugin plugin;
-	private final short chunkZ;
 	private final UUID levelId;
 	private final UUID authorId;
 	private final String authorName;
 
+	private long levelSerial;
+	private short chunkZ;
 	private LevelStatus status;
 
 	private String levelName;
@@ -43,13 +44,21 @@ public class MakerLevel implements Tickable {
 
 	public MakerLevel(MinecraftMakerPlugin plugin, MakerPlayer author, short chunkZ) {
 		this.plugin = plugin;
+		this.levelId = UUID.randomUUID();
 		this.authorId = author.getUniqueId();
 		this.authorName = author.getName();
 		this.chunkZ = chunkZ;
 		this.startLocation = new Vector(2.5, 65, (chunkZ * 16) + 6.5).toLocation(plugin.getController().getMainWorld(), -90f, 0f);
 		this.status = LevelStatus.LOADING;
-		this.levelId = UUID.randomUUID();
 	}
+
+	public MakerLevel(MinecraftMakerPlugin plugin, UUID levelId, UUID authorId, String authorName) {
+		this.plugin = plugin;
+		this.levelId = levelId;
+		this.authorId = authorId;
+		this.authorName = authorName;
+	}
+
 
 	@Override
 	public synchronized void disable() {
@@ -71,6 +80,14 @@ public class MakerLevel implements Tickable {
 
 	public String getAuthorName() {
 		return authorName;
+	}
+
+	public long getLevelSerial() {
+		return levelSerial;
+	}
+
+	public void setLevelSerial(long levelSerial) {
+		this.levelSerial = levelSerial;
 	}
 
 	public short getChunkZ() {
@@ -99,7 +116,7 @@ public class MakerLevel implements Tickable {
 	}
 
 	public String getLevelName() {
-		return levelName != null ? levelName : levelId.toString().replace("-", "");
+		return levelName != null ? levelName : levelSerial > 0 ? String.valueOf(levelSerial) : levelId.toString().replace("-", "");
 	}
 
 	public long getLikes() {
@@ -282,6 +299,31 @@ public class MakerLevel implements Tickable {
 			return false;
 		}
 		this.status = to;
+		return true;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((levelId == null) ? 0 : levelId.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		MakerLevel other = (MakerLevel) obj;
+		if (levelId == null) {
+			if (other.levelId != null)
+				return false;
+		} else if (!levelId.equals(other.levelId))
+			return false;
 		return true;
 	}
 

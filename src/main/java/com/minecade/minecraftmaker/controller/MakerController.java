@@ -47,8 +47,10 @@ import com.minecade.minecraftmaker.function.operation.ReadyLevelForEditionOperat
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.function.operation.SchematicWriteOperation;
+import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
+import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -104,6 +106,8 @@ public class MakerController implements Runnable, Tickable {
 	private Map<UUID, MakerPlayer> playerMap;
 	// keeps track of every arena on the server
 	protected Map<Short, MakerLevel> levelMap;
+	// shallow level data for server browser (FIXME: experimental/bleeding - possible memory leak if size control is not added)
+	protected Map<UUID, MakerLevel> browserLevelMap = new ConcurrentHashMap<>();
 
 	// an async thread loads the data to this map, then the main thread process it
 	private final Map<UUID, MakerPlayerData> accountDataMap = Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayerData>(MAX_ACCOUNT_DATA_ENTRIES * 2) {
@@ -720,6 +724,12 @@ public class MakerController implements Runnable, Tickable {
 		// FIXME: review this
 		makerLevel.disable();
 		levelMap.remove(makerLevel.getChunkZ());
+	}
+
+	// FIXME: this is an experimental proof of concept, don't use it elsewhere until tested/refined
+	public void addServerBrowserLevels(final Map<UUID, MakerLevel> levels, LevelSortBy sortBy) {
+		browserLevelMap.putAll(levels);
+		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.updatePages(plugin, levels.values(), sortBy));
 	}
 
 }

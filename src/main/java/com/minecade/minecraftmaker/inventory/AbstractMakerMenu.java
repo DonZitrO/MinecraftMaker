@@ -66,7 +66,7 @@ public abstract class AbstractMakerMenu {
 		}
 	}
 
-	public abstract void onClick(MakerPlayer mPlayer, int slot);
+	public abstract boolean onClick(MakerPlayer mPlayer, int slot);
 
 	public void open(Player player) {
 		if (player == null) {
