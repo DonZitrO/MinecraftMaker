@@ -1,6 +1,9 @@
 package com.minecade.minecraftmaker.util;
 
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
@@ -156,6 +159,35 @@ public class LevelUtils {
 		}
 
 		return clipboard;
+	}
+
+	public static boolean isBeaconPowerBlock(Block block) {
+		if (!block.getType().equals(Material.IRON_BLOCK)) {
+			return false;
+		}
+		Block blockAbove = block.getRelative(BlockFace.UP);
+		if (blockAbove.getType().equals(Material.BEACON)) {
+			return true;
+		}
+		for (BlockFace around : BlockFace.values()) {
+			switch (around) {
+			case NORTH_WEST:
+			case NORTH:
+			case NORTH_EAST:
+			case WEST:
+			case EAST:
+			case SOUTH_WEST:
+			case SOUTH:
+			case SOUTH_EAST:
+				if (blockAbove.getRelative(around).getType().equals(Material.BEACON)) {
+					return true;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		return false;
 	}
 
 	private LevelUtils() {

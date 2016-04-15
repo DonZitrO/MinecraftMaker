@@ -5,6 +5,9 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.util.Vector;
 
@@ -36,9 +39,12 @@ public class MakerLevel implements Tickable {
 	private long likes;
 	private long dislikes;
 
+	private boolean cleared;
+
 	private UUID currentPlayerId;
 
 	private Location startLocation;
+	private Location finalLocation;
 
 	private long currentTick;
 
@@ -325,6 +331,49 @@ public class MakerLevel implements Tickable {
 		} else if (!levelId.equals(other.levelId))
 			return false;
 		return true;
+	}
+
+	public boolean isCleared() {
+		return cleared;
+	}
+
+	public boolean isPlayableByEditor() {
+		return finalLocation != null;
+	}
+
+	public boolean setupFinalLocation(Location location) {
+		if (finalLocation!=null) {
+			Block formerBeacon = finalLocation.getBlock();
+			formerBeacon.setType(Material.AIR);
+			formerBeacon.getState().update();
+			updateBeaconBase(formerBeacon.getRelative(BlockFace.DOWN), Material.AIR);
+		}
+		updateBeaconBase(location.getBlock().getRelative(BlockFace.DOWN), Material.IRON_BLOCK);
+		finalLocation = location.clone();
+		return true;
+	}
+
+	private void updateBeaconBase(Block belowFormerBeacon, Material material) {
+		belowFormerBeacon.setType(material);
+		belowFormerBeacon.getState().update();
+		for (BlockFace around : BlockFace.values()) {
+			switch (around) {
+			case NORTH_WEST:
+			case NORTH:
+			case NORTH_EAST:
+			case WEST:
+			case EAST:
+			case SOUTH_WEST:
+			case SOUTH:
+			case SOUTH_EAST:
+				Block aroundBlock = belowFormerBeacon.getRelative(around);
+				aroundBlock.setType(material);
+				aroundBlock.getState().update();
+				break;
+			default:
+				break;
+			}
+		}
 	}
 
 }

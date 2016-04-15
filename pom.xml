@@ -61,22 +61,16 @@
 			<version>${spigot.version}</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>com.minecade</groupId>
-			<artifactId>core</artifactId>
-			<version>${minecade.core.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>de.slikey</groupId>
-			<artifactId>EffectLib</artifactId>
-			<version>${effectlib.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sk89q.worldedit</groupId>
-			<artifactId>worldedit-bukkit</artifactId>
-			<version>${worldedit.version}</version>
-		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>de.slikey</groupId> -->
+<!-- 			<artifactId>EffectLib</artifactId> -->
+<!-- 			<version>${effectlib.version}</version> -->
+<!-- 		</dependency> -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>com.sk89q.worldedit</groupId> -->
+<!-- 			<artifactId>worldedit-bukkit</artifactId> -->
+<!-- 			<version>${worldedit.version}</version> -->
+<!-- 		</dependency> -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

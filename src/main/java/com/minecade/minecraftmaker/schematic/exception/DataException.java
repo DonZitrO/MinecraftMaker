@@ -5,14 +5,14 @@ package com.minecade.minecraftmaker.schematic.exception;
  */
 public class DataException extends Exception {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
 	public DataException(String msg) {
-        super(msg);
-    }
+		super(msg);
+	}
 
-    public DataException() {
-        super();
-    }
+	public DataException() {
+		super();
+	}
 
 }

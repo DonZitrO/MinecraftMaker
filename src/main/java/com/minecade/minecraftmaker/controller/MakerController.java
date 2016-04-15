@@ -431,13 +431,48 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void onBlockBreak(BlockBreakEvent event) {
-		// TODO Auto-generated method stub
-
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onBlockBreak - player: [%s] - block type: [%s] ", event.getPlayer().getName(), event.getBlock().getType()));
+		}
+		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockBreak - untracked player:[%s]", event.getPlayer().getName()));
+			event.setCancelled(true);
+			return;
+		}
+		if (!mPlayer.isEditingLevel()) {
+			event.setCancelled(true);
+			return;
+		}
+		if (LevelUtils.isBeaconPowerBlock(event.getBlock())) {
+			mPlayer.sendActionMessage(plugin, "level.edit.error.bacon-power-block");
+			mPlayer.sendMessage(plugin, "level.edit.clear-bacon");
+			event.setCancelled(true);
+			return;
+		}
 	}
 
 	public void onBlockPlace(BlockPlaceEvent event) {
-		// TODO Auto-generated method stub
-
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onBlockPlace - player: [%s] - block type: [%s] ", event.getPlayer().getName(), event.getBlockPlaced().getType()));
+		}
+		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockPlace - untracked player:[%s]", event.getPlayer().getName()));
+			event.setCancelled(true);
+			return;
+		}
+		if (!mPlayer.isEditingLevel()) {
+			event.setCancelled(true);
+			return;
+		}
+		// end level beacon placement
+		if (Material.BEACON.equals(event.getBlockPlaced().getType())) {
+			if(!mPlayer.getCurrentLevel().setupFinalLocation(event.getBlockPlaced().getLocation())) {
+				event.setCancelled(true);
+			}
+			return;
+		}
 	}
 
 	public void onEntityDamage(EntityDamageEvent event) {

@@ -2,7 +2,6 @@ name: SuperMinecraftMaker
 main: com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin
 version: '${project.version}'
 authors: [SethBling, tux2, DonZitrO]
-depend: [MinecadeCore]
 load: startup
 commands:
   level:

@@ -1,6 +1,5 @@
 package com.minecade.minecraftmaker.schematic.exception;
 
-import com.sk89q.worldedit.world.DataException;
 
 public class ChunkStoreException extends DataException {
 
