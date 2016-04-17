@@ -18,5 +18,6 @@ public enum LevelStatus {
 	SAVE_READY,
 	SAVED,
 	SAVING,
-	UNLOAD_READY;
+	UNLOAD_READY,
+	CLEARED;
 }

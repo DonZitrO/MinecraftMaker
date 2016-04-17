@@ -28,6 +28,7 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -51,6 +52,7 @@ import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
+import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -468,7 +470,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 		// end level beacon placement
 		if (Material.BEACON.equals(event.getBlockPlaced().getType())) {
-			if(!mPlayer.getCurrentLevel().setupFinalLocation(event.getBlockPlaced().getLocation())) {
+			if(!mPlayer.getCurrentLevel().setupEndLocation(event.getBlockPlaced().getLocation())) {
 				event.setCancelled(true);
 			}
 			return;
@@ -492,11 +494,14 @@ public class MakerController implements Runnable, Tickable {
 
 		// level creator back to spawn from void
 		if (mPlayer.isEditingLevel()) {
-			if (event.getCause() == DamageCause.VOID) {	
+			if (event.getCause() == DamageCause.VOID) {
 				mPlayer.teleportOnNextTick(mPlayer.getCurrentLevel().getStartLocation());
 			}
 			event.setCancelled(true);
 			return;
+		}
+		if (mPlayer.isInLobby()) {
+			event.setCancelled(true);
 		}
 	}
 
@@ -765,6 +770,18 @@ public class MakerController implements Runnable, Tickable {
 	public void addServerBrowserLevels(final Map<UUID, MakerLevel> levels, LevelSortBy sortBy) {
 		browserLevelMap.putAll(levels);
 		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.updatePages(plugin, levels.values(), sortBy));
+	}
+
+	public void onPlayerMove(PlayerMoveEvent event) {
+		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerMove - untracked Player: [%s]", event.getPlayer().getName()));
+			return;
+		}
+		if (!mPlayer.isPlayingLevel() || LevelStatus.CLEARED.equals(mPlayer.getCurrentLevel().getStatus())) {
+			return;
+		}
+		mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
 	}
 
 }

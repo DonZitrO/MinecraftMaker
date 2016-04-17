@@ -9,8 +9,11 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
@@ -18,6 +21,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -79,6 +83,18 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityDamage - Entity: [%s] - Cause: [%s] - Damage: [%s] - Cancelled: [%s]", event.getEntity().getName(), event.getCause(), event.getDamage(), event.isCancelled()));
 		}
 		plugin.getController().onEntityDamage(event);
+	}
+
+	@EventHandler
+	public void onEntitySpawn(CreatureSpawnEvent event) {
+		if(event.getSpawnReason() == SpawnReason.NATURAL) {
+			event.setCancelled(true);
+		}
+	}
+
+	@EventHandler
+	public void onFoodLevelChange(FoodLevelChangeEvent event) {
+		event.setCancelled(true);
 	}
 
 	@EventHandler(ignoreCancelled = true)
@@ -151,10 +167,16 @@ public class MakerListener implements Listener {
 		plugin.getController().onPlayerJoin(event.getPlayer());
 	}
 
+	@EventHandler
+	public void onPlayerMove(PlayerMoveEvent event) {
+		plugin.getController().onPlayerMove(event);
+	}
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public final void onPlayerQuit(PlayerQuitEvent event) {
 		Bukkit.getLogger().info(String.format("MakerListener.onPlayerQuit - Player: [%s<%s>]", event.getPlayer().getName(), event.getPlayer().getUniqueId()));
 		event.setQuitMessage(null);
 		plugin.getController().onPlayerQuit(event.getPlayer());
 	}
+
 }

@@ -16,7 +16,6 @@ import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
-import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.util.Tickable;
 
 public class MakerLevel implements Tickable {
@@ -32,19 +31,20 @@ public class MakerLevel implements Tickable {
 
 	private String levelName;
 
-	private Region region;
+	//private Region region;
 	private Clipboard clipboard;
 
 	private long favs;
 	private long likes;
 	private long dislikes;
 
+	private long startTime;
 	private boolean cleared;
 
 	private UUID currentPlayerId;
 
 	private Location startLocation;
-	private Location finalLocation;
+	private Location endLocation;
 
 	private long currentTick;
 
@@ -77,7 +77,7 @@ public class MakerLevel implements Tickable {
 
 	@Override
 	public void enable() {
-		throw new UnsupportedOperationException("An Arena is enabled by default");
+		throw new UnsupportedOperationException("A level is enabled by default");
 	}
 
 	public UUID getAuthorId() {
@@ -178,9 +178,15 @@ public class MakerLevel implements Tickable {
 
 	public synchronized void saveAndPlay() {
 		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
-		if (mPlayer != null) {
-			mPlayer.sendActionMessage(plugin, "level.loading");
+		if (mPlayer == null) {
+			return;
 		}
+		if (!isPlayableByEditor()) {
+			mPlayer.sendActionMessage(plugin, "level.edit.error.missing-end");
+			return;
+		}
+
+		mPlayer.sendActionMessage(plugin, "level.loading");
 		this.currentPlayerId = authorId;
 		saveLevel();
 	}
@@ -224,6 +230,7 @@ public class MakerLevel implements Tickable {
 			mPlayer.updateInventoryOnNextTick();
 			mPlayer.setCurrentLevel(this);
 			status = LevelStatus.PLAYING;
+			startTime = System.currentTimeMillis();
 		} else {
 			// TODO: error message to player
 		}
@@ -338,18 +345,25 @@ public class MakerLevel implements Tickable {
 	}
 
 	public boolean isPlayableByEditor() {
-		return finalLocation != null;
+		return endLocation != null;
 	}
 
-	public boolean setupFinalLocation(Location location) {
-		if (finalLocation!=null) {
-			Block formerBeacon = finalLocation.getBlock();
+	public boolean setupEndLocation(Location location) {
+		long startNanos = 0;
+		if (plugin.isDebugMode()) {
+			startNanos = System.nanoTime();
+		}
+		if (endLocation != null) {
+			Block formerBeacon = endLocation.getBlock();
 			formerBeacon.setType(Material.AIR);
 			formerBeacon.getState().update();
 			updateBeaconBase(formerBeacon.getRelative(BlockFace.DOWN), Material.AIR);
 		}
 		updateBeaconBase(location.getBlock().getRelative(BlockFace.DOWN), Material.IRON_BLOCK);
-		finalLocation = location.clone();
+		endLocation = location.clone();
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.setupEndLocation took: [%s] nanoseconds", System.nanoTime() - startNanos));
+		}
 		return true;
 	}
 
@@ -373,6 +387,24 @@ public class MakerLevel implements Tickable {
 			default:
 				break;
 			}
+		}
+	}
+
+	public void checkLevelEnd(Location location) {
+		if (endLocation == null) {
+			throw new IllegalStateException("MakerLevel.endlocation cannot be null at this point");
+		}
+		if (location.getBlockX() == endLocation.getBlockX() && location.getBlockZ() == endLocation.getBlockZ() && location.getBlockY() >= endLocation.getBlockY()) {
+			clearLevel();
+		}
+	}
+
+	private void clearLevel() {
+		status = LevelStatus.CLEARED;
+		MakerPlayer mPlayer = plugin.getController().getPlayer(currentPlayerId);
+		if (mPlayer != null) {
+			// FIXME: temporal test stuff obviously
+			mPlayer.sendActionMessage(plugin, "level.clear.success", (System.currentTimeMillis() - startTime) / 1000);
 		}
 	}
 
