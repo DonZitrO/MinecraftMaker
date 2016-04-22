@@ -191,8 +191,9 @@ public class SchematicWriter implements ClipboardWriter {
         return new ListTag(FloatTag.class, list);
     }
 
-    @Override
-    public void close() throws IOException {
-        outputStream.close();
-    }
+	@Override
+	public void close() throws IOException {
+		outputStream.close();
+	}
+
 }

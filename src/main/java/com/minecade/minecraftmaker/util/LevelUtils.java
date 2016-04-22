@@ -5,17 +5,27 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
+import com.minecade.minecraftmaker.function.operation.Operation;
+import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
+import com.minecade.minecraftmaker.schematic.transform.Identity;
+import com.minecade.minecraftmaker.schematic.transform.Transform;
+import com.minecade.minecraftmaker.schematic.world.BlockTransformExtent;
 import com.minecade.minecraftmaker.schematic.world.CuboidRegion;
+import com.minecade.minecraftmaker.schematic.world.Extent;
 import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.schematic.world.Vector;
+import com.minecade.minecraftmaker.schematic.world.WorldData;
 
 public class LevelUtils {
+
+	public static final Transform IDENTITY_TRANSFORM = new Identity();
 
 	public static Vector getLevelOrigin(short chunkZ) {
 		short originX = 0;
@@ -188,6 +198,17 @@ public class LevelUtils {
 			}
 		}
 		return false;
+	}
+
+	public static Operation createPasteOperation(Clipboard clipboard, Extent destination, WorldData worldData) {
+		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
+		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), destination, clipboard.getOrigin());
+		copy.setTransform(IDENTITY_TRANSFORM);
+		boolean ignoreAirBlocks = false;
+		if (ignoreAirBlocks) {
+			copy.setSourceMask(new ExistingBlockMask(clipboard));
+		}
+		return copy;
 	}
 
 	private LevelUtils() {

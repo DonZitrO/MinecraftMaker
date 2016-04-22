@@ -51,6 +51,8 @@ public class EditLevelOptionsMenu extends AbstractMakerMenu {
 			mPlayer.getCurrentLevel().saveAndPlay();
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.SAVE.getDisplayName())) {
 			mPlayer.getCurrentLevel().saveLevel();
+		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PUBLISH.getDisplayName())) {
+			mPlayer.getCurrentLevel().publishLevel();
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.EXIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().exitEditing();
 		}

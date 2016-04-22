@@ -1,5 +1,7 @@
 package com.minecade.core.item;
 
+import java.util.List;
+
 import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemStack;
 
@@ -34,6 +36,17 @@ public class ItemUtils {
 
 	public static String getDisplayName(ItemStack stack) {
 		return hasDisplayName(stack) ? stack.getItemMeta().getDisplayName():"";
+	}
+
+	public static String getLoreLine(ItemStack stack, int loreIndex) {
+		if (stack == null || !stack.hasItemMeta()) {
+			return null;
+		}
+		List<String> lore = stack.getItemMeta().getLore();
+		if (lore == null || loreIndex >= lore.size()) {
+			return null;
+		}
+		return ChatColor.stripColor(lore.get(loreIndex));
 	}
 
 	private ItemUtils() {

@@ -11,6 +11,10 @@ public class DataException extends Exception {
 		super(msg);
 	}
 
+	public DataException(Throwable cause) {
+		super(cause);
+	}
+
 	public DataException() {
 		super();
 	}

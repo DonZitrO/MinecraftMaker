@@ -1,70 +1,136 @@
 package com.minecade.minecraftmaker.level;
 
+import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
-import org.bukkit.util.Vector;
+import org.bukkit.inventory.ItemStack;
 
+import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.function.operation.LevelClipboardCopyOperation;
+import com.minecade.minecraftmaker.function.operation.LevelClipboardPasteOperation;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
+import com.minecade.minecraftmaker.schematic.world.Extent;
+import com.minecade.minecraftmaker.schematic.world.WorldData;
 import com.minecade.minecraftmaker.util.Tickable;
 
 public class MakerLevel implements Tickable {
 
-	private final MinecraftMakerPlugin plugin;
-	private final UUID levelId;
-	private final UUID authorId;
-	private final String authorName;
+	private static final MakerRelativeLocationData RELATIVE_START_LOCATION = new MakerRelativeLocationData(2.5, 65, 6.5, -90f, 0);
 
+	private final MinecraftMakerPlugin plugin;
+
+	private UUID levelId;
 	private long levelSerial;
+	private String levelName;
+	private UUID authorId;
+	private String authorName;
 	private short chunkZ;
 	private LevelStatus status;
 
-	private String levelName;
-
 	//private Region region;
 	private Clipboard clipboard;
+
+	private long clearedByAuthorMillis;
+	private Date datePublished;
 
 	private long favs;
 	private long likes;
 	private long dislikes;
 
 	private long startTime;
-	private boolean cleared;
 
 	private UUID currentPlayerId;
 
-	private Location startLocation;
-	private Location endLocation;
+	private MakerRelativeLocationData relativeEndLocation;
 
 	private long currentTick;
 
-	public MakerLevel(MinecraftMakerPlugin plugin, MakerPlayer author, short chunkZ) {
+//	public MakerLevel(MinecraftMakerPlugin plugin, MakerPlayer author, short chunkZ) {
+//		this.plugin = plugin;
+//		this.levelId = UUID.randomUUID();
+//		this.authorId = author.getUniqueId();
+//		this.authorName = author.getName();
+//		this.chunkZ = chunkZ;
+//		// FIXME: refactor this
+//		this.startLocation = new Vector(2.5, 65, (chunkZ * 16) + 6.5).toLocation(plugin.getController().getMainWorld(), -90f, 0f);
+//		this.status = LevelStatus.PREPARING;
+//	}
+
+//	public MakerLevel(MinecraftMakerPlugin plugin, UUID levelId, UUID authorId, String authorName) {
+//		this.plugin = plugin;
+//		this.levelId = levelId;
+//		this.authorId = authorId;
+//		this.authorName = authorName;
+//		this.status = LevelStatus.PREPARING;
+//	}
+
+	public MakerLevel(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
-		this.levelId = UUID.randomUUID();
-		this.authorId = author.getUniqueId();
-		this.authorName = author.getName();
+		this.status = LevelStatus.PREPARING;
+	}
+
+	public MakerLevel(MinecraftMakerPlugin plugin, short chunkZ) {
+		this.plugin = plugin;
 		this.chunkZ = chunkZ;
-		this.startLocation = new Vector(2.5, 65, (chunkZ * 16) + 6.5).toLocation(plugin.getController().getMainWorld(), -90f, 0f);
-		this.status = LevelStatus.LOADING;
+		this.status = LevelStatus.PREPARING;
 	}
 
-	public MakerLevel(MinecraftMakerPlugin plugin, UUID levelId, UUID authorId, String authorName) {
-		this.plugin = plugin;
-		this.levelId = levelId;
-		this.authorId = authorId;
-		this.authorName = authorName;
+	public void checkLevelEnd(Location location) {
+		if (relativeEndLocation == null) {
+			throw new IllegalStateException("MakerLevel.endlocation cannot be null at this point");
+		}
+		Location endLocation = getEndLocation();
+		if (location.getBlockX() == endLocation.getBlockX() && location.getBlockZ() == endLocation.getBlockZ() && location.getBlockY() >= endLocation.getBlockY()) {
+			clearLevel();
+		}
 	}
 
+	private void clearLevel() {
+		long clearTimeMillis = System.currentTimeMillis() - startTime;
+		MakerPlayer mPlayer = plugin.getController().getPlayer(currentPlayerId);
+		if (mPlayer == null) {
+			disable();
+			return;
+		}
+		if (!tryStatusTransition(LevelStatus.PLAYING, LevelStatus.CLEARED)) {
+			mPlayer.sendMessage(plugin, "level.clear.error.status");
+			return;
+		}
+		if (authorId.equals(mPlayer.getUniqueId())) {
+			clearedByAuthorMillis = clearTimeMillis;
+			plugin.getDatabaseAdapter().updateLevelAuthorClearTimeAsync(this);
+		} else {
+			plugin.getDatabaseAdapter().updateLevelClearAsync(getLevelId(), mPlayer.getUniqueId(), clearTimeMillis);
+		}
+		mPlayer.sendMessage(plugin, "level.clear.options");
+		mPlayer.sendActionMessage(plugin, "level.clear.success", formatMillis(clearTimeMillis));
+
+	}
+
+	private String formatMillis(long millis) {
+		return String.format("%02d:%02d:%02d,%03d", 
+			    TimeUnit.MILLISECONDS.toHours(millis),
+			    TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+			    TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)),
+			    TimeUnit.MILLISECONDS.toMillis(millis) - TimeUnit.SECONDS.toMillis(TimeUnit.MILLISECONDS.toSeconds(millis)));
+	}
+
+	public synchronized void clipboardError() {
+		// TODO: add some meat
+		status = LevelStatus.CLIPBOARD_ERROR;
+	}
 
 	@Override
 	public synchronized void disable() {
@@ -80,20 +146,63 @@ public class MakerLevel implements Tickable {
 		throw new UnsupportedOperationException("A level is enabled by default");
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		MakerLevel other = (MakerLevel) obj;
+		if (levelId == null) {
+			if (other.levelId != null)
+				return false;
+		} else if (!levelId.equals(other.levelId))
+			return false;
+		return true;
+	}
+
+	public synchronized void exitEditing() {
+		// TODO: maybe verify EDITING status
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer != null) {
+			plugin.getController().addPlayerToMainLobby(mPlayer);
+		}
+		this.status = LevelStatus.UNLOAD_READY;
+	}
+
+	public void exitPlaying() {
+		// TODO: maybe verify PLAYING status
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer != null) {
+			plugin.getController().addPlayerToMainLobby(mPlayer);
+		}
+		this.status = LevelStatus.UNLOAD_READY;
+	}
+
+	public void setLevelId(UUID levelId) {
+		this.levelId = levelId;
+	}
+
 	public UUID getAuthorId() {
 		return authorId;
 	}
 
+	public void setAuthorId(UUID authorId) {
+		this.authorId = authorId;
+	}
+
+	public void setAuthorName(String authorName) {
+		this.authorName = authorName;
+	}
+
+	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
+		this.relativeEndLocation = relativeEndLocation;
+	}
+
 	public String getAuthorName() {
 		return authorName;
-	}
-
-	public long getLevelSerial() {
-		return levelSerial;
-	}
-
-	public void setLevelSerial(long levelSerial) {
-		this.levelSerial = levelSerial;
 	}
 
 	public short getChunkZ() {
@@ -117,6 +226,10 @@ public class MakerLevel implements Tickable {
 		return favs;
 	}
 
+	public long getClearedByAuthorMillis() {
+		return clearedByAuthorMillis;
+	}
+
 	public UUID getLevelId() {
 		return levelId;
 	}
@@ -125,12 +238,33 @@ public class MakerLevel implements Tickable {
 		return levelName != null ? levelName : levelSerial > 0 ? String.valueOf(levelSerial) : levelId.toString().replace("-", "");
 	}
 
+	public long getLevelSerial() {
+		return levelSerial;
+	}
+
 	public long getLikes() {
 		return likes;
 	}
 
+	// TODO: candidate for removal, use full level object when possible
+	public Extent getMakerExtent() {
+		return plugin.getController().getMakerExtent();
+	}
+
+	public MakerRelativeLocationData getRelativeEndLocation() {
+		return relativeEndLocation;
+	}
+
+	public Location getEndLocation() {
+		return relativeEndLocation.toLocation(chunkZ, getWorld());
+	}
+
 	public Location getStartLocation() {
-		return startLocation.clone();
+		return RELATIVE_START_LOCATION.toLocation(chunkZ, getWorld());
+	}
+
+	private World getWorld() {
+		return plugin.getController().getMainWorld();
 	}
 
 	public LevelStatus getStatus() {
@@ -138,8 +272,24 @@ public class MakerLevel implements Tickable {
 	}
 
 	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((levelId == null) ? 0 : levelId.hashCode());
+		return result;
+	}
+
+	public boolean isClearedByAuthor() {
+		return clearedByAuthorMillis > 0;
+	}
+
+	@Override
 	public boolean isEnabled() {
 		return !LevelStatus.DISABLED.equals(getStatus());
+	}
+
+	public boolean isPlayableByEditor() {
+		return relativeEndLocation != null;
 	}
 
 	public void rename(String newName) {
@@ -148,32 +298,15 @@ public class MakerLevel implements Tickable {
 		// TODO: implement
 	}
 
-	public synchronized void exitEditing() {
-		// TODO: maybe verify EDITING status
+	public synchronized void restartPlaying() {
+		// FIXME: enhance this to allow the player to wait on the level start while the level reloads instead of going back to lobby
 		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
 		if (mPlayer != null) {
+			mPlayer.sendActionMessage(plugin, "level.loading");
 			plugin.getController().addPlayerToMainLobby(mPlayer);
 		}
-		this.status = LevelStatus.UNLOAD_READY;
-	}
-
-	public void exitPlaying() {
-		// TODO: maybe verify PLAYING status
-		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
-		if (mPlayer != null) {
-			plugin.getController().addPlayerToMainLobby(mPlayer);
-		}
-		this.status = LevelStatus.UNLOAD_READY;
-	}
-
-	public synchronized void saveLevel() {
-		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
-		if (mPlayer != null) {
-			plugin.getController().addPlayerToMainLobby(mPlayer);
-		}
-		// FIXME: re-think status name
-		this.status = LevelStatus.EDITED;
-		plugin.getController().addPlayerToMainLobby(mPlayer);
+		status = LevelStatus.CLIPBOARD_PASTE_READY;
+		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
 	}
 
 	public synchronized void saveAndPlay() {
@@ -185,51 +318,94 @@ public class MakerLevel implements Tickable {
 			mPlayer.sendActionMessage(plugin, "level.edit.error.missing-end");
 			return;
 		}
-
 		mPlayer.sendActionMessage(plugin, "level.loading");
 		this.currentPlayerId = authorId;
 		saveLevel();
+	}
+
+	public synchronized void saveLevel() {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer != null) {
+			plugin.getController().addPlayerToMainLobby(mPlayer);
+		}
+		// FIXME: re-think status name
+		this.status = LevelStatus.EDITED;
 	}
 
 	public void setClipboard(Clipboard clipboard) {
 		this.clipboard = clipboard;
 	}
 
+	public void setCurrentPlayerId(UUID currentPlayerId) {
+		this.currentPlayerId = currentPlayerId;
+	}
+
+	public void setLevelSerial(long levelSerial) {
+		this.levelSerial = levelSerial;
+	}
+
+	public boolean setupEndLocation(Location location) {
+		long startNanos = 0;
+		if (plugin.isDebugMode()) {
+			startNanos = System.nanoTime();
+		}
+		if (relativeEndLocation != null) {
+			Block formerBeacon = getEndLocation().getBlock();
+			formerBeacon.setType(Material.AIR);
+			formerBeacon.getState().update();
+			updateBeaconBase(formerBeacon.getRelative(BlockFace.DOWN), Material.AIR);
+		}
+		updateBeaconBase(location.getBlock().getRelative(BlockFace.DOWN), Material.IRON_BLOCK);
+		// reuse object on DB by inheriting the UUID when possible
+		relativeEndLocation = new MakerRelativeLocationData(location, relativeEndLocation != null ? relativeEndLocation.getLocationId() : null);
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.setupEndLocation took: [%s] nanoseconds", System.nanoTime() - startNanos));
+		}
+		return true;
+	}
+
 	public void startEdition() {
-		// TODO: level must be on the right status to allow edition
 		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
 		if (mPlayer == null || !mPlayer.isInLobby()) {
-			// TODO: disable/unload level
+			disable();
 			return;
 		}
-		mPlayer.sendActionMessage(plugin, "level.create.start");
-		if (mPlayer.teleport(startLocation, TeleportCause.PLUGIN)) {
+		if (!tryStatusTransition(LevelStatus.EDIT_READY, LevelStatus.EDITING)) {
+			mPlayer.sendMessage(plugin, "level.edit.error.status");
+			return;
+		}
+		mPlayer.sendMessage(plugin, "level.create.start");
+		mPlayer.sendMessage(plugin, "level.create.creative");
+		mPlayer.sendMessage(plugin, "level.create.beacon");
+		mPlayer.sendMessage(plugin, "level.create.menu");
+		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.CREATIVE);
+			mPlayer.setAllowFlight(true);
 			mPlayer.setFlying(true);
 			mPlayer.clearInventory();
+			mPlayer.getPlayer().getInventory().setItem(0, new ItemStack(Material.BEACON));
 			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getItem());
 			mPlayer.updateInventoryOnNextTick();
 			mPlayer.setCurrentLevel(this);
-			status = LevelStatus.EDITING;
 		} else {
 			// TODO: disable/unload level
 		}
 	}
 
 	public void startPlaying(MakerPlayer mPlayer) {
-		if (!LevelStatus.PLAY_READY.equals(getStatus())) {
+		if (!tryStatusTransition(LevelStatus.PLAY_READY, LevelStatus.PLAYING)) {
 			mPlayer.sendMessage(plugin, "level.play.error.status");
 			return;
 		}
 		mPlayer.sendActionMessage(plugin, "level.play.start");
-		if (mPlayer.teleport(startLocation, TeleportCause.PLUGIN)) {
+		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.ADVENTURE);
 			mPlayer.setFlying(false);
+			mPlayer.setAllowFlight(false);
 			mPlayer.clearInventory();
 			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.PLAY_LEVEL_OPTIONS.getItem());
 			mPlayer.updateInventoryOnNextTick();
 			mPlayer.setCurrentLevel(this);
-			status = LevelStatus.PLAYING;
 			startTime = System.currentTimeMillis();
 		} else {
 			// TODO: error message to player
@@ -250,24 +426,48 @@ public class MakerLevel implements Tickable {
 		tickStatus();
 	}
 
+	private void tickClipboardCopied() {
+		this.status = LevelStatus.SAVE_READY;
+		plugin.saveLevelAsync(this);
+	}
+
+	private void tickClipboardPasted() {
+		// TODO: find a better way to control these scenarios
+		if (currentPlayerId != null) {
+			if (currentPlayerId.equals(authorId) || isPublished()) {
+				status = LevelStatus.PLAY_READY;
+				return;
+			}
+		}
+		currentPlayerId = null;
+		status = LevelStatus.EDIT_READY;
+	}
+
+	private boolean isPublished() {
+		return datePublished != null;
+	}
+
 	private void tickEdited() {
 		this.status = LevelStatus.CLIPBOARD_COPY_READY;
 		plugin.getLevelOperatorTask().offer(new LevelClipboardCopyOperation(plugin, this));
 	}
 
 	private void tickEditReady() {
-		// TODO Auto-generated method stub
+		startEdition();
+	}
 
+	private void tickPlayReady() {
+		startPlaying(currentPlayerId);
 	}
 
 	private void tickSaved() {
 		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
-		if (mPlayer!=null) {
+		if (mPlayer != null) {
 			mPlayer.sendActionMessage(plugin, "level.save.success");
 		}
 		if (currentPlayerId != null) {
+			// TODO: find a better way for this status transition (level editor save-play)
 			this.status = LevelStatus.PLAY_READY;
-			startPlaying(currentPlayerId);
 		} else {
 			plugin.getController().unloadLevel(this);
 		}
@@ -290,18 +490,27 @@ public class MakerLevel implements Tickable {
 		case UNLOAD_READY:
 			tickUnloadReady();
 			break;
+		case PLAY_READY:
+			tickPlayReady();
+			break;
+		case CLIPBOARD_PASTED:
+			tickClipboardPasted();
+			break;
+		case CLIPBOARD_LOADED:
+			tickClipboardLoaded();
+			break;
 		default:
 			break;
 		}
 	}
 
-	private void tickUnloadReady() {
-		plugin.getController().unloadLevel(this);
+	private void tickClipboardLoaded() {
+		status = LevelStatus.CLIPBOARD_PASTE_READY;
+		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
 	}
 
-	private void tickClipboardCopied() {
-		this.status = LevelStatus.SAVE_READY;
-		plugin.saveLevelAsync(this);
+	private void tickUnloadReady() {
+		plugin.getController().unloadLevel(this);
 	}
 
 	public synchronized boolean tryStatusTransition(LevelStatus from, LevelStatus to) {
@@ -312,58 +521,6 @@ public class MakerLevel implements Tickable {
 			return false;
 		}
 		this.status = to;
-		return true;
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((levelId == null) ? 0 : levelId.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		MakerLevel other = (MakerLevel) obj;
-		if (levelId == null) {
-			if (other.levelId != null)
-				return false;
-		} else if (!levelId.equals(other.levelId))
-			return false;
-		return true;
-	}
-
-	public boolean isCleared() {
-		return cleared;
-	}
-
-	public boolean isPlayableByEditor() {
-		return endLocation != null;
-	}
-
-	public boolean setupEndLocation(Location location) {
-		long startNanos = 0;
-		if (plugin.isDebugMode()) {
-			startNanos = System.nanoTime();
-		}
-		if (endLocation != null) {
-			Block formerBeacon = endLocation.getBlock();
-			formerBeacon.setType(Material.AIR);
-			formerBeacon.getState().update();
-			updateBeaconBase(formerBeacon.getRelative(BlockFace.DOWN), Material.AIR);
-		}
-		updateBeaconBase(location.getBlock().getRelative(BlockFace.DOWN), Material.IRON_BLOCK);
-		endLocation = location.clone();
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.setupEndLocation took: [%s] nanoseconds", System.nanoTime() - startNanos));
-		}
 		return true;
 	}
 
@@ -390,22 +547,19 @@ public class MakerLevel implements Tickable {
 		}
 	}
 
-	public void checkLevelEnd(Location location) {
-		if (endLocation == null) {
-			throw new IllegalStateException("MakerLevel.endlocation cannot be null at this point");
+	public void publishLevel() {
+		if (!isClearedByAuthor()) {
+			MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+			if (mPlayer != null) {
+				mPlayer.sendActionMessage(plugin, "level.publish.error.not-cleared");
+			}
+			return;
 		}
-		if (location.getBlockX() == endLocation.getBlockX() && location.getBlockZ() == endLocation.getBlockZ() && location.getBlockY() >= endLocation.getBlockY()) {
-			clearLevel();
-		}
+		// TODO: finish publishing
 	}
 
-	private void clearLevel() {
-		status = LevelStatus.CLEARED;
-		MakerPlayer mPlayer = plugin.getController().getPlayer(currentPlayerId);
-		if (mPlayer != null) {
-			// FIXME: temporal test stuff obviously
-			mPlayer.sendActionMessage(plugin, "level.clear.success", (System.currentTimeMillis() - startTime) / 1000);
-		}
+	public WorldData getWorldData() {
+		return plugin.getController().getMainWorldData();
 	}
 
 }

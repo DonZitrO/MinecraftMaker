@@ -49,10 +49,8 @@ public class PlayLevelOptionsMenu extends AbstractMakerMenu {
 		}
 		if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.EXIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().exitPlaying();
-//		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.SAVE.getDisplayName())) {
-//			mPlayer.getCurrentLevel().saveLevel();
-//		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.EXIT.getDisplayName())) {
-//			mPlayer.getCurrentLevel().exitEditing();
+		} else if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.RESTART.getDisplayName())) {
+			mPlayer.getCurrentLevel().restartPlaying();
 		}
 		return true;
 	}

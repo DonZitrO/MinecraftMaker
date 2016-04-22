@@ -284,4 +284,8 @@ public class MakerPlayer implements Tickable {
 		dirtyInventory = true;
 	}
 
+	public void setAllowFlight(boolean allowFlight) {
+		player.setAllowFlight(allowFlight);
+	}
+
 }

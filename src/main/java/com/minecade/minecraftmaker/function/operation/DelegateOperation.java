@@ -7,7 +7,7 @@ import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * Executes a delegete operation, but returns to another operation upon
+ * Executes a delegate operation, but returns to another operation upon
  * completing the delegate.
  */
 public class DelegateOperation implements Operation {

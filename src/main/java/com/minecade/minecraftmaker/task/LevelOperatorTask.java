@@ -29,19 +29,21 @@ public class LevelOperatorTask extends BukkitRunnable {
 
 	@Override
 	public void run() {
-		long startNanoTime = 0;
+		// FIXME: only enable this for specific operator tasks debugging
+		// long startNanoTime = 0;
 		if (plugin.isDebugMode()) {
-			startNanoTime = System.nanoTime();
+			// startNanoTime = System.nanoTime();
 		}
 		try {
 			operationQueue.resume(new LimitedTimeRunContext(MAX_TIME_PER_TICK_NANOSECONDS));
 			if (plugin.isDebugMode()) {
-				// only enable this for specific debugging
 				// Bukkit.getLogger().info(String.format("MakerBuilderTask.run - operation took: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 			}
 		} catch (MinecraftMakerException e) {
+			operationQueue.cancelCurrentOperation();
 			Bukkit.getLogger().severe(String.format("MakerBuilderTask.run - a severe exception occurred on the Builder Task: %s", e.getMessage()));
 			e.printStackTrace();
+			// TODO: remove this once the right exception handling is fully implemented.
 			Bukkit.shutdown();
 		}
 	}

@@ -13,6 +13,7 @@ import com.minecade.core.item.ItemStackBuilder;
 
 public enum PlayLevelOptionItem implements Translatable {
 
+	RESTART(Material.FLINT_AND_STEEL),
 	LIKE(Material.DIAMOND),
 	DISLIKE(Material.POISONOUS_POTATO),
 	FAVORITE(Material.NETHER_STAR),

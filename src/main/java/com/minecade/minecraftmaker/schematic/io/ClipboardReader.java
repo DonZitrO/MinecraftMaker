@@ -1,5 +1,6 @@
 package com.minecade.minecraftmaker.schematic.io;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import com.minecade.minecraftmaker.schematic.world.WorldData;
@@ -9,7 +10,7 @@ import com.minecade.minecraftmaker.schematic.world.WorldData;
  *
  * @see Clipboard
  */
-public interface ClipboardReader {
+public interface ClipboardReader extends Closeable {
 
 	/**
 	 * Read a {@code Clipboard}.

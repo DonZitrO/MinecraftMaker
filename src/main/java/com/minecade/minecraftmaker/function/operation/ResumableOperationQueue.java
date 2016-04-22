@@ -62,6 +62,23 @@ public class ResumableOperationQueue implements Operation {
 		checkNotNull(operation);
 		queue.offer(operation);
 	}
+	
+	/**
+	 * Cancel the current operation of the queue.
+	 * 
+	 * WARNING: this should only be called for MASTER operations.
+	 * if the operation is part of a bigger operation this call
+	 * could lead to non deterministic behavior
+	 *
+	 * @param operation
+	 *            the operation
+	 */
+	public void cancelCurrentOperation() {
+		if (current != null) {
+			current.cancel();
+			current = null;
+		}
+	}
 
 	@Override
 	public Operation resume(RunContext run) throws MinecraftMakerException {

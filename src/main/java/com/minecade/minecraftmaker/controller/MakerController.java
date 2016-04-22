@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -43,8 +44,6 @@ import com.minecade.core.player.PlayerUtils;
 import com.minecade.core.util.BungeeUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
-import com.minecade.minecraftmaker.function.operation.Operation;
-import com.minecade.minecraftmaker.function.operation.ReadyLevelForEditionOperation;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.function.operation.SchematicWriteOperation;
@@ -63,8 +62,6 @@ import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
 import com.minecade.minecraftmaker.schematic.io.ClipboardReader;
-import com.minecade.minecraftmaker.schematic.transform.Identity;
-import com.minecade.minecraftmaker.schematic.transform.Transform;
 import com.minecade.minecraftmaker.schematic.world.BlockTransformExtent;
 import com.minecade.minecraftmaker.schematic.world.MakerExtent;
 import com.minecade.minecraftmaker.schematic.world.Region;
@@ -82,7 +79,7 @@ public class MakerController implements Runnable, Tickable {
 	private static final int DEFAULT_MAX_PLAYERS = 40;
 	private static final int DEFAULT_MAX_LEVELS = 10;
 	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
-	private static final Transform IDENTITY_TRANSFORM = new Identity();
+	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
 
 	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.5d, 65.0d, 16.5d);
 	private static final float DEFAULT_SPAWN_YAW = -90f;
@@ -108,8 +105,8 @@ public class MakerController implements Runnable, Tickable {
 	private Map<UUID, MakerPlayer> playerMap;
 	// keeps track of every arena on the server
 	protected Map<Short, MakerLevel> levelMap;
-	// shallow level data for server browser (FIXME: experimental/bleeding - possible memory leak if size control is not added)
-	protected Map<UUID, MakerLevel> browserLevelMap = new ConcurrentHashMap<>();
+	// shallow level data for server browser
+	protected Map<Long, MakerLevel> levelsBySerialMap = Collections.synchronizedMap(new TreeMap<>());
 
 	// an async thread loads the data to this map, then the main thread process it
 	private final Map<UUID, MakerPlayerData> accountDataMap = Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayerData>(MAX_ACCOUNT_DATA_ENTRIES * 2) {
@@ -124,11 +121,11 @@ public class MakerController implements Runnable, Tickable {
 	// used to control the fast relogin hack
 	private final Map<UUID, Long> nextAllowedLogins = Collections.synchronizedMap(new LinkedHashMap<UUID, Long>() {
 		private static final long serialVersionUID = 1L;
-		private static final int MAX_ENTRIES = 200;
 
 		protected boolean removeEldestEntry(Map.Entry<UUID, Long> eldest) {
-			return size() > MAX_ENTRIES;
+			return size() > MAX_ALLOWED_LOGIN_ENTRIES;
 		}
+
 	});
 
 	public MakerController(MinecraftMakerPlugin plugin, ConfigurationSection config) {
@@ -179,6 +176,12 @@ public class MakerController implements Runnable, Tickable {
 		PlayerUtils.resetPlayerVisibility(mPlayer.getPlayer());
 	}
 
+	// FIXME: this is an experimental proof of concept, don't use it elsewhere until tested/refined
+	public void addServerBrowserLevels(final Map<Long, MakerLevel> levels, LevelSortBy sortBy) {
+		levelsBySerialMap.putAll(levels);
+		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.updatePages(plugin, levels.values(), sortBy));
+	}
+
 	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
 		if (playerMap.containsKey(event.getUniqueId())) {
 			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlDoubleLoginHack - possible double login detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
@@ -201,15 +204,18 @@ public class MakerController implements Runnable, Tickable {
 			author.sendActionMessage(plugin, "level.create.error.author-busy");
 			return;
 		}
-		MakerLevel level = getEmptyLevelIfAvailable(author);
+		MakerLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
 			author.sendActionMessage(plugin, "level.error.full");
 			return;
 		}
+		level.setLevelId(UUID.randomUUID());
+		level.setAuthorId(author.getUniqueId());
+		level.setAuthorName(author.getName());
 		author.sendActionMessage(plugin, "level.loading");
 		try {
 			level.setClipboard(LevelUtils.createEmptyLevelClipboard(getMainWorld(), level.getChunkZ(), floorBlockId));
-			plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(createPasteOperation(level.getClipboard()), new ReadyLevelForEditionOperation(level)));
+			level.tryStatusTransition(LevelStatus.PREPARING, LevelStatus.CLIPBOARD_LOADED);
 		} catch (MinecraftMakerException e) {
 			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
 			level.disable();
@@ -224,20 +230,6 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		createEmptyLevel(author, floorBlockId);
-	}
-
-	private Operation createPasteOperation(Clipboard clipboard) {
-		Region region = clipboard.getRegion();
-		com.minecade.minecraftmaker.schematic.world.World world = region.getWorld();
-		com.minecade.minecraftmaker.schematic.world.WorldData worldData = world.getWorldData();
-		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
-		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), clipboard.getOrigin());
-		copy.setTransform(IDENTITY_TRANSFORM);
-		boolean ignoreAirBlocks = false;
-		if (ignoreAirBlocks) {
-			copy.setSourceMask(new ExistingBlockMask(clipboard));
-		}
-		return copy;
 	}
 
 	@Override
@@ -276,10 +268,10 @@ public class MakerController implements Runnable, Tickable {
 		return spawnVector.toLocation(getMainWorld(), spawnYaw, spawnPitch);
 	}
 
-	private MakerLevel getEmptyLevelIfAvailable(MakerPlayer author) {
+	private MakerLevel getEmptyLevelIfAvailable() {
 		for (short i = 0; i < maxLevels; i++) {
 			if (!levelMap.containsKey(i)) {
-				MakerLevel level = new MakerLevel(plugin, author, i);
+				MakerLevel level = new MakerLevel(plugin, i);
 				levelMap.put(i, level);
 				return level;
 			}
@@ -298,6 +290,7 @@ public class MakerController implements Runnable, Tickable {
 		return this.mainWorld;
 	}
 
+	// FIXME: find a way to reuse the world data object that doesn't mess with multithreading.
 	public WorldData getMainWorldData() {
 		return BukkitUtil.toWorld(getMainWorld()).getWorldData();
 	}
@@ -363,9 +356,9 @@ public class MakerController implements Runnable, Tickable {
 
 			WorldData worldData = BukkitUtil.toWorld(getMainWorld()).getWorldData();
 			Clipboard clipboard = reader.read(worldData);
-			BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
+			BlockTransformExtent extent = new BlockTransformExtent(clipboard, LevelUtils.IDENTITY_TRANSFORM, worldData.getBlockRegistry());
 			ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), LevelUtils.getLevelOrigin(chunkZ));
-			copy.setTransform(IDENTITY_TRANSFORM);
+			copy.setTransform(LevelUtils.IDENTITY_TRANSFORM);
 			boolean ignoreAirBlocks = false;
 			if (ignoreAirBlocks) {
 				copy.setSourceMask(new ExistingBlockMask(clipboard));
@@ -376,6 +369,18 @@ public class MakerController implements Runnable, Tickable {
 			e.printStackTrace();
 			return;
 		}
+	}
+
+	public void loadLevelForPlayingBySerial(MakerPlayer mPlayer, Long levelSerial) {
+		MakerLevel level = getEmptyLevelIfAvailable();
+		if (level == null) {
+			mPlayer.sendActionMessage(plugin, "level.error.full");
+			return;
+		}
+		level.setLevelSerial(levelSerial);
+		level.setCurrentPlayerId(mPlayer.getUniqueId());
+		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
+		mPlayer.sendActionMessage(plugin, "level.loading");
 	}
 
 	public void onAsyncAccountDataLoad(MakerPlayerData data) {
@@ -482,7 +487,7 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 
-		Player damagedPlayer = (Player)event.getEntity();
+		Player damagedPlayer = (Player) event.getEntity();
 
 		final MakerPlayer mPlayer = getPlayer(damagedPlayer);
 		if (mPlayer == null) {
@@ -498,6 +503,14 @@ public class MakerController implements Runnable, Tickable {
 				mPlayer.teleportOnNextTick(mPlayer.getCurrentLevel().getStartLocation());
 			}
 			event.setCancelled(true);
+			return;
+		}
+		if (mPlayer.isPlayingLevel()) {
+			if (event.getCause() == DamageCause.VOID) {
+				Bukkit.getScheduler().runTask(plugin, () -> mPlayer.getCurrentLevel().restartPlaying());
+				event.setCancelled(true);
+				return;
+			}
 			return;
 		}
 		if (mPlayer.isInLobby()) {
@@ -634,6 +647,18 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void onPlayerMove(PlayerMoveEvent event) {
+		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerMove - untracked Player: [%s]", event.getPlayer().getName()));
+			return;
+		}
+		if (!mPlayer.isPlayingLevel() || LevelStatus.CLEARED.equals(mPlayer.getCurrentLevel().getStatus())) {
+			return;
+		}
+		mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
+	}
+
 	public void onPlayerQuit(Player player) {
 		// wait a bit before coming back
 		nextAllowedLogins.put(player.getUniqueId(), System.currentTimeMillis() + (FAST_RELOGIN_DELAY_SECONDS * 1000));
@@ -740,7 +765,7 @@ public class MakerController implements Runnable, Tickable {
 		if (this.currentTick == 1) {
 			MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld());
 			try {
-				plugin.getLevelOperatorTask().offer(createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld())));
+				plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld()), getMakerExtent(), getMainWorldData()));
 			} catch (MinecraftMakerException e) {
 				e.printStackTrace();
 			}
@@ -764,24 +789,6 @@ public class MakerController implements Runnable, Tickable {
 		// FIXME: review this
 		makerLevel.disable();
 		levelMap.remove(makerLevel.getChunkZ());
-	}
-
-	// FIXME: this is an experimental proof of concept, don't use it elsewhere until tested/refined
-	public void addServerBrowserLevels(final Map<UUID, MakerLevel> levels, LevelSortBy sortBy) {
-		browserLevelMap.putAll(levels);
-		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.updatePages(plugin, levels.values(), sortBy));
-	}
-
-	public void onPlayerMove(PlayerMoveEvent event) {
-		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
-		if (mPlayer == null) {
-			Bukkit.getLogger().warning(String.format("MakerController.onPlayerMove - untracked Player: [%s]", event.getPlayer().getName()));
-			return;
-		}
-		if (!mPlayer.isPlayingLevel() || LevelStatus.CLEARED.equals(mPlayer.getCurrentLevel().getStatus())) {
-			return;
-		}
-		mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
 	}
 
 }

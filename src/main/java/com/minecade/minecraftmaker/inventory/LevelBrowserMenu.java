@@ -9,7 +9,9 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -28,8 +30,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	private static int LEVELS_PER_PAGE = 36;
 
-	//private static List<ItemStack[]> pages = new ArrayList<>();
-
 	private static Map<UUID, ItemStack> levelItems = new HashMap<>();
 	private static TreeSet<MakerLevel> levelsByName = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> l1.getLevelName().compareToIgnoreCase(l2.getLevelName()));
 	private static TreeSet<MakerLevel> levelsBySerial = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
@@ -42,6 +42,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		ItemBuilder builder = new ItemBuilder(Material.SIGN);
 		builder.withDisplayName(plugin.getMessage("menu.level-browser.level.display-name", level.getLevelName()));
 		List<String> lore = new ArrayList<>();
+		lore.add(plugin.getMessage("menu.level-browser.level.serial", level.getLevelSerial()));
 		lore.add("");
 		lore.add(plugin.getMessage("menu.level-browser.level.created-by", level.getAuthorName()));
 		lore.add("");
@@ -121,22 +122,31 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
 			return true;
 		}
-		if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.NEXT_PAGE.getDisplayName())) {
+		Bukkit.getLogger().info(String.format("LevelBrowserMenu.onClick - clicked item material: [%s]", clickedItem.getType()));
+		if (clickedItem.getType().equals(Material.SIGN_POST) || clickedItem.getType().equals(Material.SIGN)) {
+			String serial = ItemUtils.getLoreLine(clickedItem, 0);
+			if (StringUtils.isBlank(serial) || !StringUtils.isNumeric(serial)) {
+				Bukkit.getLogger().severe(String.format("LevelBrowserMenu.onClick - unable to get level serial from lore: [%s]", serial));
+				return true;
+			}
+			plugin.getController().loadLevelForPlayingBySerial(mPlayer, Long.valueOf(serial));
+			return true;
+		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.NEXT_PAGE.getDisplayName())) {
 			nextPage();
+			return true;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.PREVIOUS_PAGE.getDisplayName())) {
 			previousPage();
+			return true;
 		}
 		return true;
 	}
 
 	private void previousPage() {
 		// TODO Auto-generated method stub
-
 	}
 
 	private void nextPage() {
 		// TODO Auto-generated method stub
-
 	}
 
 	@Override
@@ -160,7 +170,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			break;
 		}
 	
-		List<MakerLevel> currentPageLevels = allLevels.stream().skip((Math.max(0, (currentPage - 1) * LEVELS_PER_PAGE))).limit(LEVELS_PER_PAGE).collect(Collectors.toList()); //forEachOrdered((l)->someShit(l));
+		List<MakerLevel> currentPageLevels = allLevels.stream().skip((Math.max(0, (currentPage - 1) * LEVELS_PER_PAGE))).limit(LEVELS_PER_PAGE).collect(Collectors.toList());
 
 		if (currentPageLevels != null) {
 			int i = 18;
@@ -176,22 +186,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 				items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
 			}
 		}
-
-//		if (pages.size() < currentPage) {
-//			return;
-//		}
-//		ItemStack[] currentPageItems = pages.get(currentPage - 1);
-//		for (int i = 18; i < inventory.getSize(); i++) {
-//			if (currentPageItems != null && currentPageItems.length > (i - 18)) {
-//				items[i] = currentPageItems[i-18];
-//			} else {
-//				items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
-//			}
-//		}
 	}
-	
-//	private void someShit(MakerLevel l) {
-//		
-//	}
 
 }
