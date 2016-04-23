@@ -31,8 +31,12 @@ public class EventUtils {
 		return isBlockRightClick(event) && event.getClickedBlock().getState() instanceof Skull;
 	}
 
+	public static boolean isBlockRightClick(PlayerInteractEvent event, Material blockMaterial) {
+		return Action.RIGHT_CLICK_BLOCK.equals(event.getAction()) && event.getClickedBlock().getType().equals(blockMaterial);
+	}
+
 	public static boolean isBlockRightClick(PlayerInteractEvent event) {
-		return Action.RIGHT_CLICK_BLOCK.equals(event.getAction()) && event.hasBlock();
+		return Action.RIGHT_CLICK_BLOCK.equals(event.getAction());
 	}
 
 	public static boolean isItemRightClick(PlayerInteractEvent event) {

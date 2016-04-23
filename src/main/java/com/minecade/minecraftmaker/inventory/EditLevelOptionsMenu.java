@@ -47,10 +47,10 @@ public class EditLevelOptionsMenu extends AbstractMakerMenu {
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
 			return true;
 		}
-		if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PLAY.getDisplayName())) {
-			mPlayer.getCurrentLevel().saveAndPlay();
-		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.SAVE.getDisplayName())) {
+		if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.SAVE.getDisplayName())) {
 			mPlayer.getCurrentLevel().saveLevel();
+		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PLAY.getDisplayName())) {
+			mPlayer.getCurrentLevel().saveAndPlay();
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PUBLISH.getDisplayName())) {
 			mPlayer.getCurrentLevel().publishLevel();
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.EXIT.getDisplayName())) {

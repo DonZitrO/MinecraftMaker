@@ -23,11 +23,7 @@ public class LevelClipboardPasteOperation implements Operation {
 	public Operation resume(RunContext runContext) throws MinecraftMakerException {
 		if (firstRun) {
 			firstRun = false;
-			if (!level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTE_READY, LevelStatus.PASTING_CLIPBOARD)) {
-				Bukkit.getLogger().severe(String.format("LevelClipboardCopyOperation.resume - unable to paste level clipboard - invalid status: [%s]", level.getStatus()));
-				level.disable();
-				return null;
-			}
+			level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTE_READY, LevelStatus.PASTING_CLIPBOARD);
 			return new DelegateOperation(this, LevelUtils.createPasteOperation(level.getClipboard(), level.getMakerExtent(), level.getWorldData()));
 		}
 		level.tryStatusTransition(LevelStatus.PASTING_CLIPBOARD, LevelStatus.CLIPBOARD_PASTED);

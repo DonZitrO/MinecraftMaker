@@ -18,11 +18,12 @@ import com.minecade.core.player.PlayerUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
+import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
-import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
+import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.util.Tickable;
@@ -123,7 +124,7 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public boolean isEditingLevel() {
-		return this.currentLevel != null && GameMode.CREATIVE.equals(player.getGameMode());
+		return this.currentLevel != null && LevelStatus.EDITING.equals(this.currentLevel.getStatus());
 	}
 
 	@Override
@@ -136,7 +137,11 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public boolean isPlayingLevel() {
-		return this.currentLevel != null && GameMode.ADVENTURE.equals(player.getGameMode());
+		return this.currentLevel != null && LevelStatus.PLAYING.equals(this.currentLevel.getStatus());
+	}
+
+	public boolean hasClearedLevel() {
+		return this.currentLevel != null && LevelStatus.CLEARED.equals(this.currentLevel.getStatus());
 	}
 
 	public boolean onInventoryClick(Inventory inventory, int slot) {
@@ -217,6 +222,12 @@ public class MakerPlayer implements Tickable {
 		PlayerUtils.resetPlayer(getPlayer(), GameMode.ADVENTURE);
 	}
 
+	public void sendTitleAndSubtitle(String title, String subtitle) {
+		if (player.isOnline()) {
+			NMSUtils.sendTitle(player, 10, 40, 10, title, subtitle);
+		}
+	}
+
 	public void sendActionMessage(Internationalizable plugin, String key, Object... args) {
 		if (player.isOnline()) {
 			if (!StringUtils.isEmpty(key)) {
@@ -286,6 +297,10 @@ public class MakerPlayer implements Tickable {
 
 	public void setAllowFlight(boolean allowFlight) {
 		player.setAllowFlight(allowFlight);
+	}
+
+	public boolean isInBusyLevel() {
+		return currentLevel != null && currentLevel.isBusy();
 	}
 
 }

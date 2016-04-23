@@ -13,8 +13,8 @@ import com.minecade.core.item.ItemStackBuilder;
 
 public enum EditLevelOptionItem implements Translatable {
 
-	PLAY(Material.LEVER),
 	SAVE(Material.BOOK_AND_QUILL),
+	PLAY(Material.FIREWORK),
 	PUBLISH(Material.ITEM_FRAME),
 	EXIT(Material.TRAP_DOOR);
 

@@ -212,23 +212,21 @@ public class MakerDatabaseAdapter {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
-		if (!level.tryStatusTransition(LevelStatus.PREPARING, LevelStatus.CLIPBOARD_LOADING)) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevelClipboard - Level with id: [%s] and slot [%s] is not ready for clipboard loading!", level.getLevelId(), level.getChunkZ()));
-			level.disable();
-			return;
-		}
-		String levelId = level.getLevelId().toString().replace("-", "");
-		try (PreparedStatement testQuery = getConnection().prepareStatement(
-		        String.format("SELECT * FROM `mcmaker`.`schematics` where `level_id` = UNHEX(?) order by `updated` desc limit 1"))) {
-			testQuery.setString(1, levelId);
-			ResultSet resultSet = testQuery.executeQuery();
-			if (!resultSet.next()) {
-				throw new DataException(String.format("Unable to find schematic for level with id: [%s]", level.getLevelId()));
-			}
-			loadLevelClipboardFromResult(level, resultSet);
-			level.tryStatusTransition(LevelStatus.CLIPBOARD_LOADING, LevelStatus.CLIPBOARD_LOADED);
-			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
-				Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.saveLevel - level saved without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+		try {
+			level.tryStatusTransition(LevelStatus.PREPARING, LevelStatus.CLIPBOARD_LOADING);
+			String levelId = level.getLevelId().toString().replace("-", "");
+			try (PreparedStatement testQuery = getConnection().prepareStatement(
+			        String.format("SELECT * FROM `mcmaker`.`schematics` where `level_id` = UNHEX(?) order by `updated` desc limit 1"))) {
+				testQuery.setString(1, levelId);
+				ResultSet resultSet = testQuery.executeQuery();
+				if (!resultSet.next()) {
+					throw new DataException(String.format("Unable to find schematic for level with id: [%s]", level.getLevelId()));
+				}
+				loadLevelClipboardFromResult(level, resultSet);
+				level.tryStatusTransition(LevelStatus.CLIPBOARD_LOADING, LevelStatus.CLIPBOARD_LOADED);
+				if (Bukkit.getLogger().isLoggable(Level.INFO)) {
+					Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.saveLevel - level saved without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+				}
 			}
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("loadLevelBySerial.loadLevelClipboard - error while loading level clipboard: %s", e.getMessage()));
@@ -316,16 +314,12 @@ public class MakerDatabaseAdapter {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
-		if (!level.tryStatusTransition(LevelStatus.SAVE_READY, LevelStatus.SAVING)) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.saveLevel - Level with id: [%s] and slot [%s] is not ready for saving!", level.getLevelId(), level.getChunkZ()));
-			level.disable();
-			return;
-		}
-		// TODO: enhance this to try the update first and then insert if zero rows are updated and try to remove nesting
-		String levelId = level.getLevelId().toString().replace("-", "");
-		String authorId = level.getAuthorId().toString().replace("-", "");
 		Blob data = null;
 		try {
+			level.tryStatusTransition(LevelStatus.SAVE_READY, LevelStatus.SAVING);
+			// TODO: enhance this to try the update first and then insert if zero rows are updated and try to remove nesting
+			String levelId = level.getLevelId().toString().replace("-", "");
+			String authorId = level.getAuthorId().toString().replace("-", "");
 			String endLocationUUID = null;
 			if (level.getRelativeEndLocation() != null) {
 				endLocationUUID = insertOrUpdateRelativeLocation(level.getRelativeEndLocation()).toString().replace("-", "");
@@ -360,7 +354,7 @@ public class MakerDatabaseAdapter {
 					}
 				} else {
 					// update level name only (FIXME: test again after modification)
-					String updateBase = "UPDATE `mcmaker`.`levels` SET `level_name` =  ?%s WHERE `level_id` = UNHEX(?)";
+					String updateBase = "UPDATE `mcmaker`.`levels` SET `author_cleared` = 0, `level_name` =  ?%s WHERE `level_id` = UNHEX(?)";
 					String updateStatement = null;
 					if (endLocationUUID!=null) {
 						updateStatement = String.format(updateBase, ", `end_location_id` = UNHEX(?)");
@@ -458,13 +452,20 @@ public class MakerDatabaseAdapter {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
-		String levelId = level.getLevelId().toString().replace("-", "");
-		try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `author_cleared` =  ? WHERE `level_id` = UNHEX(?)")) {
-			updateLevelSt.setLong(1, level.getClearedByAuthorMillis());
-			updateLevelSt.setString(2, levelId);
-			updateLevelSt.executeUpdate();
+		try {
+			level.tryStatusTransition(LevelStatus.UPDATE_READY, LevelStatus.UPDATING);
+			String levelId = level.getLevelId().toString().replace("-", "");
+			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `author_cleared` =  ? WHERE `level_id` = UNHEX(?)")) {
+				updateLevelSt.setLong(1, level.getClearedByAuthorMillis());
+				updateLevelSt.setString(2, levelId);
+				updateLevelSt.executeUpdate();
+			}
+			level.tryStatusTransition(LevelStatus.UPDATING, LevelStatus.UPDATED);
+			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
+				Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - level updated without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+			}
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - error while saving Level with id: [%s] and slot [%s] - %s", level.getLevelId(), level.getChunkZ(), e.getMessage()));
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - error while updating level: [%s<%s>] - ", level.getLevelName(), level.getLevelId(), e.getMessage()));
 			e.printStackTrace();
 			level.disable();
 		}
@@ -472,7 +473,40 @@ public class MakerDatabaseAdapter {
 
 	public void updateLevelClearAsync(UUID levelId, UUID uniqueId, long clearTimeMillis) {
 		// TODO Auto-generated method stub
+	}
 
+	public void publishLevelAsync(MakerLevel level) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> publishLevel(level));
+	}
+
+	private synchronized void publishLevel(MakerLevel level) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		try {
+			level.tryStatusTransition(LevelStatus.UPDATE_READY, LevelStatus.UPDATING);
+			String levelId = level.getLevelId().toString().replace("-", "");
+			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `date_published` = CURRENT_TIMESTAMP WHERE `level_id` = UNHEX(?)")) {
+				updateLevelSt.setString(1, levelId);
+				updateLevelSt.executeUpdate();
+			}
+			try (PreparedStatement getPublishedDateSt = getConnection().prepareStatement("SELECT `date_published` FROM `mcmaker`.`levels` WHERE `level_id` = UNHEX(?)")) {
+				getPublishedDateSt.setString(1, levelId);
+				ResultSet resultSet = getPublishedDateSt.executeQuery();
+				if (!resultSet.next()) {
+					throw new DataException(String.format("Unable to find level published date for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+				}
+				level.setDatePublished(resultSet.getDate("date_published"));
+			}
+			level.tryStatusTransition(LevelStatus.UPDATING, LevelStatus.UPDATED);
+			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
+				Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - level updated without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - error while updating level: [%s<%s>] - ", level.getLevelName(), level.getLevelId(), e.getMessage()));
+			e.printStackTrace();
+			level.disable();
+		}
 	}
 
 }

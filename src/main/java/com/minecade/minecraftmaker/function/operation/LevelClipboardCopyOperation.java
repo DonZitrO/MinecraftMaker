@@ -2,8 +2,6 @@ package com.minecade.minecraftmaker.function.operation;
 
 import java.util.List;
 
-import org.bukkit.Bukkit;
-
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -28,11 +26,7 @@ public class LevelClipboardCopyOperation implements Operation {
 	public Operation resume(RunContext run) throws MinecraftMakerException {
 		if (firstRun) {
 			firstRun = false;
-			if (!level.tryStatusTransition(LevelStatus.CLIPBOARD_COPY_READY, LevelStatus.COPYING_CLIPBOARD)) {
-				Bukkit.getLogger().severe(String.format("LevelClipboardCopyOperation.resume - unable to copy level clipboard - invalid status: [%s]", level.getStatus()));
-				level.disable();
-				return null;
-			}
+			level.tryStatusTransition(LevelStatus.CLIPBOARD_COPY_READY, LevelStatus.COPYING_CLIPBOARD);
 			// FIXME: maybe do this somewhere else
 			if (level.getClipboard() == null) {
 				Region levelRegion = LevelUtils.getLevelRegion(plugin.getController().getMainWorld(), level.getChunkZ());

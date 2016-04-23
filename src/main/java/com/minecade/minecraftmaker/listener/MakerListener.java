@@ -134,10 +134,8 @@ public class MakerListener implements Listener {
 			return;
 		}
 		// allow to build around the beacons without interacting with them
-		if (EventUtils.isBlockClick(event, Material.BEACON)) {
+		if (EventUtils.isBlockRightClick(event, Material.BEACON)) {
 			event.setUseInteractedBlock(Result.DENY);
-			event.setUseItemInHand(Result.ALLOW);
-			return;
 		}
 		// delegate to controller for specific behavior
 		plugin.getController().onPlayerInteract(event);

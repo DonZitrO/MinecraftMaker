@@ -16,6 +16,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -104,9 +105,9 @@ public class MakerController implements Runnable, Tickable {
 	// keeps track of every player on the server
 	private Map<UUID, MakerPlayer> playerMap;
 	// keeps track of every arena on the server
-	protected Map<Short, MakerLevel> levelMap;
+	private Map<Short, MakerLevel> levelMap;
 	// shallow level data for server browser
-	protected Map<Long, MakerLevel> levelsBySerialMap = Collections.synchronizedMap(new TreeMap<>());
+	private Map<Long, MakerLevel> levelsBySerialMap = Collections.synchronizedMap(new TreeMap<>());
 
 	// an async thread loads the data to this map, then the main thread process it
 	private final Map<UUID, MakerPlayerData> accountDataMap = Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayerData>(MAX_ACCOUNT_DATA_ENTRIES * 2) {
@@ -216,7 +217,7 @@ public class MakerController implements Runnable, Tickable {
 		try {
 			level.setClipboard(LevelUtils.createEmptyLevelClipboard(getMainWorld(), level.getChunkZ(), floorBlockId));
 			level.tryStatusTransition(LevelStatus.PREPARING, LevelStatus.CLIPBOARD_LOADED);
-		} catch (MinecraftMakerException e) {
+		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
 			level.disable();
 			levelMap.remove(level.getChunkZ());
@@ -451,9 +452,17 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
+		if (event.getBlock().getType().equals(Material.BEACON)) {
+			if (event.getBlock().getRelative(BlockFace.DOWN).getType().equals(Material.IRON_BLOCK)) {
+				mPlayer.sendMessage(plugin, "level.edit.clear-bacon");
+			} else {
+				mPlayer.sendActionMessage(plugin, "level.edit.error.start-bacon");
+			}
+			event.setCancelled(true);
+			return;
+		}
 		if (LevelUtils.isBeaconPowerBlock(event.getBlock())) {
 			mPlayer.sendActionMessage(plugin, "level.edit.error.bacon-power-block");
-			mPlayer.sendMessage(plugin, "level.edit.clear-bacon");
 			event.setCancelled(true);
 			return;
 		}
@@ -513,8 +522,16 @@ public class MakerController implements Runnable, Tickable {
 			}
 			return;
 		}
+		if (mPlayer.hasClearedLevel()) {
+			if (event.getCause() == DamageCause.VOID) {
+				mPlayer.teleportOnNextTick(mPlayer.getCurrentLevel().getEndLocation().add(new Vector(0, 1, 0)));
+			}
+			event.setCancelled(true);
+			return;
+		}
 		if (mPlayer.isInLobby()) {
 			event.setCancelled(true);
+			return;
 		}
 	}
 
@@ -602,6 +619,10 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
+		if (mPlayer.isInBusyLevel()) {
+			event.setCancelled(true);
+			return;
+		}
 		// TODO: check if we should also allow left clicks
 		if (EventUtils.isItemRightClick(event)) {
 			if (onMenuItemClick(mPlayer, event.getItem())) {
@@ -651,12 +672,16 @@ public class MakerController implements Runnable, Tickable {
 		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
 		if (mPlayer == null) {
 			Bukkit.getLogger().warning(String.format("MakerController.onPlayerMove - untracked Player: [%s]", event.getPlayer().getName()));
+			event.setCancelled(true);
 			return;
 		}
-		if (!mPlayer.isPlayingLevel() || LevelStatus.CLEARED.equals(mPlayer.getCurrentLevel().getStatus())) {
+		if (mPlayer.isInBusyLevel()) {
+			event.setCancelled(true);
 			return;
 		}
-		mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
+		if (mPlayer.isPlayingLevel()) {
+			mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
+		}
 	}
 
 	public void onPlayerQuit(Player player) {
@@ -786,6 +811,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void unloadLevel(MakerLevel makerLevel) {
+		Bukkit.getLogger().warning(String.format("MakerController.unloadLevel - unloading level with serial: [%s]", makerLevel.getLevelSerial()));
 		// FIXME: review this
 		makerLevel.disable();
 		levelMap.remove(makerLevel.getChunkZ());

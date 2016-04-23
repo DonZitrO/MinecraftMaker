@@ -3,7 +3,7 @@ package com.minecade.minecraftmaker.schematic.exception;
 /**
  * Thrown when there is an exception related to data handling.
  */
-public class DataException extends Exception {
+public class DataException extends MinecraftMakerException {
 
 	private static final long serialVersionUID = 1L;
 
@@ -17,6 +17,10 @@ public class DataException extends Exception {
 
 	public DataException() {
 		super();
+	}
+
+	public DataException(String message, Throwable cause) {
+		super(message, cause);
 	}
 
 }
