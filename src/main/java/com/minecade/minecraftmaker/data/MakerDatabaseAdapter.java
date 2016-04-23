@@ -77,6 +77,36 @@ public class MakerDatabaseAdapter {
 		return connection;
 	}
 
+	private UUID insertOrUpdateRelativeLocation(MakerRelativeLocationData relativeEndLocation) throws SQLException {
+		if (relativeEndLocation.getLocationId() == null) {
+			relativeEndLocation.setLocationId(UUID.randomUUID());
+			String locationId = relativeEndLocation.getLocationId().toString().replace("-", "");
+			try (PreparedStatement insterLocationData = getConnection().prepareStatement(
+			        "INSERT INTO `mcmaker`.`locations` (location_id, location_x, location_y, location_z, location_yaw, location_pitch) VALUES (UNHEX(?), ?, ?, ?, ?, ?)")) {
+				insterLocationData.setString(1, locationId);
+				insterLocationData.setDouble(2, relativeEndLocation.getX());
+				insterLocationData.setDouble(3, relativeEndLocation.getY());
+				insterLocationData.setDouble(4, relativeEndLocation.getZ());
+				insterLocationData.setFloat(5, relativeEndLocation.getYaw());
+				insterLocationData.setFloat(6, relativeEndLocation.getPitch());
+				insterLocationData.executeUpdate();
+			}
+		} else {
+			try (PreparedStatement insterLocationData = getConnection().prepareStatement(
+			        "UPDATE `mcmaker`.`locations` set `location_x` = ?, `location_y`= ?, `location_z` = ?, `location_yaw` = ?, `location_pitch` = ? WHERE location_id = UNHEX(?)")) {
+				insterLocationData.setDouble(1, relativeEndLocation.getX());
+				insterLocationData.setDouble(2, relativeEndLocation.getY());
+				insterLocationData.setDouble(3, relativeEndLocation.getZ());
+				insterLocationData.setFloat(4, relativeEndLocation.getYaw());
+				insterLocationData.setFloat(5, relativeEndLocation.getPitch());
+				String locationId = relativeEndLocation.getLocationId().toString().replace("-", "");
+				insterLocationData.setString(6, locationId);
+				insterLocationData.executeUpdate();
+			}
+		}
+		return relativeEndLocation.getLocationId();
+	}
+
 	public MakerPlayerData loadAccountData(UUID uniqueId, String username) throws DatabaseException {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
@@ -185,10 +215,6 @@ public class MakerDatabaseAdapter {
 
 	}
 
-	public void loadLevelBySerialFullAsync(MakerLevel level) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadLevelBySerialFull(level));
-	}
-
 	private synchronized void loadLevelBySerialFull(MakerLevel level) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
@@ -206,6 +232,10 @@ public class MakerDatabaseAdapter {
 			return;
 		}
 		loadLevelClipboard(level);
+	}
+
+	public void loadLevelBySerialFullAsync(MakerLevel level) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadLevelBySerialFull(level));
 	}
 
 	private void loadLevelClipboard(MakerLevel level) {
@@ -260,27 +290,13 @@ public class MakerDatabaseAdapter {
 		ByteBuffer levelIdBytes = ByteBuffer.wrap(result.getBytes("level_id"));
 		ByteBuffer authorIdBytes = ByteBuffer.wrap(result.getBytes("author_id"));
 		level.setLevelId(new UUID(levelIdBytes.getLong(), levelIdBytes.getLong()));
+		level.setLevelSerial(result.getLong("level_serial"));
+		level.setLevelName(result.getString("level_name"));
 		level.setAuthorId(new UUID(authorIdBytes.getLong(), authorIdBytes.getLong()));
 		level.setAuthorName(result.getString("author_name"));
-		level.setLevelSerial(result.getLong("level_serial"));
 		byte[] locationId = result.getBytes("end_location_id");
 		if (locationId != null) {
 			level.setRelativeEndLocation(loadRelativeLocationById(locationId));
-		}
-	}
-
-	private MakerRelativeLocationData loadRelativeLocationById(byte[] locationId) throws SQLException, DataException {
-		ByteBuffer locationIdBytes = ByteBuffer.wrap(locationId);
-		UUID locationUUID = new UUID(locationIdBytes.getLong(), locationIdBytes.getLong()); 
-		try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`locations` where `location_id` = ?"))) {
-			testQuery.setBytes(1, locationId);
-			ResultSet resultSet = testQuery.executeQuery();
-			if (!resultSet.next()) {
-				throw new DataException(String.format("Unable to find maker location with id: [%s]", locationUUID));
-			}
-			MakerRelativeLocationData location = new MakerRelativeLocationData(resultSet.getDouble("location_x"), resultSet.getDouble("location_y"), resultSet.getDouble("location_z"), resultSet.getFloat("location_yaw"), resultSet.getFloat("location_pitch"));
-			location.setLocationId(locationUUID);
-			return location;
 		}
 	}
 
@@ -308,6 +324,84 @@ public class MakerDatabaseAdapter {
 
 	public void loadLevelsAsync(LevelSortBy sortBy, int offset, int limit) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadLevels(sortBy, offset, limit));
+	}
+
+	private MakerRelativeLocationData loadRelativeLocationById(byte[] locationId) throws SQLException, DataException {
+		ByteBuffer locationIdBytes = ByteBuffer.wrap(locationId);
+		UUID locationUUID = new UUID(locationIdBytes.getLong(), locationIdBytes.getLong()); 
+		try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`locations` where `location_id` = ?"))) {
+			testQuery.setBytes(1, locationId);
+			ResultSet resultSet = testQuery.executeQuery();
+			if (!resultSet.next()) {
+				throw new DataException(String.format("Unable to find maker location with id: [%s]", locationUUID));
+			}
+			MakerRelativeLocationData location = new MakerRelativeLocationData(resultSet.getDouble("location_x"), resultSet.getDouble("location_y"), resultSet.getDouble("location_z"), resultSet.getFloat("location_yaw"), resultSet.getFloat("location_pitch"));
+			location.setLocationId(locationUUID);
+			return location;
+		}
+	}
+
+	private synchronized void publishLevel(MakerLevel level) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		try {
+			level.tryStatusTransition(LevelStatus.UPDATE_READY, LevelStatus.UPDATING);
+			String levelId = level.getLevelId().toString().replace("-", "");
+			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `date_published` = CURRENT_TIMESTAMP WHERE `level_id` = UNHEX(?)")) {
+				updateLevelSt.setString(1, levelId);
+				updateLevelSt.executeUpdate();
+			}
+			try (PreparedStatement getPublishedDateSt = getConnection().prepareStatement("SELECT `date_published` FROM `mcmaker`.`levels` WHERE `level_id` = UNHEX(?)")) {
+				getPublishedDateSt.setString(1, levelId);
+				ResultSet resultSet = getPublishedDateSt.executeQuery();
+				if (!resultSet.next()) {
+					throw new DataException(String.format("Unable to find level published date for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+				}
+				level.setDatePublished(resultSet.getDate("date_published"));
+			}
+			level.tryStatusTransition(LevelStatus.UPDATING, LevelStatus.UPDATED);
+			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
+				Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.publishLevel - level updated without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.publishLevel - error while updating level: [%s<%s>] - ", level.getLevelName(), level.getLevelId(), e.getMessage()));
+			e.printStackTrace();
+			level.disable();
+		}
+	}
+
+	public void publishLevelAsync(MakerLevel level) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> publishLevel(level));
+	}
+
+	private synchronized void renameLevel(MakerLevel level, String newName) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		try {
+			level.tryStatusTransition(LevelStatus.RENAME_READY, LevelStatus.RENAMING);
+			String levelId = level.getLevelId().toString().replace("-", "");
+			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `level_name` = ? WHERE `level_id` = UNHEX(?)")) {
+				updateLevelSt.setString(1, newName);
+				updateLevelSt.setString(2, levelId);
+				updateLevelSt.executeUpdate();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				level.tryStatusTransition(LevelStatus.RENAMING, LevelStatus.RENAME_ERROR);
+				return;
+			}
+			level.setLevelName(newName);
+			level.tryStatusTransition(LevelStatus.RENAMING, LevelStatus.RENAMED);
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.renameLevel - error while renaming level: [%s<%s>] - %s", level.getLevelName(), level.getLevelId(), e.getMessage()));
+			e.printStackTrace();
+			level.disable();
+		}
+	}
+
+	public void renameLevelAsync(MakerLevel level, String newName) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> renameLevel(level, newName));
 	}
 
 	public synchronized void saveLevel(MakerLevel level) {
@@ -404,36 +498,6 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	private UUID insertOrUpdateRelativeLocation(MakerRelativeLocationData relativeEndLocation) throws SQLException {
-		if (relativeEndLocation.getLocationId() == null) {
-			relativeEndLocation.setLocationId(UUID.randomUUID());
-			String locationId = relativeEndLocation.getLocationId().toString().replace("-", "");
-			try (PreparedStatement insterLocationData = getConnection().prepareStatement(
-			        "INSERT INTO `mcmaker`.`locations` (location_id, location_x, location_y, location_z, location_yaw, location_pitch) VALUES (UNHEX(?), ?, ?, ?, ?, ?)")) {
-				insterLocationData.setString(1, locationId);
-				insterLocationData.setDouble(2, relativeEndLocation.getX());
-				insterLocationData.setDouble(3, relativeEndLocation.getY());
-				insterLocationData.setDouble(4, relativeEndLocation.getZ());
-				insterLocationData.setFloat(5, relativeEndLocation.getYaw());
-				insterLocationData.setFloat(6, relativeEndLocation.getPitch());
-				insterLocationData.executeUpdate();
-			}
-		} else {
-			try (PreparedStatement insterLocationData = getConnection().prepareStatement(
-			        "UPDATE `mcmaker`.`locations` set `location_x` = ?, `location_y`= ?, `location_z` = ?, `location_yaw` = ?, `location_pitch` = ? WHERE location_id = UNHEX(?)")) {
-				insterLocationData.setDouble(1, relativeEndLocation.getX());
-				insterLocationData.setDouble(2, relativeEndLocation.getY());
-				insterLocationData.setDouble(3, relativeEndLocation.getZ());
-				insterLocationData.setFloat(4, relativeEndLocation.getYaw());
-				insterLocationData.setFloat(5, relativeEndLocation.getPitch());
-				String locationId = relativeEndLocation.getLocationId().toString().replace("-", "");
-				insterLocationData.setString(6, locationId);
-				insterLocationData.executeUpdate();
-			}
-		}
-		return relativeEndLocation.getLocationId();
-	}
-
 	public boolean testConnection() {
 		try {
 			getConnection();
@@ -442,10 +506,6 @@ public class MakerDatabaseAdapter {
 			e.printStackTrace();
 		}
 		return false;
-	}
-
-	public void updateLevelAuthorClearTimeAsync(MakerLevel level) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> updateLevelAuthorClearTime(level));
 	}
 
 	private synchronized void updateLevelAuthorClearTime(MakerLevel level) {
@@ -471,42 +531,12 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
+	public void updateLevelAuthorClearTimeAsync(MakerLevel level) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> updateLevelAuthorClearTime(level));
+	}
+
 	public void updateLevelClearAsync(UUID levelId, UUID uniqueId, long clearTimeMillis) {
 		// TODO Auto-generated method stub
-	}
-
-	public void publishLevelAsync(MakerLevel level) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> publishLevel(level));
-	}
-
-	private synchronized void publishLevel(MakerLevel level) {
-		if (Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method should not be called from the main thread");
-		}
-		try {
-			level.tryStatusTransition(LevelStatus.UPDATE_READY, LevelStatus.UPDATING);
-			String levelId = level.getLevelId().toString().replace("-", "");
-			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `date_published` = CURRENT_TIMESTAMP WHERE `level_id` = UNHEX(?)")) {
-				updateLevelSt.setString(1, levelId);
-				updateLevelSt.executeUpdate();
-			}
-			try (PreparedStatement getPublishedDateSt = getConnection().prepareStatement("SELECT `date_published` FROM `mcmaker`.`levels` WHERE `level_id` = UNHEX(?)")) {
-				getPublishedDateSt.setString(1, levelId);
-				ResultSet resultSet = getPublishedDateSt.executeQuery();
-				if (!resultSet.next()) {
-					throw new DataException(String.format("Unable to find level published date for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
-				}
-				level.setDatePublished(resultSet.getDate("date_published"));
-			}
-			level.tryStatusTransition(LevelStatus.UPDATING, LevelStatus.UPDATED);
-			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
-				Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - level updated without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
-			}
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - error while updating level: [%s<%s>] - ", level.getLevelName(), level.getLevelId(), e.getMessage()));
-			e.printStackTrace();
-			level.disable();
-		}
 	}
 
 }

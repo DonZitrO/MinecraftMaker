@@ -285,16 +285,25 @@ public class MakerLevel implements Tickable {
 			mPlayer.sendActionMessage(plugin, "level.publish.error.not-cleared");
 			return;
 		}
-		// TODO: finish publishing
+		if (levelName == null) {
+			mPlayer.sendActionMessage(plugin, "level.publish.error.rename");
+			return;
+		}
 		status = LevelStatus.UPDATE_READY;
 		plugin.getDatabaseAdapter().publishLevelAsync(this);
 		plugin.getController().addPlayerToMainLobby(mPlayer);
 	}
 
 	public void rename(String newName) {
-		// TODO: additional name validation?
-		this.levelName = newName;
-		// TODO: implement
+		try {
+			tryStatusTransition(LevelStatus.EDITING, LevelStatus.RENAME_READY);
+		} catch (DataException e) {
+			this.status = LevelStatus.UNLOAD_READY;
+			Bukkit.getLogger().warning(e.getMessage());
+			e.printStackTrace();
+			return;
+		}
+		plugin.getDatabaseAdapter().renameLevelAsync(this, newName);
 	}
 
 	public synchronized void restartPlaying() {
@@ -587,12 +596,39 @@ public class MakerLevel implements Tickable {
 		case UPDATED:
 			tickUpdated();
 			break;
+		case RENAME_ERROR:
+			tickRenameError();
+			break;
+		case RENAMED:
+			tickRenamed();
+			break;
 		default:
 			break;
 		}
 	}
 
+	private void tickRenameError() {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer == null) {
+			this.status = LevelStatus.UNLOAD_READY;
+			return;
+		}
+		this.status = LevelStatus.EDIT_READY;
+		mPlayer.sendActionMessage(plugin, "level.rename.error.name");
+	}
+
+	private void tickRenamed() {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
+		if (mPlayer == null) {
+			this.status = LevelStatus.UNLOAD_READY;
+			return;
+		}
+		this.status = LevelStatus.EDIT_READY;
+		mPlayer.sendActionMessage(plugin, "level.rename.success");
+	}
+
 	private void tickUnloadReady() {
+		// TODO: maybe remove author or player
 		plugin.getController().unloadLevel(this);
 	}
 
@@ -638,6 +674,10 @@ public class MakerLevel implements Tickable {
 		default:
 			return true;
 		}
+	}
+
+	public void setLevelName(String levelName) {
+		this.levelName = levelName;
 	}
 
 }
