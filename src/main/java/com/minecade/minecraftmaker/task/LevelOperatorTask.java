@@ -13,7 +13,7 @@ import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 
 public class LevelOperatorTask extends BukkitRunnable {
 
-	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 5000000; // 5ms to build per tick
+	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 1000000; // 1ms to build per tick
 
 	private final MinecraftMakerPlugin plugin;
 	private final ResumableOperationQueue operationQueue = new ResumableOperationQueue();
@@ -30,14 +30,14 @@ public class LevelOperatorTask extends BukkitRunnable {
 	@Override
 	public void run() {
 		// FIXME: only enable this for specific operator tasks debugging
-		// long startNanoTime = 0;
+		//long startNanoTime = 0;
 		if (plugin.isDebugMode()) {
-			// startNanoTime = System.nanoTime();
+			//startNanoTime = System.nanoTime();
 		}
 		try {
 			operationQueue.resume(new LimitedTimeRunContext(MAX_TIME_PER_TICK_NANOSECONDS));
 			if (plugin.isDebugMode()) {
-				// Bukkit.getLogger().info(String.format("MakerBuilderTask.run - operation took: [%s] nanoseconds", System.nanoTime() - startNanoTime));
+				//Bukkit.getLogger().info(String.format("MakerBuilderTask.run - operation took: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 			}
 		} catch (MinecraftMakerException e) {
 			operationQueue.cancelCurrentOperation();

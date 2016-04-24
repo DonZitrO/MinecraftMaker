@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -48,10 +47,8 @@ import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.function.operation.SchematicWriteOperation;
-import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
-import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
@@ -107,7 +104,7 @@ public class MakerController implements Runnable, Tickable {
 	// keeps track of every arena on the server
 	private Map<Short, MakerLevel> levelMap;
 	// shallow level data for server browser
-	private Map<Long, MakerLevel> levelsBySerialMap = Collections.synchronizedMap(new TreeMap<>());
+	// private Map<Long, MakerLevel> levelsBySerialMap = Collections.synchronizedMap(new TreeMap<>());
 
 	// an async thread loads the data to this map, then the main thread process it
 	private final Map<UUID, MakerPlayerData> accountDataMap = Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayerData>(MAX_ACCOUNT_DATA_ENTRIES * 2) {
@@ -175,12 +172,6 @@ public class MakerController implements Runnable, Tickable {
 		// TODO: entriesToAddToScoreboardTeamsOnNextTick.add(mPlayer);
 		// reset visibility
 		PlayerUtils.resetPlayerVisibility(mPlayer.getPlayer());
-	}
-
-	// FIXME: this is an experimental proof of concept, don't use it elsewhere until tested/refined
-	public void addServerBrowserLevels(final Map<Long, MakerLevel> levels, LevelSortBy sortBy) {
-		levelsBySerialMap.putAll(levels);
-		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.updatePages(plugin, levels.values(), sortBy));
 	}
 
 	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
@@ -676,7 +667,11 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		if (mPlayer.isInBusyLevel()) {
-			event.setCancelled(true);
+			// look but don't move
+			if (event.getTo().getX() != event.getFrom().getX() || event.getTo().getY() != event.getFrom().getY() || event.getTo().getZ() != event.getFrom().getZ()) {
+				mPlayer.sendActionMessage(plugin, "level.busy.look-dont-move");
+				event.setCancelled(true);
+			}
 			return;
 		}
 		if (mPlayer.isPlayingLevel()) {

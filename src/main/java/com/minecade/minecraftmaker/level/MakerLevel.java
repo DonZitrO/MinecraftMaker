@@ -99,7 +99,7 @@ public class MakerLevel implements Tickable {
 			clearedByAuthorMillis = clearTimeMillis;
 			status = LevelStatus.UPDATE_READY;
 			plugin.getDatabaseAdapter().updateLevelAuthorClearTimeAsync(this);
-			waitForBusyLevel(mPlayer, false);
+			// waitForBusyLevel(mPlayer, false);
 			mPlayer.sendMessage(plugin, "level.clear.time", formatMillis(clearTimeMillis));
 		} else {
 			plugin.getDatabaseAdapter().updateLevelClearAsync(getLevelId(), mPlayer.getUniqueId(), clearTimeMillis);
@@ -531,14 +531,17 @@ public class MakerLevel implements Tickable {
 	}
 
 	private void tickUpdated() {
+		// FIXME: refactor this logic for a better state transition
 		if (!isPublished()) {
 			status = LevelStatus.EDIT_READY;
-		} else {
+		} else if (currentPlayerId == null) {
 			status = LevelStatus.UNLOAD_READY;
 			MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
 			if (mPlayer != null) {
 				mPlayer.sendActionMessage(plugin, "level.publish.success");
 			}
+		} else {
+			status = LevelStatus.CLEARED;
 		}
 	}
 

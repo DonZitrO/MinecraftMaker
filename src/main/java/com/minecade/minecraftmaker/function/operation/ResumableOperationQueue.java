@@ -83,7 +83,7 @@ public class ResumableOperationQueue implements Operation {
 	@Override
 	public Operation resume(RunContext run) throws MinecraftMakerException {
 		if (!(run instanceof ResumableRunContext)) {
-			throw new IllegalArgumentException("This operation is meant to run in a PausableRunContext");
+			throw new IllegalArgumentException("This operation is meant to run in a ResumableRunContext");
 		}
 		if (current == null && !queue.isEmpty()) {
 			current = queue.poll();
@@ -97,7 +97,6 @@ public class ResumableOperationQueue implements Operation {
 				current = queue.poll();
 			}
 		}
-
 		return current != null ? this : null;
 	}
 

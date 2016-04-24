@@ -202,7 +202,7 @@ public class LevelUtils {
 
 	public static Operation createPasteOperation(Clipboard clipboard, Extent destination, WorldData worldData) {
 		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
-		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), destination, clipboard.getOrigin());
+		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), destination, clipboard.getOrigin());
 		copy.setTransform(IDENTITY_TRANSFORM);
 		boolean ignoreAirBlocks = false;
 		if (ignoreAirBlocks) {

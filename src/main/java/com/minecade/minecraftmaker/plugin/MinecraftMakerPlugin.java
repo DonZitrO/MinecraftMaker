@@ -16,6 +16,7 @@ import com.minecade.core.util.EmptyGenerator;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
+import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
@@ -108,6 +109,8 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		levelOperatorTask.runTaskTimer(this, 0, 0);
 		// register listeners
 		getServer().getPluginManager().registerEvents(new MakerListener(this), this);
+		// init level browser
+		LevelBrowserMenu.loadDefaultPage(this);
 	}
 
 	@Override

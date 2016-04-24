@@ -57,6 +57,10 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		return "menu.level-browser.title";
 	}
 
+	public static void loadDefaultPage(MinecraftMakerPlugin plugin) {
+		plugin.getDatabaseAdapter().loadLevelsAsync(LevelSortBy.LEVEL_SERIAL, 0, LEVELS_PER_PAGE);
+	}
+
 	public static void updatePages(Internationalizable plugin, Collection<MakerLevel> levels, LevelSortBy sortBy) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
@@ -83,7 +87,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	public LevelBrowserMenu(MinecraftMakerPlugin plugin) {
 		super(plugin, plugin.getMessage(getTitleKey()), 54);
 		init();
-		plugin.getDatabaseAdapter().loadLevelsAsync(sortBy, (currentPage - 1) * LEVELS_PER_PAGE, LEVELS_PER_PAGE);
 	}
 
 	private void init() {

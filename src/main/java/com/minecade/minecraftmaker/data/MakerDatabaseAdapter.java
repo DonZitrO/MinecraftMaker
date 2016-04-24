@@ -9,8 +9,8 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -20,14 +20,17 @@ import org.bukkit.configuration.ConfigurationSection;
 import com.minecade.core.data.DatabaseException;
 import com.minecade.core.data.MinecadeAccountData;
 import com.minecade.core.data.Rank;
+import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
+import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
 import com.minecade.minecraftmaker.schematic.io.ClipboardReader;
 import com.minecade.minecraftmaker.schematic.io.ClipboardWriter;
+import com.minecade.minecraftmaker.util.LevelUtils;
 
 public class MakerDatabaseAdapter {
 
@@ -271,7 +274,9 @@ public class MakerDatabaseAdapter {
 			data = resultSet.getBlob("data");
 			try (BufferedInputStream is = new BufferedInputStream(data.getBinaryStream()); ClipboardReader reader = ClipboardFormat.SCHEMATIC.getReader(is)) {
 				// note: this particular implementation doesn't need world data for anything. TODO: find other places where WorldData is not needed.
-				level.setClipboard(reader.read(null));
+				Clipboard clipboard = reader.read(null);
+				clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()));
+				level.setClipboard(clipboard);
 			}
 		} catch (Exception e) {
 			throw new DataException(e);
@@ -298,14 +303,15 @@ public class MakerDatabaseAdapter {
 		if (locationId != null) {
 			level.setRelativeEndLocation(loadRelativeLocationById(locationId));
 		}
+		level.setDatePublished(result.getDate("date_published"));
 	}
 
 	public void loadLevels(LevelSortBy sortBy, int offset, int limit) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
-		Map<Long, MakerLevel> levelsBySerial = new HashMap<>(); 
-		try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` order by ? desc limit ?,?"))) {
+		List<MakerLevel> levels = new ArrayList<>(limit); 
+		try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` WHERE `date_published` IS NOT NULL ORDER BY ? DESC LIMIT ?,?"))) {
 			testQuery.setString(1, sortBy.name());
 			testQuery.setInt(2, offset);
 			testQuery.setInt(3, limit);
@@ -313,13 +319,13 @@ public class MakerDatabaseAdapter {
 			while (resultSet.next()) {
 				MakerLevel level = new MakerLevel(plugin);
 				loadLevelFromResult(level, resultSet);
-				levelsBySerial.put(level.getLevelSerial(), level);
+				levels.add(level);
 			}
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
 			e.printStackTrace();
 		} 
-		plugin.getController().addServerBrowserLevels(levelsBySerial, sortBy);
+		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.updatePages(plugin, levels, sortBy));
 	}
 
 	public void loadLevelsAsync(LevelSortBy sortBy, int offset, int limit) {
