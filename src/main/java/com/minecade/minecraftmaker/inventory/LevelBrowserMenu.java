@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -101,18 +100,13 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 	}
 
-	private void updateCurrentPageItem() {
-		if (items[4] == null) {
-			items[4] = GeneralMenuItem.CURRENT_PAGE.getItem();
-		}
-		ItemMeta currentPageMeta = items[4].getItemMeta();
-		currentPageMeta.setDisplayName(String.format(GeneralMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, totalPages));
-		items[4].setItemMeta(currentPageMeta);
-	}
-
 	@Override
 	public boolean isShared() {
 		return false;
+	}
+
+	private void nextPage() {
+		// TODO Auto-generated method stub
 	}
 
 	@Override
@@ -133,6 +127,9 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			}
 			plugin.getController().loadLevelForPlayingBySerial(mPlayer, Long.valueOf(serial));
 			return true;
+		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
+			mPlayer.openLevelSortbyMenu();
+			return true;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.NEXT_PAGE.getDisplayName())) {
 			nextPage();
 			return true;
@@ -145,16 +142,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	private void previousPage() {
 		// TODO Auto-generated method stub
-	}
-
-	private void nextPage() {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void open(Player player) {
-		update();
-		super.open(player);
 	}
 
 	@Override
@@ -188,6 +175,15 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 				items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
 			}
 		}
+	}
+
+	private void updateCurrentPageItem() {
+		if (items[4] == null) {
+			items[4] = GeneralMenuItem.CURRENT_PAGE.getItem();
+		}
+		ItemMeta currentPageMeta = items[4].getItemMeta();
+		currentPageMeta.setDisplayName(String.format(GeneralMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, totalPages));
+		items[4].setItemMeta(currentPageMeta);
 	}
 
 }

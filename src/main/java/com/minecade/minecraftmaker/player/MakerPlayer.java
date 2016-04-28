@@ -19,6 +19,7 @@ import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
+import com.minecade.minecraftmaker.inventory.LevelSortByMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
@@ -160,6 +161,15 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
+	public void openLevelSortbyMenu() {
+		AbstractMakerMenu menu = personalMenus.get(LevelSortByMenu.getInstance().getName());
+		if (menu == null) {
+			menu = LevelSortByMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
 	private void openInventoryIfAvailable() {
 		if (inventoryToOpen != null) {
 			inventoryToOpen.open(player);
@@ -194,11 +204,14 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
-	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin) {
+	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, boolean update) {
 		AbstractMakerMenu menu = personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
 		if (menu == null) {
 			menu = new LevelBrowserMenu(plugin);
 			personalMenus.put(menu.getName(), menu);
+		}
+		if (update) {
+			menu.update();
 		}
 		inventoryToOpen = menu;
 	}

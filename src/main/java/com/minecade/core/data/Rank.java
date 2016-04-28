@@ -53,11 +53,21 @@ public enum Rank implements Translatable {
 
 	@Override
 	public void translate(Internationalizable plugin) {
-		String messageKey = String.format("rank.%s", name().toLowerCase());
+		String messageKey = String.format("%s.%s", getTranslationKeyBase(), getName().toLowerCase());
 		String displayName = plugin.getMessage(messageKey);
 		if (!messageKey.equals(displayName)) {
 			this.displayName = displayName;
 		}
+	}
+
+	@Override
+	public String getTranslationKeyBase() {
+		return "rank";
+	}
+
+	@Override
+	public String getName() {
+		return name();
 	}
 
 }

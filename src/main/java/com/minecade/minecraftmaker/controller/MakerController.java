@@ -577,7 +577,7 @@ public class MakerController implements Runnable, Tickable {
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();
-			mPlayer.openLevelBrowserMenu(plugin);
+			mPlayer.openLevelBrowserMenu(plugin, true);
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();

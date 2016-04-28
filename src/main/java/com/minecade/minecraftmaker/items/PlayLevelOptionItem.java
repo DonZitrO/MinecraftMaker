@@ -7,11 +7,11 @@ import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.i18n.I18NUtils;
 import com.minecade.core.i18n.Internationalizable;
-import com.minecade.core.i18n.Translatable;
+import com.minecade.core.i18n.TranslatableItem;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemStackBuilder;
 
-public enum PlayLevelOptionItem implements Translatable {
+public enum PlayLevelOptionItem implements TranslatableItem {
 
 	RESTART(Material.FLINT_AND_STEEL),
 	LIKE(Material.DIAMOND),
@@ -37,22 +37,23 @@ public enum PlayLevelOptionItem implements Translatable {
 		return builder.build();
 	}
 
-	@Override
-	public void translate(Internationalizable plugin) {
-		String translationKey = String.format("menu.play-level-options.%s.display-name", name().toLowerCase().replace('_','-'));
-		String displayName = plugin.getMessage(translationKey);
-		if (displayName != translationKey) {
-			builder.withDisplayName(displayName);
-		}
-		translationKey = String.format("menu.play-level-options.%s.lore", name().toLowerCase().replace('_','-'));
-		List<String> translatedLore = I18NUtils.translateAndSplitSingleLine(plugin, translationKey);
-		if (!translatedLore.isEmpty() && !translationKey.equals(translatedLore.get(0))) {
-			builder.withLore(translatedLore);
-		}
-	}
-
 	public String getDisplayName() {
 		return builder.getDisplayName() != null ? builder.getDisplayName() : name();
+	}
+
+	@Override
+	public String getTranslationKeyBase() {
+		return "menu.play-level-options";
+	}
+
+	@Override
+	public String getName() {
+		return name();
+	}
+
+	@Override
+	public ItemStackBuilder getBuilder() {
+		return builder;
 	}
 
 }

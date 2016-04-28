@@ -19,12 +19,13 @@ import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
+import com.minecade.minecraftmaker.items.LevelSortByItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
-import com.minecade.minecraftmaker.nms.schematic.Spigot_v1_9_R1;
+import com.minecade.minecraftmaker.nms.schematic.Spigot_v1_9_2_R1;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
 import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
 import com.minecade.minecraftmaker.task.LevelOperatorTask;
@@ -125,7 +126,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		ServerPropertyFilesConfigurator.configureBukkitYML();
 		ServerPropertyFilesConfigurator.configureSpigotYML();
 		try {
-			this.bukkitImplAdapter = new Spigot_v1_9_R1();
+			this.bukkitImplAdapter = new Spigot_v1_9_2_R1();
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MinecraftMaker.onLoad - Unable to initialize specific Spigot version's NBT tags adapter - %s", e.getMessage()));
 			e.printStackTrace();
@@ -165,6 +166,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		}
 		// translate play level option menu items
 		for (PlayLevelOptionItem item : PlayLevelOptionItem.values()) {
+			item.translate(this);
+		}
+		// translate level order by options
+		for (LevelSortByItem item : LevelSortByItem.values()) {
 			item.translate(this);
 		}
 	}

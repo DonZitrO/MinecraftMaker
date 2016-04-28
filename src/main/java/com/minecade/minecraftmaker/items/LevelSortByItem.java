@@ -7,25 +7,22 @@ import com.minecade.core.i18n.TranslatableItem;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemStackBuilder;
 
-public enum MakerLobbyItem implements TranslatableItem {
+public enum LevelSortByItem implements TranslatableItem {
 
-	SERVER_BROWSER(Material.WATCH),
-	STEVE_CHALLENGE(Material.SKULL_ITEM, 1, (short) 3),
-	CREATE_LEVEL(Material.EMPTY_MAP),
-	LEVEL_BROWSER(Material.BOOKSHELF),
-	QUIT(Material.TNT);
+	LIKES(Material.DIAMOND),
+	OWNED(Material.SKULL_ITEM, 1, (short) 3);
 
 	private final ItemStackBuilder builder;
 
-	private MakerLobbyItem(Material material) {
+	private LevelSortByItem(Material material) {
 		this(material, 1);
 	}
 
-	private MakerLobbyItem(Material material, int amount) {
+	private LevelSortByItem(Material material, int amount) {
 		this(material, amount, (short) 0);
 	}
 
-	private MakerLobbyItem(Material material, int amount, short data) {
+	private LevelSortByItem(Material material, int amount, short data) {
 		this.builder = new ItemBuilder(material, amount, data);
 	}
 
@@ -39,7 +36,7 @@ public enum MakerLobbyItem implements TranslatableItem {
 
 	@Override
 	public String getTranslationKeyBase() {
-		return "lobby.item";
+		return "menu.level-sortby";
 	}
 
 	@Override

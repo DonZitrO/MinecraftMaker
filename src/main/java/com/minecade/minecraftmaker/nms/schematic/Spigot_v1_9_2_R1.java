@@ -64,7 +64,7 @@ import com.minecade.minecraftmaker.schematic.jnbt.ShortTag;
 import com.minecade.minecraftmaker.schematic.jnbt.StringTag;
 import com.minecade.minecraftmaker.schematic.jnbt.Tag;
 
-public final class Spigot_v1_9_R1 implements BukkitImplAdapter {
+public final class Spigot_v1_9_2_R1 implements BukkitImplAdapter {
 
     private final Logger logger = Logger.getLogger(getClass().getCanonicalName());
 
@@ -75,7 +75,7 @@ public final class Spigot_v1_9_R1 implements BukkitImplAdapter {
     // Code that may break between versions of Minecraft
     // ------------------------------------------------------------------------
 
-    public Spigot_v1_9_R1() throws NoSuchFieldException, NoSuchMethodException {
+    public Spigot_v1_9_2_R1() throws NoSuchFieldException, NoSuchMethodException {
         // A simple test
         CraftServer.class.cast(Bukkit.getServer());
 
