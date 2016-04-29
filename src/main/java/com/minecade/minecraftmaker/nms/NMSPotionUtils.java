@@ -9,8 +9,9 @@ import org.bukkit.potion.PotionType;
 
 import com.minecade.core.item.PotionBuilder;
 
+@SuppressWarnings("deprecation")
 public class NMSPotionUtils {
-	
+
 	public static ItemStack toItemStack(PotionBuilder potion, int amount) {
 		ItemStack item = null;
 		if (potion.isSplash()) {
@@ -61,8 +62,8 @@ public class NMSPotionUtils {
 			} else {
 				tag = "leaping";
 			}
-//		} else if (type.equals(PotionType.LUCK)) {
-//			tag = "luck";
+			// } else if (type.equals(PotionType.LUCK)) {
+			// tag = "luck";
 		} else if (type.equals(PotionType.NIGHT_VISION)) {
 			if (_long) {
 				tag = "long_night_vision";
@@ -121,14 +122,14 @@ public class NMSPotionUtils {
 			} else {
 				tag = "weakness";
 			}
-//		} else if (type.equals(PotionType.EMPTY)) {
-//			tag = "empty";
-//		} else if (type.equals(PotionType.MUNDANE)) {
-//			tag = "mundane";
-//		} else if (type.equals(PotionType.THICK)) {
-//			tag = "thick";
-//		} else if (type.equals(PotionType.AWKWARD)) {
-//			tag = "awkward";
+		// } else if (type.equals(PotionType.EMPTY)) {
+		// tag = "empty";
+		// } else if (type.equals(PotionType.MUNDANE)) {
+		// tag = "mundane";
+		// } else if (type.equals(PotionType.THICK)) {
+		// tag = "thick";
+		// } else if (type.equals(PotionType.AWKWARD)) {
+		// tag = "awkward";
 		} else {
 			return null;
 		}
@@ -141,4 +142,5 @@ public class NMSPotionUtils {
 	private NMSPotionUtils() {
 		super();
 	}
+
 }

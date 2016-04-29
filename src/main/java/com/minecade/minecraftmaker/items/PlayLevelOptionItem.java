@@ -1,12 +1,8 @@
 package com.minecade.minecraftmaker.items;
 
-import java.util.List;
-
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import com.minecade.core.i18n.I18NUtils;
-import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.i18n.TranslatableItem;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemStackBuilder;

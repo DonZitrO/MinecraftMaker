@@ -95,6 +95,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 		return true;
 	}
 
+	@SuppressWarnings("unused") // TODO: use or remove
 	private boolean isValidChunkCoordinate(String chunkCoordinate) {
 		try {
 			Validate.inclusiveBetween(MIN_CHUNK_COORDINATE, MAX_CHUNK_COORDINATE, Short.parseShort(chunkCoordinate));

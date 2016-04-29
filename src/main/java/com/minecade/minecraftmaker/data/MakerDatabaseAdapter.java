@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.data;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.nio.ByteBuffer;
@@ -306,16 +308,17 @@ public class MakerDatabaseAdapter {
 		level.setDatePublished(result.getDate("date_published"));
 	}
 
-	public void loadLevels(LevelSortBy sortBy, int offset, int limit) {
+	private synchronized void loadLevels(LevelSortBy sortBy, int offset, int limit) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
-		List<MakerLevel> levels = new ArrayList<>(limit); 
-		try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` WHERE `date_published` IS NOT NULL ORDER BY ? DESC LIMIT ?,?"))) {
-			testQuery.setString(1, sortBy.name());
-			testQuery.setInt(2, offset);
-			testQuery.setInt(3, limit);
-			ResultSet resultSet = testQuery.executeQuery();
+		checkNotNull(sortBy);
+		List<MakerLevel> levels = new ArrayList<>(limit);
+		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` WHERE `date_published` IS NOT NULL ORDER BY ? DESC LIMIT ?,?"))) {
+			levelPageQuery.setString(1, sortBy.name());
+			levelPageQuery.setInt(2, offset);
+			levelPageQuery.setInt(3, limit);
+			ResultSet resultSet = levelPageQuery.executeQuery();
 			while (resultSet.next()) {
 				MakerLevel level = new MakerLevel(plugin);
 				loadLevelFromResult(level, resultSet);
@@ -324,7 +327,7 @@ public class MakerDatabaseAdapter {
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
 			e.printStackTrace();
-		} 
+		}
 		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.updatePages(plugin, levels, sortBy));
 	}
 
@@ -345,6 +348,33 @@ public class MakerDatabaseAdapter {
 			location.setLocationId(locationUUID);
 			return location;
 		}
+	}
+
+	private synchronized void loadUnpublishedLevelsByAuthorId(LevelBrowserMenu levelBrowserMenu) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should NOT be called from the main thread");
+		}
+		checkNotNull(levelBrowserMenu);
+		String authorIdString = levelBrowserMenu.getViewerId().toString().replace("-", "");
+		List<MakerLevel> levels = new ArrayList<>();
+		// TODO: hardcoded limit
+		try (PreparedStatement levelsByAuthorQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` WHERE `author_id` = UNHEX(?) AND `date_published` IS NULL ORDER BY level_serial DESC LIMIT 5"))) {
+			levelsByAuthorQuery.setString(1, authorIdString);
+			ResultSet resultSet = levelsByAuthorQuery.executeQuery();
+			while (resultSet.next()) {
+				MakerLevel level = new MakerLevel(plugin);
+				loadLevelFromResult(level, resultSet);
+				levels.add(level);
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
+			e.printStackTrace();
+		}
+		Bukkit.getScheduler().runTask(plugin, () -> levelBrowserMenu.updateOwnedLevels(levels));
+	}
+
+	public void loadUnpublishedLevelsByAuthorIdAsync(LevelBrowserMenu levelBrowserMenu) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadUnpublishedLevelsByAuthorId(levelBrowserMenu));
 	}
 
 	private synchronized void publishLevel(MakerLevel level) {

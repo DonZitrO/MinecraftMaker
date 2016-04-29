@@ -363,6 +363,17 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void loadLevelForEditingBySerial(MakerPlayer mPlayer, Long levelSerial) {
+		MakerLevel level = getEmptyLevelIfAvailable();
+		if (level == null) {
+			mPlayer.sendActionMessage(plugin, "level.error.full");
+			return;
+		}
+		level.setLevelSerial(levelSerial);
+		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
+		mPlayer.sendActionMessage(plugin, "level.loading");
+	}
+
 	public void loadLevelForPlayingBySerial(MakerPlayer mPlayer, Long levelSerial) {
 		MakerLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
@@ -577,7 +588,7 @@ public class MakerController implements Runnable, Tickable {
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();
-			mPlayer.openLevelBrowserMenu(plugin, true);
+			mPlayer.openLevelBrowserMenu(plugin, null, null, true);
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();

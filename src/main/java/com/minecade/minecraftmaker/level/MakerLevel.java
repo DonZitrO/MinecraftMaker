@@ -508,13 +508,10 @@ public class MakerLevel implements Tickable {
 	private void tickClipboardPasted() {
 		// TODO: find a better way to control these scenarios
 		if (currentPlayerId != null) {
-			if (currentPlayerId.equals(authorId) || isPublished()) {
-				status = LevelStatus.PLAY_READY;
-				return;
-			}
+			status = LevelStatus.PLAY_READY;
+		} else {
+			status = LevelStatus.EDIT_READY;
 		}
-		currentPlayerId = null;
-		status = LevelStatus.EDIT_READY;
 	}
 
 	private void tickEdited() {

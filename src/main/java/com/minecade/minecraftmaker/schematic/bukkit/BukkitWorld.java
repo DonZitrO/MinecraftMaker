@@ -37,6 +37,7 @@ import com.minecade.minecraftmaker.schematic.world.Vector;
 import com.minecade.minecraftmaker.schematic.world.Vector2D;
 import com.minecade.minecraftmaker.schematic.world.WorldData;
 
+@SuppressWarnings("deprecation")
 public class BukkitWorld extends AbstractWorld {
 
 	private static final Map<Integer, Effect> effects = new HashMap<Integer, Effect>();
@@ -54,7 +55,6 @@ public class BukkitWorld extends AbstractWorld {
 	 * @param world
 	 *            the world
 	 */
-	@SuppressWarnings("unchecked")
 	public BukkitWorld(World world) {
 		this.worldRef = new WeakReference<World>(world);
 	}
@@ -236,7 +236,6 @@ public class BukkitWorld extends AbstractWorld {
 		world.dropItemNaturally(BukkitUtil.toLocation(world, pt), bukkitItem);
 	}
 
-	@SuppressWarnings("deprecation")
 	@Override
 	public boolean isValidBlockType(int type) {
 		return Material.getMaterial(type) != null && Material.getMaterial(type).isBlock();
@@ -328,7 +327,6 @@ public class BukkitWorld extends AbstractWorld {
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	@Override
 	public BaseBlock getLazyBlock(Vector position) {
 		World world = getWorld();

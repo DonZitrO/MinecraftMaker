@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.inventory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -19,6 +21,7 @@ import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
+import com.minecade.minecraftmaker.level.LevelDisplay;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
@@ -27,7 +30,9 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	private static int LEVELS_PER_PAGE = 36;
+	private static int totalPublishedLevels = -1;
 
+	private static ItemStack[] loadingPaneItems;
 	private static Map<UUID, ItemStack> levelItems = new HashMap<>();
 	private static TreeSet<MakerLevel> levelsByName = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> l1.getLevelName().compareToIgnoreCase(l2.getLevelName()));
 	private static TreeSet<MakerLevel> levelsBySerial = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
@@ -50,6 +55,20 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		lore.add("");
 		builder.withLore(lore);
 		return builder.build();
+	}
+
+	private static ItemStack[] getLoadingPaneItems() {
+		if (loadingPaneItems == null) {
+			loadingPaneItems = new ItemStack[36];
+			for (int i = 0; i < loadingPaneItems.length; i++) {
+				if (i == 20 || i == 22 || i == 24) {
+					loadingPaneItems[i] = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short)15);
+				} else {
+					loadingPaneItems[i] = new ItemStack(Material.STAINED_GLASS_PANE);
+				}
+			}
+		}
+		return loadingPaneItems;
 	}
 
 	public static String getTitleKey() {
@@ -79,13 +98,39 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 	}
 
+	private final UUID viewerId;
+
+	private TreeSet<MakerLevel> ownedLevelsBySerial = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
+
+	private LevelDisplay display = LevelDisplay.PUBLISHED;
 	private LevelSortBy sortBy = LevelSortBy.LEVEL_SERIAL;
 	private int currentPage = 1;
-	private int totalPages = 1;
+	private int totalOwnedLevels = -1;
 
-	public LevelBrowserMenu(MinecraftMakerPlugin plugin) {
+	public LevelBrowserMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
 		super(plugin, plugin.getMessage(getTitleKey()), 54);
+		this.viewerId = viewerId;
 		init();
+	}
+
+	public void display(LevelDisplay display) {
+		checkNotNull(display);
+		if (display.equals(this.display)) {
+			return;
+		}
+		this.display = display;
+		update();
+	}
+
+	private int getTotalPages() {
+		if (LevelDisplay.OWNED.equals(this.display) || totalPublishedLevels < 1) {
+			return 1;
+		}
+		return ((totalPublishedLevels / LEVELS_PER_PAGE) + 1);
+	}
+
+	public UUID getViewerId() {
+		return this.viewerId;
 	}
 
 	private void init() {
@@ -125,7 +170,11 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 				Bukkit.getLogger().severe(String.format("LevelBrowserMenu.onClick - unable to get level serial from lore: [%s]", serial));
 				return true;
 			}
-			plugin.getController().loadLevelForPlayingBySerial(mPlayer, Long.valueOf(serial));
+			if (LevelDisplay.OWNED.equals(this.display)) {
+				plugin.getController().loadLevelForEditingBySerial(mPlayer, Long.valueOf(serial));
+			} else {
+				plugin.getController().loadLevelForPlayingBySerial(mPlayer, Long.valueOf(serial));
+			}
 			return true;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
 			mPlayer.openLevelSortbyMenu();
@@ -144,26 +193,68 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		// TODO Auto-generated method stub
 	}
 
+	public void sortBy(LevelSortBy sortBy) {
+		checkNotNull(sortBy);
+		if (sortBy.equals(this.sortBy)) {
+			return;
+		}
+		this.sortBy = sortBy;
+		update();
+	}
+
 	@Override
 	public void update() {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
 		// TODO use local dirtyInventory
 		// if (!dirtyInventory) return;
 
 		Collection<MakerLevel> allLevels = null;
-		switch (sortBy) {
-		case LEVEL_NAME:
-			allLevels = levelsByName;
+		switch (display) {
+		case OWNED:
+			currentPage = 1;
+			allLevels = ownedLevelsBySerial;
 			break;
 		default:
-			allLevels = levelsBySerial;
+			switch (sortBy) {
+			case LEVEL_NAME:
+				allLevels = levelsByName;
+				break;
+			default:
+				allLevels = levelsBySerial;
+				break;
+			}
 			break;
 		}
-	
-		List<MakerLevel> currentPageLevels = allLevels.stream().skip((Math.max(0, (currentPage - 1) * LEVELS_PER_PAGE))).limit(LEVELS_PER_PAGE).collect(Collectors.toList());
+
+		int offset = (Math.max(0, (currentPage - 1) * LEVELS_PER_PAGE));
+		List<MakerLevel> currentPageLevels = allLevels.stream().skip(offset).limit(LEVELS_PER_PAGE).collect(Collectors.toList());
+
+		if (currentPageLevels == null || currentPageLevels.size() == 0) {
+			switch (display) {
+			case OWNED:
+				if (totalOwnedLevels < 0) {
+					plugin.getDatabaseAdapter().loadUnpublishedLevelsByAuthorIdAsync(this);
+				}
+				break;
+			default:
+				if (totalPublishedLevels < 0) {
+					plugin.getDatabaseAdapter().loadLevelsAsync(sortBy, offset, LEVELS_PER_PAGE);
+				}
+				break;
+			}
+			ItemStack[] loadingPane = getLoadingPaneItems();
+			for (int i = 9; i < (loadingPane.length + 9); i++) {
+				items[i] = loadingPane[i-9];
+			}
+			return;
+		}
 
 		if (currentPageLevels != null) {
+			updateCurrentPageItem();
 			int i = 18;
-			for (MakerLevel level: currentPageLevels) {
+			for (MakerLevel level : currentPageLevels) {
 				ItemStack item = levelItems.get(level.getLevelId());
 				if (item != null) {
 					items[i++] = item;
@@ -171,7 +262,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 					new ItemStack(Material.STAINED_GLASS_PANE);
 				}
 			}
-			for (;i<inventory.getSize();i++) {
+			for (; i < inventory.getSize(); i++) {
 				items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
 			}
 		}
@@ -182,8 +273,23 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			items[4] = GeneralMenuItem.CURRENT_PAGE.getItem();
 		}
 		ItemMeta currentPageMeta = items[4].getItemMeta();
-		currentPageMeta.setDisplayName(String.format(GeneralMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, totalPages));
+		currentPageMeta.setDisplayName(String.format(GeneralMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, getTotalPages()));
 		items[4].setItemMeta(currentPageMeta);
+	}
+
+	public void updateOwnedLevels(Collection<MakerLevel> levels) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		for (MakerLevel level : levels) {
+			addLevelItemToPages(plugin, level);
+		}
+		ownedLevelsBySerial.addAll(levels);
+		totalOwnedLevels = ownedLevelsBySerial.size();
+		if (LevelDisplay.OWNED.equals(this.display)) {
+			update();
+			inventory.setContents(items);
+		}
 	}
 
 }

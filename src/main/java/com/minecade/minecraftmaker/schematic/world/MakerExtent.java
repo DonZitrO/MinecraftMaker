@@ -16,6 +16,7 @@ public class MakerExtent implements Extent {
 	protected final World world;
 
 	private @Nullable FastModeExtent fastModeExtent;
+	@SuppressWarnings("unused")
 	private final SurvivalModeExtent survivalExtent;
 
 	private final Extent bypassNone;

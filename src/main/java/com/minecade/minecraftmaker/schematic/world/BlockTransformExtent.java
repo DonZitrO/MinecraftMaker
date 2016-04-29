@@ -16,7 +16,7 @@ import com.minecade.minecraftmaker.schematic.transform.Transform;
  */
 public class BlockTransformExtent extends AbstractDelegateExtent {
 
-	private static final double RIGHT_ANGLE = Math.toRadians(90);
+	//private static final double RIGHT_ANGLE = Math.toRadians(90);
 
 	private final Transform transform;
 	private final BlockRegistry blockRegistry;

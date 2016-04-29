@@ -104,6 +104,7 @@ public final class BukkitUtil {
 //	}
 
 	public static BaseBlock toBlock(World world, ItemStack itemStack) throws MinecraftMakerException {
+		@SuppressWarnings("deprecation")
 		final int typeId = itemStack.getTypeId();
 
 		switch (typeId) {

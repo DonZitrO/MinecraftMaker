@@ -24,6 +24,8 @@ import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
+import com.minecade.minecraftmaker.level.LevelDisplay;
+import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -204,11 +206,17 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
-	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, boolean update) {
-		AbstractMakerMenu menu = personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
+	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, LevelDisplay display, LevelSortBy sortBy, boolean update) {
+		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
 		if (menu == null) {
-			menu = new LevelBrowserMenu(plugin);
+			menu = new LevelBrowserMenu(plugin, this.getUniqueId());
 			personalMenus.put(menu.getName(), menu);
+		}
+		if (display != null) {
+			menu.display(display);
+		}
+		if (sortBy != null) {
+			menu.sortBy(sortBy);
 		}
 		if (update) {
 			menu.update();
