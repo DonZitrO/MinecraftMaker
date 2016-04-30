@@ -36,8 +36,8 @@ public class PlayLevelOptionsMenu extends AbstractMakerMenu {
 
 	@Override
 	public boolean onClick(MakerPlayer mPlayer, int slot) {
-		if (!mPlayer.isPlayingLevel()) {
-			Bukkit.getLogger().warning(String.format("PlayLevelOptionsMenu.onClick - This menu should be available to level editors only! - clicked by: [%s]", mPlayer.getName()));
+		if (!mPlayer.isPlayingLevel() || !mPlayer.hasClearedLevel()) {
+			Bukkit.getLogger().warning(String.format("PlayLevelOptionsMenu.onClick - This menu should be available to level players only! - clicked by: [%s]", mPlayer.getName()));
 			return true;
 		}
 		if (slot >= items.length) {

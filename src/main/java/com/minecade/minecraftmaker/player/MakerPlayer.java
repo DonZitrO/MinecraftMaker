@@ -209,7 +209,7 @@ public class MakerPlayer implements Tickable {
 	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, LevelDisplay display, LevelSortBy sortBy, boolean update) {
 		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
 		if (menu == null) {
-			menu = new LevelBrowserMenu(plugin, this.getUniqueId());
+			menu = LevelBrowserMenu.getInstance(plugin, this.getUniqueId());
 			personalMenus.put(menu.getName(), menu);
 		}
 		if (display != null) {
@@ -322,6 +322,21 @@ public class MakerPlayer implements Tickable {
 
 	public boolean isInBusyLevel() {
 		return currentLevel != null && currentLevel.isBusy();
+	}
+
+	public void updatePublishedLevelOnLevelBrowser(MinecraftMakerPlugin plugin, MakerLevel makerLevel) {
+		LevelBrowserMenu.addPublishedLevel(plugin, makerLevel);
+		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
+		if (menu != null) {
+			menu.removeUnpublishedLevel(makerLevel);
+		}
+	}
+
+	public void updateSavedLevelOnLevelBrowser(MinecraftMakerPlugin plugin, MakerLevel makerLevel) {
+		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
+		if (menu != null) {
+			menu.updateOwnedLevel(makerLevel);
+		}
 	}
 
 }

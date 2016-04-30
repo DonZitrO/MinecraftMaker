@@ -29,16 +29,38 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class LevelBrowserMenu extends AbstractMakerMenu {
 
-	private static int LEVELS_PER_PAGE = 36;
-	private static int totalPublishedLevels = -1;
-
-	private static ItemStack[] loadingPaneItems;
 	private static Map<UUID, ItemStack> levelItems = new HashMap<>();
+	private static int LEVELS_PER_PAGE = 36;
+
 	private static TreeSet<MakerLevel> levelsByName = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> l1.getLevelName().compareToIgnoreCase(l2.getLevelName()));
+
 	private static TreeSet<MakerLevel> levelsBySerial = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
+	private static ItemStack[] loadingPaneItems;
+	private static int totalPublishedLevels = -1;
+	private static Map<UUID, LevelBrowserMenu> userLevelBrowserMenuMap = new HashMap<>();
 
 	private static void addLevelItemToPages(Internationalizable plugin, MakerLevel level) {
 		levelItems.put(level.getLevelId(), getLevelItem(plugin, level));
+	}
+
+	public static void addPublishedLevel(Internationalizable plugin, MakerLevel level) {
+		addLevelItemToPages(plugin, level);
+		levelsByName.add(level);
+		levelsBySerial.add(level);
+		for (LevelBrowserMenu menu: userLevelBrowserMenuMap.values()) {
+			menu.update();
+		}
+	}
+
+	public static LevelBrowserMenu getInstance(MinecraftMakerPlugin plugin, UUID viewerId) {
+		checkNotNull(plugin);
+		checkNotNull(viewerId);
+		LevelBrowserMenu menu = userLevelBrowserMenuMap.get(viewerId);
+		if (menu == null) {
+			menu = new LevelBrowserMenu(plugin, viewerId);
+		}
+		userLevelBrowserMenuMap.put(viewerId, menu);
+		return menu;
 	}
 
 	private static ItemStack getLevelItem(Internationalizable plugin, MakerLevel level) {
@@ -98,19 +120,25 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 	}
 
-	private final UUID viewerId;
-
-	private TreeSet<MakerLevel> ownedLevelsBySerial = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
+	private int currentPage = 1;
 
 	private LevelDisplay display = LevelDisplay.PUBLISHED;
+	private TreeSet<MakerLevel> ownedLevelsBySerial = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
 	private LevelSortBy sortBy = LevelSortBy.LEVEL_SERIAL;
-	private int currentPage = 1;
 	private int totalOwnedLevels = -1;
 
-	public LevelBrowserMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
+	private final UUID viewerId;
+
+	private LevelBrowserMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
 		super(plugin, plugin.getMessage(getTitleKey()), 54);
 		this.viewerId = viewerId;
 		init();
+	}
+
+	@Override
+	public void destroy() {
+		super.destroy();
+		userLevelBrowserMenuMap.remove(getViewerId());
 	}
 
 	public void display(LevelDisplay display) {
@@ -193,6 +221,13 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		// TODO Auto-generated method stub
 	}
 
+	public void removeUnpublishedLevel(MakerLevel makerLevel) {
+		ownedLevelsBySerial.remove(makerLevel);
+		if (LevelDisplay.OWNED.equals(this.display)) {
+			update();
+		}
+	}
+
 	public void sortBy(LevelSortBy sortBy) {
 		checkNotNull(sortBy);
 		if (sortBy.equals(this.sortBy)) {
@@ -248,6 +283,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			for (int i = 9; i < (loadingPane.length + 9); i++) {
 				items[i] = loadingPane[i-9];
 			}
+			inventory.setContents(items);
 			return;
 		}
 
@@ -265,6 +301,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			for (; i < inventory.getSize(); i++) {
 				items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
 			}
+			inventory.setContents(items);
 		}
 	}
 
@@ -288,7 +325,18 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		totalOwnedLevels = ownedLevelsBySerial.size();
 		if (LevelDisplay.OWNED.equals(this.display)) {
 			update();
-			inventory.setContents(items);
+		}
+	}
+
+	public void updateOwnedLevel(MakerLevel level) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		addLevelItemToPages(plugin, level);
+		ownedLevelsBySerial.add(level);
+		totalOwnedLevels = ownedLevelsBySerial.size();
+		if (LevelDisplay.OWNED.equals(this.display)) {
+			update();
 		}
 	}
 

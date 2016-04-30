@@ -49,6 +49,7 @@ import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.function.operation.SchematicWriteOperation;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
+import com.minecade.minecraftmaker.level.LevelDisplay;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
@@ -207,7 +208,7 @@ public class MakerController implements Runnable, Tickable {
 		author.sendActionMessage(plugin, "level.loading");
 		try {
 			level.setClipboard(LevelUtils.createEmptyLevelClipboard(getMainWorld(), level.getChunkZ(), floorBlockId));
-			level.tryStatusTransition(LevelStatus.PREPARING, LevelStatus.CLIPBOARD_LOADED);
+			level.tryStatusTransition(LevelStatus.BLANK, LevelStatus.CLIPBOARD_LOADED);
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
 			level.disable();
@@ -544,10 +545,13 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
-		// FIXME: or is not in lobby?
-//		if (mPlayer.isEditingLevel()) {
-//			return;
-//		}
+		// specific options for editors
+		if (mPlayer.isEditingLevel()) {
+			// allow editors to interact with creative inventory
+			if(event.getInventory().getName().equals("container.inventory")) {
+				return;
+			}
+		}
 		// cancel inventory right click entirely
 		if (event.isRightClick()) {
 			event.setCancelled(true);
@@ -588,7 +592,7 @@ public class MakerController implements Runnable, Tickable {
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();
-			mPlayer.openLevelBrowserMenu(plugin, null, null, true);
+			mPlayer.openLevelBrowserMenu(plugin, LevelDisplay.PUBLISHED, null, true);
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();
@@ -749,6 +753,11 @@ public class MakerController implements Runnable, Tickable {
 		// needs to be editing that level
 		if (!mPlayer.isEditingLevel()) {
 			player.sendMessage(plugin.getMessage("level.rename.error.no-editing"));
+			return;
+		}
+		// save before rename
+		if (mPlayer.getCurrentLevel().getLevelSerial() == 0) {
+			player.sendMessage(plugin.getMessage("level.rename.error.save-first"));
 			return;
 		}
 		// rename

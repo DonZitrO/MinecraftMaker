@@ -29,6 +29,7 @@ import com.minecade.core.event.AsyncAccountDataLoadEvent;
 import com.minecade.core.event.EventUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
+import com.minecade.nms.NMSUtils;
 
 public class MakerListener implements Listener {
 
@@ -86,10 +87,14 @@ public class MakerListener implements Listener {
 	}
 
 	@EventHandler
-	public void onEntitySpawn(CreatureSpawnEvent event) {
-		if(event.getSpawnReason() == SpawnReason.NATURAL) {
+	public void onCreatureSpawn(CreatureSpawnEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureSpawn - Entity: [%s] - Reason: [%s] - Location: [%s] - Cancelled: [%s]", event.getEntity().getName(), event.getSpawnReason(), event.getLocation().toVector(), event.isCancelled()));
+		}
+		if (event.getSpawnReason() == SpawnReason.NATURAL) {
 			event.setCancelled(true);
 		}
+		NMSUtils.stopMobFromMovingAndAttacking(event.getEntity());
 	}
 
 	@EventHandler
@@ -112,6 +117,9 @@ public class MakerListener implements Listener {
 
 	@EventHandler
 	public void onPlayerDropItem(PlayerDropItemEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerDropItem - Player: [%s] - ItemDrop: [%s] - Cancelled: [%s]", event.getPlayer().getName(), event.getItemDrop().getType(), event.isCancelled()));
+		}
 		event.setCancelled(true);
 		final Player player = event.getPlayer();
 		new BukkitRunnable() {
@@ -136,6 +144,7 @@ public class MakerListener implements Listener {
 		// allow to build around the beacons without interacting with them
 		if (EventUtils.isBlockRightClick(event, Material.BEACON)) {
 			event.setUseInteractedBlock(Result.DENY);
+			event.setUseItemInHand(Result.ALLOW);
 		}
 		// delegate to controller for specific behavior
 		plugin.getController().onPlayerInteract(event);

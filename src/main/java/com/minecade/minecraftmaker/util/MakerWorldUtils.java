@@ -34,7 +34,7 @@ public class MakerWorldUtils {
 		// difficulty
 		world.setDifficulty(Difficulty.HARD);
 		// don't Spawn monster and animals
-		world.setSpawnFlags(false, false);
+		world.setSpawnFlags(true, true);
 		// No storms
 		world.setStorm(false);
 		// no thunders
