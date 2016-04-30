@@ -20,6 +20,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -70,6 +71,7 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.MakerWorldUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
+import com.minecade.nms.NMSUtils;
 
 public class MakerController implements Runnable, Tickable {
 
@@ -649,6 +651,7 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
+		// TODO: remove entity if left click and EDITING level mode
 	}
 
 	public void onPlayerJoin(Player player) {
@@ -830,6 +833,22 @@ public class MakerController implements Runnable, Tickable {
 		// FIXME: review this
 		makerLevel.disable();
 		levelMap.remove(makerLevel.getChunkZ());
+	}
+
+	public void onCreatureSpawn(CreatureSpawnEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature spawning outside level - creature type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
+			return;
+		}
+		MakerLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature spawning on unregistered level slot - creature type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
+			return;
+		}
+		level.onCreatureSpawn(event);
 	}
 
 }

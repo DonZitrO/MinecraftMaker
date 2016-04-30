@@ -29,7 +29,6 @@ import com.minecade.core.event.AsyncAccountDataLoadEvent;
 import com.minecade.core.event.EventUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
-import com.minecade.nms.NMSUtils;
 
 public class MakerListener implements Listener {
 
@@ -89,12 +88,13 @@ public class MakerListener implements Listener {
 	@EventHandler
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureSpawn - Entity: [%s] - Reason: [%s] - Location: [%s] - Cancelled: [%s]", event.getEntity().getName(), event.getSpawnReason(), event.getLocation().toVector(), event.isCancelled()));
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureSpawn - Entity type: [%s] - Reason: [%s] - Location: [%s] - Cancelled: [%s]", event.getEntityType(), event.getSpawnReason(), event.getLocation().toVector(), event.isCancelled()));
 		}
+		// disable naturally spawning creatures
 		if (event.getSpawnReason() == SpawnReason.NATURAL) {
 			event.setCancelled(true);
 		}
-		NMSUtils.stopMobFromMovingAndAttacking(event.getEntity());
+		plugin.getController().onCreatureSpawn(event);
 	}
 
 	@EventHandler

@@ -1,6 +1,7 @@
 package com.minecade.minecraftmaker.level;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -11,6 +12,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 
@@ -20,15 +22,19 @@ import com.minecade.minecraftmaker.function.operation.LevelClipboardPasteOperati
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
+import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.world.Extent;
 import com.minecade.minecraftmaker.schematic.world.WorldData;
 import com.minecade.minecraftmaker.util.Tickable;
+import com.minecade.nms.NMSUtils;
 
 public class MakerLevel implements Tickable {
 
 	private static final MakerRelativeLocationData RELATIVE_START_LOCATION = new MakerRelativeLocationData(2.5, 65, 6.5, -90f, 0);
+
+	private static final int MAX_LEVEL_ENTITIES = 10;
 
 	private final MinecraftMakerPlugin plugin;
 
@@ -684,6 +690,46 @@ public class MakerLevel implements Tickable {
 		mPlayer.teleportOnNextTick(getStartLocation());
 		if (showMessage) {
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.busy.title"), plugin.getMessage("level.busy.subtitle"));
+		}
+	}
+
+	// FIXME: experimental
+	public List<? extends Entity> getEntities() {
+		return getMakerExtent().getEntities(clipboard.getRegion());
+	}
+
+	// FIXME: experimental
+	public void onCreatureSpawn(CreatureSpawnEvent event) {
+		if (LevelStatus.EDITING.equals(getStatus())) {
+			// not supported entity types
+			switch (event.getEntityType()) {
+			case BAT:
+			case GUARDIAN:
+				event.setCancelled(true);
+				sendActionMessageToAuthor("level.create.error.not-supported-mob", event.getEntityType().toString());
+				return;
+			default:
+				break;
+			}
+			// entity count restriction
+			int entityCount = getEntities().size();
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onCreatureSpawn - current entity count: [%s]", entityCount));
+			}
+			if (entityCount >= MAX_LEVEL_ENTITIES) {
+				event.setCancelled(true);
+				sendActionMessageToAuthor("level.create.error.mob-limit", entityCount);
+				return;
+			}
+			NMSUtils.stopMobFromMovingAndAttacking(event.getEntity());
+			return;
+		}
+	}
+
+	private void sendActionMessageToAuthor(String key, Object... args) {
+		MakerPlayer author = plugin.getController().getPlayer(authorId);
+		if (author != null) {
+			author.sendActionMessage(plugin, key, args);
 		}
 	}
 

@@ -27,21 +27,6 @@ public class LevelUtils {
 
 	public static final Transform IDENTITY_TRANSFORM = new Identity();
 
-	public static Vector getLevelOrigin(short chunkZ) {
-		short originX = 0;
-		short originY = 0;
-		short originZ = (short) (chunkZ * 16);
-		return new Vector(originX, originY, originZ);
-	}
-
-	public static Region getLevelRegion(World world, short chunkZ) {
-		Vector origin = getLevelOrigin(chunkZ);
-		short width = 161;
-		short height = 129;
-		short length = 13;
-		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
-	}
-
 	public static Clipboard createEmptyLevelClipboard(World world, short chunkZ, int floorBlockId) throws MinecraftMakerException {
 
 		Region region = getLevelRegion(world, chunkZ);
@@ -102,21 +87,6 @@ public class LevelUtils {
 		return clipboard;
 	}
 
-	public static Vector getLobbyOrigin() {
-		short originX = -1;
-		short originY = 63;
-		short originZ = 0;
-		return new Vector(originX, originY, originZ);
-	}
-
-	public static Region getLobbyRegion(World world) {
-		Vector origin = getLobbyOrigin();
-		short width = -64;
-		short height = 65;
-		short length = 64;
-		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
-	}
-
 	public static Clipboard createLobbyClipboard(World world) throws MinecraftMakerException {
 		Region region = getLobbyRegion(world);
 		Vector minimumPoint = region.getMinimumPoint();
@@ -171,6 +141,60 @@ public class LevelUtils {
 		return clipboard;
 	}
 
+	public static Operation createPasteOperation(Clipboard clipboard, Extent destination, WorldData worldData) {
+		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
+		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), destination, clipboard.getOrigin());
+		copy.setTransform(IDENTITY_TRANSFORM);
+		boolean ignoreAirBlocks = false;
+		if (ignoreAirBlocks) {
+			copy.setSourceMask(new ExistingBlockMask(clipboard));
+		}
+		return copy;
+	}
+
+	public static Vector getLevelOrigin(short chunkZ) {
+		short originX = 0;
+		short originY = 0;
+		short originZ = (short) (chunkZ * 16);
+		return new Vector(originX, originY, originZ);
+	}
+
+	public static Region getLevelRegion(World world, short chunkZ) {
+		Vector origin = getLevelOrigin(chunkZ);
+		short width = 161;
+		short height = 129;
+		short length = 13;
+		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
+	}
+
+	public static Vector getLobbyOrigin() {
+		short originX = -1;
+		short originY = 63;
+		short originZ = 0;
+		return new Vector(originX, originY, originZ);
+	}
+
+	public static Region getLobbyRegion(World world) {
+		Vector origin = getLobbyOrigin();
+		short width = -64;
+		short height = 65;
+		short length = 64;
+		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
+	}
+
+	public static short getLocationSlot(org.bukkit.Location location) {
+		if (location.getY() > 128) {
+			return -1;
+		}
+		if (location.getBlockX() < 0 || location.getBlockX() > 159) {
+			return -1;
+		}
+		if (location.getBlockZ() < 0 || location.getBlockZ() > 159) {
+			return -1;
+		}
+		return (short) (location.getBlockZ() / 16);
+	}
+
 	public static boolean isBeaconPowerBlock(Block block) {
 		if (!block.getType().equals(Material.IRON_BLOCK)) {
 			return false;
@@ -198,17 +222,6 @@ public class LevelUtils {
 			}
 		}
 		return false;
-	}
-
-	public static Operation createPasteOperation(Clipboard clipboard, Extent destination, WorldData worldData) {
-		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
-		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), destination, clipboard.getOrigin());
-		copy.setTransform(IDENTITY_TRANSFORM);
-		boolean ignoreAirBlocks = false;
-		if (ignoreAirBlocks) {
-			copy.setSourceMask(new ExistingBlockMask(clipboard));
-		}
-		return copy;
 	}
 
 	private LevelUtils() {
