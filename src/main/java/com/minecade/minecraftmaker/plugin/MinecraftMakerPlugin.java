@@ -87,7 +87,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	@Override
 	public void onDisable() {
 		if (controller != null) {
-			controller.disable();
+			controller.disable(null, null);
 		}
 		this.getServer().getScheduler().cancelTasks(this);
 	}
@@ -104,7 +104,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		asyncLevelSaver.runTaskTimerAsynchronously(this, 0, 0);
 		// instantiate and init main controller
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
-		controller.enable();
+		controller.init();
 		// start builder task
 		levelOperatorTask = new LevelOperatorTask(this);
 		levelOperatorTask.runTaskTimer(this, 0, 0);

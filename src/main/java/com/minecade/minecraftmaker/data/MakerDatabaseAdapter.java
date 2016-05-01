@@ -233,7 +233,7 @@ public class MakerDatabaseAdapter {
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("loadLevelBySerial.loadLevel - error while loading level: %s", e.getMessage()));
 			e.printStackTrace();
-			level.disable();
+			level.disable(e.getMessage(), e);
 			return;
 		}
 		loadLevelClipboard(level);
@@ -266,7 +266,7 @@ public class MakerDatabaseAdapter {
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("loadLevelBySerial.loadLevelClipboard - error while loading level clipboard: %s", e.getMessage()));
 			e.printStackTrace();
-			level.disable();
+			level.disable(e.getMessage(), e);
 		}
 	}
 
@@ -403,7 +403,7 @@ public class MakerDatabaseAdapter {
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.publishLevel - error while updating level: [%s<%s>] - ", level.getLevelName(), level.getLevelId(), e.getMessage()));
 			e.printStackTrace();
-			level.disable();
+			level.disable(e.getMessage(), e);
 		}
 	}
 
@@ -432,7 +432,7 @@ public class MakerDatabaseAdapter {
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.renameLevel - error while renaming level: [%s<%s>] - %s", level.getLevelName(), level.getLevelId(), e.getMessage()));
 			e.printStackTrace();
-			level.disable();
+			level.disable(e.getMessage(), e);
 		}
 	}
 
@@ -465,9 +465,12 @@ public class MakerDatabaseAdapter {
 				try (PreparedStatement updateLevelSt = getConnection().prepareStatement(updateStatement)) {
 					updateLevelSt.setString(1, level.getLevelName());
 					if (endLocationUUID != null) {
-						updateLevelSt.setString(2, endLocationUUID);
+						updateLevelSt.setString(1, endLocationUUID);
+						updateLevelSt.setString(2, levelId);
+					} else {
+						updateLevelSt.setString(1, levelId);
 					}
-					updateLevelSt.executeUpdate();
+					Bukkit.getLogger().severe(String.format("Affected rows: [%s]", updateLevelSt.executeUpdate()));
 				}
 				if (plugin.isDebugMode()) {
 					Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.saveLevel - updated shallow data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
@@ -525,7 +528,7 @@ public class MakerDatabaseAdapter {
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.saveLevel - error while saving Level with id: [%s] and slot [%s] - %s", level.getLevelId(), level.getChunkZ(), e.getMessage()));
 			e.printStackTrace();
-			level.disable();
+			level.disable(e.getMessage(), e);
 		} finally {
 			if (data != null) {
 				try {
@@ -547,31 +550,28 @@ public class MakerDatabaseAdapter {
 		return false;
 	}
 
-	private synchronized void updateLevelAuthorClearTime(MakerLevel level) {
+	private synchronized void updateLevelAuthorClearTime(UUID levelId, long clearTimeMillis) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
 		try {
-			level.tryStatusTransition(LevelStatus.UPDATE_AUTHOR_CLEAR_READY, LevelStatus.UPDATING_AUTHOR_CLEAR);
-			String levelId = level.getLevelId().toString().replace("-", "");
-			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `author_cleared` =  ? WHERE `level_id` = UNHEX(?)")) {
-				updateLevelSt.setLong(1, level.getClearedByAuthorMillis());
-				updateLevelSt.setString(2, levelId);
+			String levelIdString = levelId.toString().replace("-", "");
+			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `author_cleared` = LEAST(`author_cleared`, ?) WHERE `level_id` = UNHEX(?)")) {
+				updateLevelSt.setLong(1, clearTimeMillis);
+				updateLevelSt.setString(2, levelIdString);
 				updateLevelSt.executeUpdate();
 			}
-			level.tryStatusTransition(LevelStatus.UPDATING_AUTHOR_CLEAR, LevelStatus.UPDATED_AUTHOR_CLEAR);
-			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
-				Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - level updated without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.updateLevelAuthorClearTime - level updated without errors: [%s]", levelId));
 			}
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - error while updating level: [%s<%s>] - ", level.getLevelName(), level.getLevelId(), e.getMessage()));
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updateLevelAuthorClearTime - error while updating level: [%s] - ", levelId, e.getMessage()));
 			e.printStackTrace();
-			level.disable();
 		}
 	}
 
-	public void updateLevelAuthorClearTimeAsync(MakerLevel level) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> updateLevelAuthorClearTime(level));
+	public void updateLevelAuthorClearTimeAsync(UUID levelId, long clearTimeMillis) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> updateLevelAuthorClearTime(levelId, clearTimeMillis));
 	}
 
 	public void updateLevelClearAsync(UUID levelId, UUID uniqueId, long clearTimeMillis) {

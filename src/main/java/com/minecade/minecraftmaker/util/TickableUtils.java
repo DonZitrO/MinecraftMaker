@@ -14,7 +14,7 @@ public class TickableUtils {
 	 * @param nextTick
 	 */
 	public static void tickSafely(Tickable tickable, long nextTick) {
-		if (!tickable.isEnabled()) {
+		if (tickable.isDisabled()) {
 			return;
 		}
 		try {
@@ -23,9 +23,9 @@ public class TickableUtils {
 			Bukkit.getLogger().severe(String.format("TickableUtils.tickSafely - unable to tick object: [%s] - %s", String.valueOf(tickable), e.getMessage()));
 			e.printStackTrace();
 			try {
-				tickable.disable();
+				tickable.disable(e.getMessage(), e);
 			} catch (Exception e2) {
-				Bukkit.getLogger().severe(String.format("TickableUtils.tickSafely - unable to disable object: [%s] after failed tick - %s", String.valueOf(tickable), e2.getMessage()));
+				Bukkit.getLogger().severe(String.format("TickableUtils.tickSafely - failed to disable tickable object: [%s] after failed tick: [%s] - %s", String.valueOf(tickable), nextTick, e2.getMessage()));
 				e2.printStackTrace();
 				// this is an extreme case, so shut the server down
 				Bukkit.shutdown();
@@ -36,4 +36,5 @@ public class TickableUtils {
 	private TickableUtils() {
 		super();
 	}
+
 }

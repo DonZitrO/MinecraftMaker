@@ -31,6 +31,7 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -56,6 +57,7 @@ import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
+import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.FilenameException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
@@ -71,7 +73,6 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.MakerWorldUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
-import com.minecade.nms.NMSUtils;
 
 public class MakerController implements Runnable, Tickable {
 
@@ -98,7 +99,8 @@ public class MakerController implements Runnable, Tickable {
 	private float spawnPitch;
 
 	private long currentTick;
-	private boolean enabled;
+	private boolean disabled;
+	private boolean initialized;
 	private int maxPlayers;
 	private short maxLevels;
 
@@ -213,8 +215,8 @@ public class MakerController implements Runnable, Tickable {
 			level.tryStatusTransition(LevelStatus.BLANK, LevelStatus.CLIPBOARD_LOADED);
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
-			level.disable();
-			levelMap.remove(level.getChunkZ());
+			e.printStackTrace();
+			level.disable(e.getMessage(), e);
 		}
 	}
 
@@ -228,20 +230,19 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	@Override
-	public void disable() {
-		if (!enabled) {
+	public void disable(String reason, Exception exception) {
+		if (isDisabled()) {
 			return;
 		}
 		if (globalTickerTask != null) {
 			globalTickerTask.cancel();
 		}
-		enabled = false;
+		disabled = true;
 	}
 
-	@Override
-	public void enable() {
-		if (enabled) {
-			throw new IllegalStateException("This controller is already enabled");
+	public void init() {
+		if (initialized) {
+			throw new IllegalStateException("This controller is already initialized");
 		}
 		playerMap =  Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayer>(maxPlayers * 4, .75f, true) {
 			private static final long serialVersionUID = 1L;
@@ -251,7 +252,7 @@ public class MakerController implements Runnable, Tickable {
 		});
 		levelMap = new ConcurrentHashMap<>();
 		globalTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, this, 0, 0);
-		enabled = true;
+		initialized = true;
 	}
 
 	@Override
@@ -310,8 +311,8 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	@Override
-	public boolean isEnabled() {
-		return enabled;
+	public boolean isDisabled() {
+		return disabled;
 	}
 
 	public void loadLevel(UUID authorId, String levelName, short chunkZ) {
@@ -496,6 +497,22 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void onCreatureSpawn(CreatureSpawnEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature spawning outside level - creature type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
+			return;
+		}
+		MakerLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature spawning on unregistered level slot - creature type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
+			return;
+		}
+		level.onCreatureSpawn(event);
+	}
+
 	public void onEntityDamage(EntityDamageEvent event) {
 		if (!(event.getEntity() instanceof Player)) {
 			return;
@@ -615,6 +632,7 @@ public class MakerController implements Runnable, Tickable {
 		event.setDeathMessage("");
 		event.getDrops().clear();
 		event.setDroppedExp(0);
+		// TODO: respawn?
 	}
 
 	public void onPlayerInteract(PlayerInteractEvent event) {
@@ -703,6 +721,10 @@ public class MakerController implements Runnable, Tickable {
 		// remove from map
 		MakerPlayer mPlayer = playerMap.remove(player.getUniqueId());
 		if (mPlayer != null) {
+			MakerLevel level = mPlayer.getCurrentLevel();
+			if (level != null) {
+				level.onPlayerQuit();
+			}
 			// TODO: destroy player custom stuff
 			// TODO: cancel pending level loading tasks
 			mPlayer.cancelPendingOperation();
@@ -744,6 +766,37 @@ public class MakerController implements Runnable, Tickable {
 //		} else {
 //			Bukkit.getLogger().warning(String.format("SCBController.onPlayerQuit - Player: [%s] was already removed", quitter.getName()));
 //		}
+	}
+
+	public void onPlayerRespawn(PlayerRespawnEvent event) {
+		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerRespawn - untracked player: [%s]", event.getPlayer().getName()));
+			return;
+		}
+		if (mPlayer.isPlayingLevel()) {
+			event.setRespawnLocation(mPlayer.getCurrentLevel().getStartLocation());
+			Bukkit.getScheduler().runTask(plugin, () -> mPlayer.getCurrentLevel().restartPlaying());
+			return;
+		}
+		if (mPlayer.hasClearedLevel()) {
+			event.setRespawnLocation(mPlayer.getCurrentLevel().getEndLocation());
+			return;
+		}
+		if (mPlayer.isEditingLevel()) {
+			event.setRespawnLocation(mPlayer.getCurrentLevel().getStartLocation());
+			try {
+				mPlayer.getCurrentLevel().tryStatusTransition(LevelStatus.EDITING, LevelStatus.EDIT_READY);
+			} catch (DataException e) {
+				e.printStackTrace();
+				mPlayer.getCurrentLevel().disable(e.getMessage(), e);
+				event.setRespawnLocation(getDefaultSpawnLocation());
+				Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
+			}
+			return;
+		}
+		event.setRespawnLocation(getDefaultSpawnLocation());
+		Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
 	}
 
 	public void renameLevel(Player player, String newName) {
@@ -828,27 +881,9 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void unloadLevel(MakerLevel makerLevel) {
+	public void removeLevelFromSlot(MakerLevel makerLevel) {
 		Bukkit.getLogger().warning(String.format("MakerController.unloadLevel - unloading level with serial: [%s]", makerLevel.getLevelSerial()));
-		// FIXME: review this
-		makerLevel.disable();
 		levelMap.remove(makerLevel.getChunkZ());
-	}
-
-	public void onCreatureSpawn(CreatureSpawnEvent event) {
-		short slot = LevelUtils.getLocationSlot(event.getLocation());
-		if (slot < 0) {
-			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature spawning outside level - creature type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
-			return;
-		}
-		MakerLevel level = levelMap.get(slot);
-		if (level == null) {
-			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature spawning on unregistered level slot - creature type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
-			return;
-		}
-		level.onCreatureSpawn(event);
 	}
 
 }

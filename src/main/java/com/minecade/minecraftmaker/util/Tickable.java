@@ -2,13 +2,11 @@ package com.minecade.minecraftmaker.util;
 
 public interface Tickable {
 
-	public void disable();
-
-	public void enable();
+	public void disable(String reason, Exception exception);
 
 	public long getCurrentTick();
 
-	public boolean isEnabled();
+	public boolean isDisabled();
 
 	public void tick(long currentTick);
 

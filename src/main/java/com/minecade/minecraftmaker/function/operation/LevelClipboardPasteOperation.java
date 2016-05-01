@@ -30,8 +30,7 @@ public class LevelClipboardPasteOperation implements Operation {
 
 	@Override
 	public void cancel() {
-		// TODO possible status messages for debugging
-		level.clipboardError();
+		level.disable(String.format("Level operation cancelled: [%s]", this), null);
 	}
 
 	@Override

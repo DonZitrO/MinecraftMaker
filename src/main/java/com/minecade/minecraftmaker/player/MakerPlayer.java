@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -44,7 +45,7 @@ public class MakerPlayer implements Tickable {
 
 	private boolean dirtyInventory;
 	private long currentTick;
-	private boolean enabled = true;
+	private boolean disabled = false;
 	private AbstractMakerMenu inventoryToOpen;
 	private Location teleportDestination;
 
@@ -68,17 +69,20 @@ public class MakerPlayer implements Tickable {
 	}
 
 	@Override
-	public void disable() {
-		if (!enabled) {
+	public void disable(String reason, Exception exception) {
+		Bukkit.getLogger().warning(String.format("MakerPlayer.disable - disable request for player: [%s<%s>]", getName(), getUniqueId()));
+		if (reason != null) {
+			Bukkit.getLogger().warning(String.format("MakerPlayer.disable - reason: %s", reason));
+		}
+		StackTraceElement[] stackTrace = exception != null ? exception.getStackTrace() : Thread.currentThread().getStackTrace();
+		for (StackTraceElement element : stackTrace) {
+			Bukkit.getLogger().warning(String.format("MakerPlayer.disable - stack trace: %s", element));
+		}
+		if (isDisabled()) {
 			return;
 		}
-		// TODO: disable logic
-		enabled = false;
-	}
-
-	@Override
-	public void enable() {
-		throw new UnsupportedOperationException("A Player is enabled by default");
+		// TODO: player disable logic (kick, probably)
+		disabled = true;
 	}
 
 	public MakerLevel getCurrentLevel() {
@@ -131,8 +135,8 @@ public class MakerPlayer implements Tickable {
 	}
 
 	@Override
-	public boolean isEnabled() {
-		return enabled;
+	public boolean isDisabled() {
+		return disabled;
 	}
 
 	public boolean isInLobby() {
