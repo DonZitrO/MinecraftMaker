@@ -20,12 +20,11 @@ import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
-import com.minecade.minecraftmaker.inventory.LevelSortByMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
+import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
-import com.minecade.minecraftmaker.level.LevelDisplay;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
@@ -167,14 +166,14 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
-	public void openLevelSortbyMenu() {
-		AbstractMakerMenu menu = personalMenus.get(LevelSortByMenu.getInstance().getName());
-		if (menu == null) {
-			menu = LevelSortByMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
-	}
+//	public void openLevelSortbyMenu() {
+//		AbstractMakerMenu menu = personalMenus.get(LevelSortByMenu.getInstance().getName());
+//		if (menu == null) {
+//			menu = LevelSortByMenu.getInstance();
+//			personalMenus.put(menu.getName(), menu);
+//		}
+//		inventoryToOpen = menu;
+//	}
 
 	private void openInventoryIfAvailable() {
 		if (inventoryToOpen != null) {
@@ -210,14 +209,26 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
-	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, LevelDisplay display, LevelSortBy sortBy, boolean update) {
+	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, LevelSortBy sortBy, boolean update) {
 		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
 		if (menu == null) {
 			menu = LevelBrowserMenu.getInstance(plugin, this.getUniqueId());
 			personalMenus.put(menu.getName(), menu);
 		}
-		if (display != null) {
-			menu.display(display);
+		if (sortBy != null) {
+			menu.sortBy(sortBy);
+		}
+		if (update) {
+			menu.update();
+		}
+		inventoryToOpen = menu;
+	}
+
+	public void openPlayerLevelsMenu(MinecraftMakerPlugin plugin, LevelSortBy sortBy, boolean update) {
+		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
+		if (menu == null) {
+			menu = PlayerLevelsMenu.getInstance(plugin, this.getUniqueId());
+			personalMenus.put(menu.getName(), menu);
 		}
 		if (sortBy != null) {
 			menu.sortBy(sortBy);
@@ -235,6 +246,7 @@ public class MakerPlayer implements Tickable {
 		player.getInventory().addItem(MakerLobbyItem.SERVER_BROWSER.getItem());
 		player.getInventory().addItem(MakerLobbyItem.STEVE_CHALLENGE.getItem());
 		player.getInventory().addItem(MakerLobbyItem.CREATE_LEVEL.getItem());
+		player.getInventory().addItem(MakerLobbyItem.PLAYER_LEVELS.getItem());
 		player.getInventory().addItem(MakerLobbyItem.LEVEL_BROWSER.getItem());
 		// leave item
 		player.getInventory().setItem(8, MakerLobbyItem.QUIT.getItem());
@@ -328,18 +340,24 @@ public class MakerPlayer implements Tickable {
 		return currentLevel != null && currentLevel.isBusy();
 	}
 
-	public void updatePublishedLevelOnLevelBrowser(MinecraftMakerPlugin plugin, MakerLevel makerLevel) {
+	public void updatePublishedLevelOnPlayerLevelsMenu(MinecraftMakerPlugin plugin, MakerLevel makerLevel) {
 		LevelBrowserMenu.addPublishedLevel(plugin, makerLevel);
-		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
+		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
 		if (menu != null) {
 			menu.removeUnpublishedLevel(makerLevel);
 		}
 	}
 
-	public void updateSavedLevelOnLevelBrowser(MinecraftMakerPlugin plugin, MakerLevel makerLevel) {
-		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
+	public void updateSavedLevelOnPlayerLevelsMenu(MinecraftMakerPlugin plugin, MakerLevel makerLevel) {
+		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
 		if (menu != null) {
 			menu.updateOwnedLevel(makerLevel);
+		}
+	}
+
+	public void onQuit() {
+		for (AbstractMakerMenu menu : personalMenus.values()) {
+			menu.destroy();
 		}
 	}
 

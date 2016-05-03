@@ -13,7 +13,7 @@ import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 
 public class LevelOperatorTask extends BukkitRunnable {
 
-	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 1000000; // 1ms to build per tick
+	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 5000000; // 5ms to build per tick
 
 	private final MinecraftMakerPlugin plugin;
 	private final ResumableOperationQueue operationQueue = new ResumableOperationQueue();

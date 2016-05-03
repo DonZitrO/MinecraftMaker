@@ -630,7 +630,7 @@ public class MakerLevel implements Tickable {
 		status = LevelStatus.DISABLE_READY;
 		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
 		if (mPlayer != null) {
-			mPlayer.updatePublishedLevelOnLevelBrowser(plugin, this);
+			mPlayer.updatePublishedLevelOnPlayerLevelsMenu(plugin, this);
 			mPlayer.sendActionMessage(plugin, "level.publish.success");
 		}
 	}
@@ -668,7 +668,7 @@ public class MakerLevel implements Tickable {
 			mPlayer = plugin.getController().getPlayer(authorId);
 		}
 		if (mPlayer != null) {
-			mPlayer.updateSavedLevelOnLevelBrowser(plugin, this);
+			mPlayer.updateSavedLevelOnPlayerLevelsMenu(plugin, this);
 			mPlayer.sendActionMessage(plugin, "level.save.success");
 		}
 	}

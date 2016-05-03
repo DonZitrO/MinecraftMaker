@@ -23,6 +23,7 @@ import com.minecade.core.data.DatabaseException;
 import com.minecade.core.data.MinecadeAccountData;
 import com.minecade.core.data.Rank;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
+import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
@@ -350,7 +351,7 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	private synchronized void loadUnpublishedLevelsByAuthorId(LevelBrowserMenu levelBrowserMenu) {
+	private synchronized void loadUnpublishedLevelsByAuthorId(PlayerLevelsMenu levelBrowserMenu) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
@@ -373,8 +374,8 @@ public class MakerDatabaseAdapter {
 		Bukkit.getScheduler().runTask(plugin, () -> levelBrowserMenu.updateOwnedLevels(levels));
 	}
 
-	public void loadUnpublishedLevelsByAuthorIdAsync(LevelBrowserMenu levelBrowserMenu) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadUnpublishedLevelsByAuthorId(levelBrowserMenu));
+	public void loadUnpublishedLevelsByAuthorIdAsync(PlayerLevelsMenu playerLevelsMenu) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadUnpublishedLevelsByAuthorId(playerLevelsMenu));
 	}
 
 	private synchronized void publishLevel(MakerLevel level) {

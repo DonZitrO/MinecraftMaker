@@ -51,7 +51,7 @@ import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.function.operation.SchematicWriteOperation;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
-import com.minecade.minecraftmaker.level.LevelDisplay;
+import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
@@ -609,9 +609,13 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.updateInventoryOnNextTick();
 			mPlayer.openLevelTemplateMenu();
 			return true;
+		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.PLAYER_LEVELS.getDisplayName())) {
+			mPlayer.updateInventoryOnNextTick();
+			mPlayer.openPlayerLevelsMenu(plugin, LevelSortBy.LIKES, true);
+			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();
-			mPlayer.openLevelBrowserMenu(plugin, LevelDisplay.PUBLISHED, null, true);
+			mPlayer.openLevelBrowserMenu(plugin, LevelSortBy.LIKES, true);
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 			mPlayer.updateInventoryOnNextTick();
@@ -725,6 +729,7 @@ public class MakerController implements Runnable, Tickable {
 			if (level != null) {
 				level.onPlayerQuit();
 			}
+			mPlayer.onQuit();
 			// TODO: destroy player custom stuff
 			// TODO: cancel pending level loading tasks
 			mPlayer.cancelPendingOperation();

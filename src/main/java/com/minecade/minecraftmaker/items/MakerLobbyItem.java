@@ -12,6 +12,7 @@ public enum MakerLobbyItem implements TranslatableItem {
 	SERVER_BROWSER(Material.WATCH),
 	STEVE_CHALLENGE(Material.SKULL_ITEM, 1, (short) 3),
 	CREATE_LEVEL(Material.EMPTY_MAP),
+	PLAYER_LEVELS(Material.NAME_TAG),
 	LEVEL_BROWSER(Material.BOOKSHELF),
 	QUIT(Material.TNT);
 

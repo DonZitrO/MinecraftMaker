@@ -5,7 +5,7 @@ import org.bukkit.inventory.ItemStack;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelSortByItem;
-import com.minecade.minecraftmaker.level.LevelDisplay;
+import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -44,13 +44,13 @@ public class LevelSortByMenu extends AbstractMakerMenu {
 			return true;
 		}
 		if (ItemUtils.itemNameEquals(clickedItem, LevelSortByItem.LIKES.getDisplayName())) {
-			mPlayer.openLevelBrowserMenu(plugin, LevelDisplay.PUBLISHED, null, false);
+			mPlayer.openLevelBrowserMenu(plugin, LevelSortBy.LIKES, false);
 			return true;
-		} else if (ItemUtils.itemNameEquals(clickedItem, LevelSortByItem.OWNED.getDisplayName())) {
-			mPlayer.openLevelBrowserMenu(plugin, LevelDisplay.OWNED, null, false);
-			return true;
+//		} else if (ItemUtils.itemNameEquals(clickedItem, LevelSortByItem.OWNED.getDisplayName())) {
+//			mPlayer.openLevelBrowserMenu(plugin, null, false);
+//			return true;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.EXIT_MENU.getDisplayName())) {
-			mPlayer.openLevelBrowserMenu(plugin, null, null, false);
+			mPlayer.openLevelBrowserMenu(plugin, null, false);
 			return true;
 		}
 		return true;
