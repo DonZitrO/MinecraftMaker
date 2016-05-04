@@ -102,7 +102,9 @@ public class MakerListener implements Listener {
 		// disable naturally spawning creatures
 		if (event.getSpawnReason() == SpawnReason.NATURAL) {
 			event.setCancelled(true);
+			return;
 		}
+		event.getEntity().setRemoveWhenFarAway(false);
 		plugin.getController().onCreatureSpawn(event);
 	}
 
