@@ -34,22 +34,57 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	private static Map<UUID, MakerLevel> levelMap = new HashMap<>();
 	private static TreeSet<MakerLevel> levelsByName = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> l1.getLevelName().compareToIgnoreCase(l2.getLevelName()));
 	private static TreeSet<MakerLevel> levelsBySerial = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
+	private static TreeSet<MakerLevel> levelsByLikes = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> compareLikesAndSerial(l1, l2));
 	private static ItemStack[] loadingPaneItems;
 	private static int totalPublishedLevels = -1;
 	private static Map<UUID, LevelBrowserMenu> userLevelBrowserMenuMap = new HashMap<>();
+
+	private static int compareLikesAndSerial(MakerLevel l1, MakerLevel l2) {
+		int diff = Long.valueOf(l2.getLikes()).compareTo(Long.valueOf(l1.getLikes()));
+		if (diff != 0) {
+			return diff;
+		}
+		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+	}
 
 	private static void addLevelItemToPages(Internationalizable plugin, MakerLevel level) {
 		levelItems.put(level.getLevelId(), getLevelItem(plugin, level));
 	}
 
-	public static void addPublishedLevel(Internationalizable plugin, MakerLevel level) {
+	public static void addOrUpdateLevel(Internationalizable plugin, MakerLevel level) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		addOrUpdateLevel(plugin, level, true);
+	}
+
+	private static void addOrUpdateLevel(Internationalizable plugin, MakerLevel level, boolean update) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
 		addLevelItemToPages(plugin, level);
 		levelMap.put(level.getLevelId(), level);
+		totalPublishedLevels = levelMap.size();
 		levelsByName.add(level);
 		levelsBySerial.add(level);
-		for (LevelBrowserMenu menu: userLevelBrowserMenuMap.values()) {
-			menu.update();
+		levelsByLikes.add(level);
+		if (update) {
+			updateAllMenues();
 		}
+	}
+
+	public static void addOrUpdateLevels(MinecraftMakerPlugin plugin, Collection<MakerLevel> levels) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.addOrUpdateLevels - total levels: [%s]", levels.size()));
+		}
+		for (MakerLevel level : levels) {
+			addOrUpdateLevel(plugin, level, false);
+		}
+		totalPublishedLevels = levelMap.size();
+		updateAllMenues();
 	}
 
 	public static LevelBrowserMenu getInstance(MinecraftMakerPlugin plugin, UUID viewerId) {
@@ -98,32 +133,31 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	public static void loadDefaultPage(MinecraftMakerPlugin plugin) {
-		plugin.getDatabaseAdapter().loadPublishedLevelsAsync(LevelSortBy.LEVEL_SERIAL, 0, LEVELS_PER_PAGE);
+		plugin.getDatabaseAdapter().loadPublishedLevelsAsync(LevelSortBy.LIKES, 0, LEVELS_PER_PAGE);
 	}
 
-	public static void updatePages(Internationalizable plugin, Collection<MakerLevel> levels, LevelSortBy sortBy) {
+	private static void updateAllMenues() {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		for (MakerLevel level : levels) {
-			addLevelItemToPages(plugin, level);
-			levelMap.put(level.getLevelId(), level);
-		}
-		switch (sortBy) {
-		case LEVEL_NAME:
-			levelsByName.addAll(levels);
-			break;
-		case LEVEL_SERIAL:
-			levelsBySerial.addAll(levels);
-			break;
-		default:
-			break;
+		for (LevelBrowserMenu menu : userLevelBrowserMenuMap.values()) {
+			menu.update();
 		}
 	}
 
-	private final UUID viewerId;
+	public static void updateLevelLikes(Internationalizable plugin, UUID levelId, long totalLikes, long totalDislikes) {
+		MakerLevel level = levelMap.get(levelId);
+		if (level == null) {
+			return;
+		}
+		level.setLikes(totalLikes);
+		level.setDislikes(totalDislikes);
+		addLevelItemToPages(plugin, level);
+	}
 
+	private final UUID viewerId;
 	private int currentPage = 1;
+
 	private LevelSortBy sortBy = LevelSortBy.LEVEL_SERIAL;
 
 	private LevelBrowserMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
@@ -219,13 +253,16 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		// TODO use local dirtyInventory
-		// if (!dirtyInventory) return;
-
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | LevelBrowserMenu.update - viewer: [%s]", getViewerId()));
+		}
 		Collection<MakerLevel> allLevels = null;
 		switch (sortBy) {
 		case LEVEL_NAME:
 			allLevels = levelsByName;
+			break;
+		case LIKES:
+			allLevels = levelsByLikes;
 			break;
 		default:
 			allLevels = levelsBySerial;
@@ -236,7 +273,10 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		List<MakerLevel> currentPageLevels = allLevels.stream().skip(offset).limit(LEVELS_PER_PAGE).collect(Collectors.toList());
 
 		if (currentPageLevels == null || currentPageLevels.size() == 0) {
-			plugin.getDatabaseAdapter().loadPublishedLevelsAsync(sortBy, offset, LEVELS_PER_PAGE);
+			// EXPERIMENTAL FIXME: this should only happen once, but this code doesn't belong here
+			if (totalPublishedLevels < 0) {
+				plugin.getDatabaseAdapter().loadPublishedLevelsAsync(sortBy, offset, LEVELS_PER_PAGE);
+			}
 			ItemStack[] loadingPane = getLoadingPaneItems();
 			for (int i = 9; i < (loadingPane.length + 9); i++) {
 				items[i] = loadingPane[i-9];
@@ -268,16 +308,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		ItemMeta currentPageMeta = items[4].getItemMeta();
 		currentPageMeta.setDisplayName(String.format(GeneralMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, getTotalPages()));
 		items[4].setItemMeta(currentPageMeta);
-	}
-
-	public static void updateLevelLikes(Internationalizable plugin, UUID levelId, long totalLikes, long totalDislikes) {
-		MakerLevel level = levelMap.get(levelId);
-		if (level == null) {
-			return;
-		}
-		level.setLikes(totalLikes);
-		level.setDislikes(totalDislikes);
-		addLevelItemToPages(plugin, level);
 	}
 
 }

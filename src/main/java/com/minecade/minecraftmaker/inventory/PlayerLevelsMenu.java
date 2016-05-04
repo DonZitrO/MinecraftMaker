@@ -142,7 +142,7 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 		return true;
 	}
 
-	public void removeUnpublishedLevel(MakerLevel makerLevel) {
+	public void removeLevel(MakerLevel makerLevel) {
 		ownedLevelsBySerial.remove(makerLevel);
 		update();
 	}

@@ -47,6 +47,8 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	private BukkitImplAdapter bukkitImplAdapter;
 	private ResourceBundle messages;
 
+	private boolean debugMode;
+
 	public LevelOperatorTask getLevelOperatorTask() {
 		return levelOperatorTask;
 	}
@@ -81,7 +83,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	}
 
 	public boolean isDebugMode() {
-		return getConfig().getBoolean("debug-mode", false);
+		return debugMode; 
 	}
 
 	@Override
@@ -137,6 +139,8 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		messages = ResourceBundle.getBundle("text", new Locale(getConfig().getString("locale", "en")));
 		// translate
 		translateGeneralStuff();
+		// debug mode
+		debugMode = getConfig().getBoolean("debug-mode", false);
 	}
 
 	public void saveLevelAsync(MakerLevel level) {

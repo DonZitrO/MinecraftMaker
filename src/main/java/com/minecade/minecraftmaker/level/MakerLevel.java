@@ -215,6 +215,10 @@ public class MakerLevel implements Tickable {
 		return currentTick;
 	}
 
+	public Date getDatePublished() {
+		return datePublished;
+	}
+
 	public long getDislikes() {
 		return dislikes;
 	}

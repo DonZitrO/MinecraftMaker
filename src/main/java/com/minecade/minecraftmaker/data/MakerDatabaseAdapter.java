@@ -83,7 +83,7 @@ public class MakerDatabaseAdapter {
 		return connection;
 	}
 
-	private synchronized long[] getLevelLikesAndDislikes(UUID levelId) throws SQLException {
+	private synchronized long[] loadLevelLikesAndDislikes(UUID levelId) throws SQLException {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
@@ -149,7 +149,7 @@ public class MakerDatabaseAdapter {
 					insertLikeSt.executeUpdate();
 				}
 			}
-			long[] likesAndDislikes = getLevelLikesAndDislikes(levelId);
+			long[] likesAndDislikes = loadLevelLikesAndDislikes(levelId);
 			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().levelLikeCallback(levelId, playerId, dislike, likesAndDislikes[0], likesAndDislikes[1]));
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.likeLevel - level like/dislike operation completed without errors for level: [%s] and player: [%s] - dislike: [%s]", levelId, playerId, dislike));
@@ -280,7 +280,10 @@ public class MakerDatabaseAdapter {
 			testQuery.setLong(1, level.getLevelSerial());
 			ResultSet resultSet = testQuery.executeQuery();
 			if (resultSet.next()) {
-				loadLevelFromResult(level, resultSet);
+				loadLevelFromResult(level, resultSet, false);
+				loadLevelClipboard(level);
+			} else {
+				level.disable(String.format("Unable to find level with serial: [%s]", level.getLevelSerial()), null);
 			}
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("loadLevelBySerial.loadLevel - error while loading level: %s", e.getMessage()));
@@ -288,7 +291,6 @@ public class MakerDatabaseAdapter {
 			level.disable(e.getMessage(), e);
 			return;
 		}
-		loadLevelClipboard(level);
 	}
 
 	public void loadLevelBySerialFullAsync(MakerLevel level) {
@@ -311,8 +313,8 @@ public class MakerDatabaseAdapter {
 				}
 				loadLevelClipboardFromResult(level, resultSet);
 				level.tryStatusTransition(LevelStatus.CLIPBOARD_LOADING, LevelStatus.CLIPBOARD_LOADED);
-				if (Bukkit.getLogger().isLoggable(Level.INFO)) {
-					Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.loadLevelClipboard - level clipboard loaded without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+				if (plugin.isDebugMode()) {
+					Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadLevelClipboard - level clipboard loaded without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
 				}
 			}
 		} catch (Exception e) {
@@ -345,7 +347,7 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	private void loadLevelFromResult(MakerLevel level, ResultSet result) throws SQLException, DataException {
+	private void loadLevelFromResult(MakerLevel level, ResultSet result, boolean published) throws SQLException, DataException {
 		ByteBuffer levelIdBytes = ByteBuffer.wrap(result.getBytes("level_id"));
 		ByteBuffer authorIdBytes = ByteBuffer.wrap(result.getBytes("author_id"));
 		level.setLevelId(new UUID(levelIdBytes.getLong(), levelIdBytes.getLong()));
@@ -358,13 +360,18 @@ public class MakerDatabaseAdapter {
 			level.setRelativeEndLocation(loadRelativeLocationById(locationId));
 		}
 		level.setDatePublished(result.getDate("date_published"));
-		level.setLikes(result.getLong("likes"));
-		level.setDislikes(result.getLong("dislikes"));
+		if (published) {
+			level.setLikes(result.getLong("likes"));
+			level.setDislikes(result.getLong("dislikes"));
+		}
 	}
 
 	private synchronized void loadPublishedLevels(LevelSortBy sortBy, int offset, int limit) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadPublishedLevels - sortBy: [%s] - offset: [%s] - limit: [%s]", sortBy.name(), offset, limit));
 		}
 		checkNotNull(sortBy);
 		List<MakerLevel> levels = new ArrayList<>(limit);
@@ -378,14 +385,17 @@ public class MakerDatabaseAdapter {
 			ResultSet resultSet = levelPageQuery.executeQuery();
 			while (resultSet.next()) {
 				MakerLevel level = new MakerLevel(plugin);
-				loadLevelFromResult(level, resultSet);
+				loadLevelFromResult(level, resultSet, true);
 				levels.add(level);
+			}
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadPublishedLevels - loaded levels: [%s]", levels.size()));
 			}
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
 			e.printStackTrace();
 		}
-		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.updatePages(plugin, levels, sortBy));
+		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.addOrUpdateLevels(plugin, levels));
 	}
 
 	public void loadPublishedLevelsAsync(LevelSortBy sortBy, int offset, int limit) {
@@ -420,7 +430,7 @@ public class MakerDatabaseAdapter {
 			ResultSet resultSet = levelsByAuthorQuery.executeQuery();
 			while (resultSet.next()) {
 				MakerLevel level = new MakerLevel(plugin);
-				loadLevelFromResult(level, resultSet);
+				loadLevelFromResult(level, resultSet, false);
 				levels.add(level);
 			}
 		} catch (Exception e) {

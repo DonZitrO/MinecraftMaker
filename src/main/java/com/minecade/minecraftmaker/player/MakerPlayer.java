@@ -341,10 +341,10 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void updatePublishedLevelOnPlayerLevelsMenu(MinecraftMakerPlugin plugin, MakerLevel makerLevel) {
-		LevelBrowserMenu.addPublishedLevel(plugin, makerLevel);
+		LevelBrowserMenu.addOrUpdateLevel(plugin, makerLevel);
 		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
 		if (menu != null) {
-			menu.removeUnpublishedLevel(makerLevel);
+			menu.removeLevel(makerLevel);
 		}
 	}
 
