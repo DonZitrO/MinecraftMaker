@@ -83,6 +83,20 @@ public class MakerDatabaseAdapter {
 		return connection;
 	}
 
+	private synchronized long[] getLevelLikesAndDislikes(UUID levelId) throws SQLException {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		String levelIdString = levelId.toString().replace("-", "");
+		try (PreparedStatement selectLikesDislikesSt = getConnection().prepareStatement(
+				"SELECT SUM(CASE WHEN `dislike` = 0 THEN 1 ELSE 0 END) as likes, SUM(CASE WHEN `dislike` = 1 THEN 1 ELSE 0 END) as dislikes FROM `mcmaker`.`level_likes` WHERE `level_id` = UNHEX(?)")) {
+			selectLikesDislikesSt.setString(1, levelIdString);
+			ResultSet result = selectLikesDislikesSt.executeQuery();
+			result.next();
+			return new long[] { result.getLong("likes"), result.getLong("dislikes") };
+		}
+	}
+
 	private UUID insertOrUpdateRelativeLocation(MakerRelativeLocationData relativeEndLocation) throws SQLException {
 		if (relativeEndLocation.getLocationId() == null) {
 			relativeEndLocation.setLocationId(UUID.randomUUID());
@@ -111,6 +125,43 @@ public class MakerDatabaseAdapter {
 			}
 		}
 		return relativeEndLocation.getLocationId();
+	}
+
+	private synchronized void likeLevel(UUID levelId, UUID playerId, boolean dislike) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		try {
+			String levelIdString = levelId.toString().replace("-", "");
+			String playerIdString = playerId.toString().replace("-", "");
+			int affected = 0;
+			try (PreparedStatement updateLikeSt = getConnection().prepareStatement("UPDATE `mcmaker`.`level_likes` SET `dislike` = ? WHERE `level_id` = UNHEX(?) AND `player_id` = UNHEX(?)")) {
+				updateLikeSt.setBoolean(1, dislike);
+				updateLikeSt.setString(2, levelIdString);
+				updateLikeSt.setString(3, playerIdString);
+				affected = updateLikeSt.executeUpdate();
+			}
+			if (affected == 0) {
+				try (PreparedStatement insertLikeSt = getConnection().prepareStatement("INSERT INTO `mcmaker`.`level_likes` (`level_id`, `player_id`, `dislike`) VALUES (UNHEX(?), UNHEX(?), ?)")) {
+					insertLikeSt.setString(1, levelIdString);
+					insertLikeSt.setString(2, playerIdString);
+					insertLikeSt.setBoolean(3, dislike);
+					insertLikeSt.executeUpdate();
+				}
+			}
+			long[] likesAndDislikes = getLevelLikesAndDislikes(levelId);
+			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().levelLikeCallback(levelId, playerId, dislike, likesAndDislikes[0], likesAndDislikes[1]));
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.likeLevel - level like/dislike operation completed without errors for level: [%s] and player: [%s] - dislike: [%s]", levelId, playerId, dislike));
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.likeLevel - error while updating level: [%s] - ", levelId, e.getMessage()));
+			e.printStackTrace();
+		}
+	}
+
+	public void likeLevelAsync(UUID levelId, UUID playerId, boolean dislike) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> likeLevel(levelId, playerId, dislike));
 	}
 
 	public MakerPlayerData loadAccountData(UUID uniqueId, String username) throws DatabaseException {
@@ -307,15 +358,20 @@ public class MakerDatabaseAdapter {
 			level.setRelativeEndLocation(loadRelativeLocationById(locationId));
 		}
 		level.setDatePublished(result.getDate("date_published"));
+		level.setLikes(result.getLong("likes"));
+		level.setDislikes(result.getLong("dislikes"));
 	}
 
-	private synchronized void loadLevels(LevelSortBy sortBy, int offset, int limit) {
+	private synchronized void loadPublishedLevels(LevelSortBy sortBy, int offset, int limit) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
 		checkNotNull(sortBy);
 		List<MakerLevel> levels = new ArrayList<>(limit);
-		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` WHERE `date_published` IS NOT NULL ORDER BY ? DESC LIMIT ?,?"))) {
+		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format(
+				"SELECT `levels`.*, SUM(CASE WHEN `dislike` = 0 THEN 1 ELSE 0 END) as likes, SUM(CASE WHEN `dislike` = 1 THEN 1 ELSE 0 END) as dislikes " +
+				"FROM `mcmaker`.`levels` LEFT JOIN `mcmaker`.`level_likes` on `levels`.`level_id` = `level_likes`.`level_id` " +
+				"WHERE `date_published` IS NOT NULL GROUP BY `level_id` ORDER BY ? DESC LIMIT ?,?"))) {
 			levelPageQuery.setString(1, sortBy.name());
 			levelPageQuery.setInt(2, offset);
 			levelPageQuery.setInt(3, limit);
@@ -332,8 +388,8 @@ public class MakerDatabaseAdapter {
 		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.updatePages(plugin, levels, sortBy));
 	}
 
-	public void loadLevelsAsync(LevelSortBy sortBy, int offset, int limit) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadLevels(sortBy, offset, limit));
+	public void loadPublishedLevelsAsync(LevelSortBy sortBy, int offset, int limit) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadPublishedLevels(sortBy, offset, limit));
 	}
 
 	private MakerRelativeLocationData loadRelativeLocationById(byte[] locationId) throws SQLException, DataException {
@@ -371,7 +427,9 @@ public class MakerDatabaseAdapter {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
 			e.printStackTrace();
 		}
-		Bukkit.getScheduler().runTask(plugin, () -> levelBrowserMenu.updateOwnedLevels(levels));
+		if (levels.size() > 0) {
+			Bukkit.getScheduler().runTask(plugin, () -> levelBrowserMenu.updateOwnedLevels(levels));
+		}
 	}
 
 	public void loadUnpublishedLevelsByAuthorIdAsync(PlayerLevelsMenu playerLevelsMenu) {

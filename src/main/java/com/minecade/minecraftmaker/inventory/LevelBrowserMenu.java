@@ -31,6 +31,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	private static Map<UUID, ItemStack> levelItems = new HashMap<>();
 	private static int LEVELS_PER_PAGE = 36;
 
+	private static Map<UUID, MakerLevel> levelMap = new HashMap<>();
 	private static TreeSet<MakerLevel> levelsByName = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> l1.getLevelName().compareToIgnoreCase(l2.getLevelName()));
 	private static TreeSet<MakerLevel> levelsBySerial = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
 	private static ItemStack[] loadingPaneItems;
@@ -43,6 +44,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	public static void addPublishedLevel(Internationalizable plugin, MakerLevel level) {
 		addLevelItemToPages(plugin, level);
+		levelMap.put(level.getLevelId(), level);
 		levelsByName.add(level);
 		levelsBySerial.add(level);
 		for (LevelBrowserMenu menu: userLevelBrowserMenuMap.values()) {
@@ -96,7 +98,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	public static void loadDefaultPage(MinecraftMakerPlugin plugin) {
-		plugin.getDatabaseAdapter().loadLevelsAsync(LevelSortBy.LEVEL_SERIAL, 0, LEVELS_PER_PAGE);
+		plugin.getDatabaseAdapter().loadPublishedLevelsAsync(LevelSortBy.LEVEL_SERIAL, 0, LEVELS_PER_PAGE);
 	}
 
 	public static void updatePages(Internationalizable plugin, Collection<MakerLevel> levels, LevelSortBy sortBy) {
@@ -105,6 +107,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 		for (MakerLevel level : levels) {
 			addLevelItemToPages(plugin, level);
+			levelMap.put(level.getLevelId(), level);
 		}
 		switch (sortBy) {
 		case LEVEL_NAME:
@@ -233,7 +236,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		List<MakerLevel> currentPageLevels = allLevels.stream().skip(offset).limit(LEVELS_PER_PAGE).collect(Collectors.toList());
 
 		if (currentPageLevels == null || currentPageLevels.size() == 0) {
-			plugin.getDatabaseAdapter().loadLevelsAsync(sortBy, offset, LEVELS_PER_PAGE);
+			plugin.getDatabaseAdapter().loadPublishedLevelsAsync(sortBy, offset, LEVELS_PER_PAGE);
 			ItemStack[] loadingPane = getLoadingPaneItems();
 			for (int i = 9; i < (loadingPane.length + 9); i++) {
 				items[i] = loadingPane[i-9];
@@ -265,6 +268,16 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		ItemMeta currentPageMeta = items[4].getItemMeta();
 		currentPageMeta.setDisplayName(String.format(GeneralMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, getTotalPages()));
 		items[4].setItemMeta(currentPageMeta);
+	}
+
+	public static void updateLevelLikes(Internationalizable plugin, UUID levelId, long totalLikes, long totalDislikes) {
+		MakerLevel level = levelMap.get(levelId);
+		if (level == null) {
+			return;
+		}
+		level.setLikes(totalLikes);
+		level.setDislikes(totalDislikes);
+		addLevelItemToPages(plugin, level);
 	}
 
 }

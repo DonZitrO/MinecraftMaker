@@ -268,6 +268,14 @@ public class MakerLevel implements Tickable {
 		return plugin.getController().getMakerExtent();
 	}
 
+	private MakerPlayer getPlayerIsInThisLevel(UUID playerId) {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(playerId);
+		if (mPlayer != null && playerIsInThisLevel(mPlayer)) {
+			return mPlayer;
+		}
+		return null;
+	}
+
 	public MakerRelativeLocationData getRelativeEndLocation() {
 		return relativeEndLocation;
 	}
@@ -324,7 +332,6 @@ public class MakerLevel implements Tickable {
 		return datePublished != null;
 	}
 
-	// FIXME: experimental
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		// loading level for edition, stop mobs from moving/attacking
 		if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus()) && currentPlayerId == null) {
@@ -337,7 +344,7 @@ public class MakerLevel implements Tickable {
 			case BAT:
 			case GUARDIAN:
 				event.setCancelled(true);
-				sendActionMessageToAuthor("level.create.error.not-supported-mob", event.getEntityType().toString());
+				plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.not-supported-mob", event.getEntityType().toString());
 				return;
 			default:
 				break;
@@ -349,7 +356,7 @@ public class MakerLevel implements Tickable {
 			}
 			if (entityCount >= MAX_LEVEL_ENTITIES) {
 				event.setCancelled(true);
-				sendActionMessageToAuthor("level.create.error.mob-limit", entityCount);
+				plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.mob-limit", entityCount);
 				return;
 			}
 			NMSUtils.stopMobFromMovingAndAttacking(event.getEntity());
@@ -359,14 +366,6 @@ public class MakerLevel implements Tickable {
 
 	public synchronized void onPlayerQuit() {
 		disable(String.format("MakerLevel.onPlayerQuit - player quit server"), null);
-	}
-
-	private MakerPlayer getPlayerIsInThisLevel(UUID playerId) {
-		MakerPlayer mPlayer = plugin.getController().getPlayer(playerId);
-		if (mPlayer != null && playerIsInThisLevel(mPlayer)) {
-			return mPlayer;
-		}
-		return null;
 	}
 
 	private boolean playerIsInThisLevel(MakerPlayer mPlayer) {
@@ -445,13 +444,6 @@ public class MakerLevel implements Tickable {
 		this.status = LevelStatus.EDITED;
 	}
 
-	private void sendActionMessageToAuthor(String key, Object... args) {
-		MakerPlayer author = plugin.getController().getPlayer(authorId);
-		if (author != null) {
-			author.sendActionMessage(plugin, key, args);
-		}
-	}
-
 	public void setAuthorId(UUID authorId) {
 		this.authorId = authorId;
 	}
@@ -472,6 +464,10 @@ public class MakerLevel implements Tickable {
 		this.datePublished = datePublished;
 	}
 
+	public void setDislikes(long dislikes) {
+		this.dislikes = dislikes;
+	}
+
 	public void setLevelId(UUID levelId) {
 		this.levelId = levelId;
 	}
@@ -482,6 +478,10 @@ public class MakerLevel implements Tickable {
 
 	public void setLevelSerial(long levelSerial) {
 		this.levelSerial = levelSerial;
+	}
+
+	public void setLikes(long likes) {
+		this.likes = likes;
 	}
 
 	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
@@ -613,6 +613,20 @@ public class MakerLevel implements Tickable {
 		}
 	}
 
+	private void tickDisableReady() {
+		this.status = LevelStatus.DISABLED;
+		plugin.getController().removeLevelFromSlot(this);
+		MakerPlayer author = getPlayerIsInThisLevel(authorId);
+		if (author!=null) {
+			plugin.getController().addPlayerToMainLobby(author);
+		}
+		MakerPlayer currentLevelPlayer = getPlayerIsInThisLevel(currentPlayerId);
+		if (currentLevelPlayer != null) {
+			plugin.getController().addPlayerToMainLobby(currentLevelPlayer);
+		}
+		removeEntities();
+	}
+
 	private void tickEdited() {
 		this.status = LevelStatus.CLIPBOARD_COPY_READY;
 		plugin.getLevelOperatorTask().offer(new LevelClipboardCopyOperation(plugin, this));
@@ -711,20 +725,6 @@ public class MakerLevel implements Tickable {
 		default:
 			break;
 		}
-	}
-
-	private void tickDisableReady() {
-		this.status = LevelStatus.DISABLED;
-		plugin.getController().removeLevelFromSlot(this);
-		MakerPlayer author = getPlayerIsInThisLevel(authorId);
-		if (author!=null) {
-			plugin.getController().addPlayerToMainLobby(author);
-		}
-		MakerPlayer currentLevelPlayer = getPlayerIsInThisLevel(currentPlayerId);
-		if (currentLevelPlayer != null) {
-			plugin.getController().addPlayerToMainLobby(currentLevelPlayer);
-		}
-		removeEntities();
 	}
 
 	public synchronized void tryStatusTransition(LevelStatus from, LevelStatus to) throws DataException {

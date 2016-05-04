@@ -49,6 +49,7 @@ import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.function.operation.SchematicWriteOperation;
+import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
@@ -240,21 +241,6 @@ public class MakerController implements Runnable, Tickable {
 		disabled = true;
 	}
 
-	public void init() {
-		if (initialized) {
-			throw new IllegalStateException("This controller is already initialized");
-		}
-		playerMap =  Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayer>(maxPlayers * 4, .75f, true) {
-			private static final long serialVersionUID = 1L;
-			protected boolean removeEldestEntry(Map.Entry<UUID, MakerPlayer> eldest) {
-				return size() > (maxPlayers * 2);
-			}
-		});
-		levelMap = new ConcurrentHashMap<>();
-		globalTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, this, 0, 0);
-		initialized = true;
-	}
-
 	@Override
 	public long getCurrentTick() {
 		return currentTick;
@@ -310,9 +296,34 @@ public class MakerController implements Runnable, Tickable {
 		return playerMap.size();
 	}
 
+	public void init() {
+		if (initialized) {
+			throw new IllegalStateException("This controller is already initialized");
+		}
+		playerMap =  Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayer>(maxPlayers * 4, .75f, true) {
+			private static final long serialVersionUID = 1L;
+			protected boolean removeEldestEntry(Map.Entry<UUID, MakerPlayer> eldest) {
+				return size() > (maxPlayers * 2);
+			}
+		});
+		levelMap = new ConcurrentHashMap<>();
+		globalTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, this, 0, 0);
+		initialized = true;
+	}
+
 	@Override
 	public boolean isDisabled() {
 		return disabled;
+	}
+
+	public void levelLikeCallback(UUID levelId, UUID playerId, boolean dislike, long totalLikes, long totalDislikes) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		// update level browser
+		LevelBrowserMenu.updateLevelLikes(plugin, levelId, totalLikes, totalDislikes);
+		// notify user if online
+		plugin.getController().sendActionMessageToPlayerIfPresent(playerId, dislike ? "level.dislike.success" : "level.like.success");
 	}
 
 	public void loadLevel(UUID authorId, String levelName, short chunkZ) {
@@ -804,6 +815,11 @@ public class MakerController implements Runnable, Tickable {
 		Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
 	}
 
+	public void removeLevelFromSlot(MakerLevel makerLevel) {
+		Bukkit.getLogger().warning(String.format("MakerController.unloadLevel - unloading level with serial: [%s]", makerLevel.getLevelSerial()));
+		levelMap.remove(makerLevel.getChunkZ());
+	}
+
 	public void renameLevel(Player player, String newName) {
 		final MakerPlayer mPlayer = getPlayer(player);
 		if (mPlayer == null) {
@@ -860,6 +876,13 @@ public class MakerController implements Runnable, Tickable {
 		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
 	}
 
+	public void sendActionMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {
+		MakerPlayer mPlayer = getPlayer(playerId);
+		if (mPlayer != null) {
+			mPlayer.sendActionMessage(plugin, key, args);
+		}
+	}
+
 	@Override
 	public void tick(long currentTick) {
 		this.currentTick = currentTick;
@@ -884,11 +907,6 @@ public class MakerController implements Runnable, Tickable {
 				TickableUtils.tickSafely(mPlayer, currentTick);
 			}
 		}
-	}
-
-	public void removeLevelFromSlot(MakerLevel makerLevel) {
-		Bukkit.getLogger().warning(String.format("MakerController.unloadLevel - unloading level with serial: [%s]", makerLevel.getLevelSerial()));
-		levelMap.remove(makerLevel.getChunkZ());
 	}
 
 }
