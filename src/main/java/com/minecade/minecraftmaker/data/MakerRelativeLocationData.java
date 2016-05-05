@@ -30,7 +30,7 @@ public class MakerRelativeLocationData {
 		checkNotNull(location);
 		this.x = location.getX();
 		this.y = location.getY();
-		this.z = location.getZ() % 16d;
+		this.z = location.getZ() % 16L;
 		this.yaw = location.getYaw();
 		this.pitch = location.getPitch();
 		this.locationId = loactionId;
@@ -58,6 +58,10 @@ public class MakerRelativeLocationData {
 
 	public float getPitch() {
 		return pitch;
+	}
+
+	public Vector toVector() {
+		return new Vector(x, y, z);
 	}
 
 	public Location toLocation(Short chunkZ, World world) {

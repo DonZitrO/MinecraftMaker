@@ -33,6 +33,7 @@ import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
 import com.minecade.minecraftmaker.schematic.io.ClipboardReader;
 import com.minecade.minecraftmaker.schematic.io.ClipboardWriter;
+import com.minecade.minecraftmaker.schematic.world.Vector;
 import com.minecade.minecraftmaker.util.LevelUtils;
 
 public class MakerDatabaseAdapter {
@@ -332,7 +333,10 @@ public class MakerDatabaseAdapter {
 				// note: this particular implementation doesn't need world data for anything. TODO: find other places where WorldData is not needed.
 				Clipboard clipboard = reader.read(null);
 				if (clipboard.getRegion().getHeight() > 128) {
-					clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()).add(0,-48,0));
+						clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()).add(0, -48, 0));
+					if (level.getRelativeEndLocation() != null) {
+						level.setRelativeEndLocation(new MakerRelativeLocationData(level.getEndLocation().add(0,-48,0),level.getRelativeEndLocation().getLocationId()));
+					}
 				} else {
 					clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()));
 				}

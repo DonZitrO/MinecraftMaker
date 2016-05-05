@@ -17,6 +17,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
 
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.function.operation.LevelClipboardCopyOperation;
@@ -27,8 +28,10 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.world.Extent;
+import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.schematic.world.Vector2D;
 import com.minecade.minecraftmaker.schematic.world.WorldData;
+import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.nms.NMSUtils;
 
@@ -232,7 +235,9 @@ public class MakerLevel implements Tickable {
 		if (clipboard == null) {
 			return entities;
 		}
-		for (Vector2D chunkVector : clipboard.getRegion().getChunks()) {
+		// FIXME: experimental - we could alternatively get the region from the clipboard and shift it to the right Z
+		Region region = LevelUtils.getLevelRegion(getWorld(), getChunkZ());
+		for (Vector2D chunkVector : region.getChunks()) {
 			org.bukkit.Chunk chunk = plugin.getController().getMainWorld().getChunkAt(chunkVector.getBlockX(), chunkVector.getBlockZ());
 			for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
 				if (EntityType.PLAYER.equals(entity.getType())) {
@@ -536,6 +541,9 @@ public class MakerLevel implements Tickable {
 		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.CREATIVE);
 			mPlayer.getPlayer().setHealth(mPlayer.getPlayer().getMaxHealth());
+			for (PotionEffect effect :mPlayer.getPlayer().getActivePotionEffects()) {
+				mPlayer.getPlayer().removePotionEffect(effect.getType());;
+			}
 			mPlayer.setAllowFlight(true);
 			mPlayer.setFlying(true);
 			mPlayer.clearInventory();
@@ -573,6 +581,9 @@ public class MakerLevel implements Tickable {
 		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.ADVENTURE);
 			mPlayer.getPlayer().setHealth(mPlayer.getPlayer().getMaxHealth());
+			for (PotionEffect effect :mPlayer.getPlayer().getActivePotionEffects()) {
+				mPlayer.getPlayer().removePotionEffect(effect.getType());;
+			}
 			mPlayer.setFlying(false);
 			mPlayer.setAllowFlight(false);
 			mPlayer.clearInventory();
