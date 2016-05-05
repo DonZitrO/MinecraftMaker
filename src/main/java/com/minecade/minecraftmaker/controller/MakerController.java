@@ -84,7 +84,7 @@ public class MakerController implements Runnable, Tickable {
 	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
 	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
 
-	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.5d, 65.0d, 16.5d);
+	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.5d, 17.0d, 16.5d);
 	private static final float DEFAULT_SPAWN_YAW = -90f;
 	private static final float DEFAULT_SPAWN_PITCH = 0f;
 
@@ -160,7 +160,7 @@ public class MakerController implements Runnable, Tickable {
 		// reset player
 		mPlayer.resetPlayer();
 		// teleport to spawn point
-		if (mPlayer.getPlayer().getLocation().distanceSquared(getDefaultSpawnLocation()) > 4d) {
+		if (!mPlayer.getPlayer().getLocation().getWorld().equals(getMainWorld()) || mPlayer.getPlayer().getLocation().distanceSquared(getDefaultSpawnLocation()) > 4d) {
 			if (!mPlayer.getPlayer().teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN)) {
 				mPlayer.getPlayer().kickPlayer(plugin.getMessage("lobby.join.error.teleport"));
 			}
@@ -307,8 +307,20 @@ public class MakerController implements Runnable, Tickable {
 			}
 		});
 		levelMap = new ConcurrentHashMap<>();
+		Bukkit.getScheduler().runTask(plugin, () -> MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld()));
+		// FIXME: remove DEV lobby
+		Bukkit.getScheduler().runTask(plugin, () -> initDevelopmentLobby());
 		globalTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, this, 0, 0);
 		initialized = true;
+	}
+
+	// FIXME: remove this
+	private void initDevelopmentLobby() {
+		try {
+			plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld()), getMakerExtent(), getMainWorldData()));
+		} catch (MinecraftMakerException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -563,6 +575,9 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		if (mPlayer.isInLobby()) {
+			if (event.getCause() == DamageCause.VOID) {
+				mPlayer.teleportOnNextTick(getDefaultSpawnLocation());
+			}
 			event.setCancelled(true);
 			return;
 		}
@@ -886,15 +901,15 @@ public class MakerController implements Runnable, Tickable {
 	@Override
 	public void tick(long currentTick) {
 		this.currentTick = currentTick;
-		if (this.currentTick == 1) {
-			MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld());
-			try {
-				plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld()), getMakerExtent(), getMainWorldData()));
-			} catch (MinecraftMakerException e) {
-				e.printStackTrace();
-			}
-			return;
-		}
+//		if (this.currentTick == 1) {
+//			MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld());
+//			try {
+//				plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld()), getMakerExtent(), getMainWorldData()));
+//			} catch (MinecraftMakerException e) {
+//				e.printStackTrace();
+//			}
+//			return;
+//		}
 		// tick levels
 		for (MakerLevel level : new ArrayList<MakerLevel>(levelMap.values())) {
 			if (level != null) {

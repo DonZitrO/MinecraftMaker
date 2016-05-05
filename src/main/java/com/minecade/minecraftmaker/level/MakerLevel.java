@@ -34,7 +34,7 @@ import com.minecade.nms.NMSUtils;
 
 public class MakerLevel implements Tickable {
 
-	private static final MakerRelativeLocationData RELATIVE_START_LOCATION = new MakerRelativeLocationData(2.5, 65, 6.5, -90f, 0);
+	private static final MakerRelativeLocationData RELATIVE_START_LOCATION = new MakerRelativeLocationData(2.5, 17, 6.5, -90f, 0);
 
 	private static final int MAX_LEVEL_ENTITIES = 10;
 
@@ -369,7 +369,10 @@ public class MakerLevel implements Tickable {
 	}
 
 	public synchronized void onPlayerQuit() {
-		disable(String.format("MakerLevel.onPlayerQuit - player quit server"), null);
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("MakerLevel.onPlayerQuit - Level will be disabled after player quit: [%s<%s>]", getLevelName(), getLevelId()));
+		}
+		status = LevelStatus.DISABLE_READY;
 	}
 
 	private boolean playerIsInThisLevel(MakerPlayer mPlayer) {
@@ -532,6 +535,7 @@ public class MakerLevel implements Tickable {
 
 		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.CREATIVE);
+			mPlayer.getPlayer().setHealth(mPlayer.getPlayer().getMaxHealth());
 			mPlayer.setAllowFlight(true);
 			mPlayer.setFlying(true);
 			mPlayer.clearInventory();
@@ -568,6 +572,7 @@ public class MakerLevel implements Tickable {
 		}
 		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.ADVENTURE);
+			mPlayer.getPlayer().setHealth(mPlayer.getPlayer().getMaxHealth());
 			mPlayer.setFlying(false);
 			mPlayer.setAllowFlight(false);
 			mPlayer.clearInventory();

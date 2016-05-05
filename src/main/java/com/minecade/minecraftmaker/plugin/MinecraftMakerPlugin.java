@@ -5,6 +5,7 @@ import java.util.ResourceBundle;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -127,6 +128,8 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		ServerPropertyFilesConfigurator.configureServerProperties();
 		ServerPropertyFilesConfigurator.configureBukkitYML();
 		ServerPropertyFilesConfigurator.configureSpigotYML();
+		// server specific config
+		getServer().setDefaultGameMode(GameMode.ADVENTURE);
 		try {
 			this.bukkitImplAdapter = new Spigot_v1_9_2_R1();
 		} catch (Exception e) {

@@ -9,14 +9,15 @@ import com.minecade.core.item.ItemStackBuilder;
 
 public enum GeneralMenuItem implements TranslatableItem {
 
-	SEARCH(Material.COMPASS),
-	SORT(Material.RAILS),
+	CONTINUE_EDITING(Material.EMPTY_MAP),
 	CURRENT_PAGE(Material.PAPER),
-	PREVIOUS_PAGE(Material.RAW_FISH),
-	NEXT_PAGE(Material.SHEARS),
+	EDIT_LEVEL_OPTIONS(Material.ENDER_CHEST),
 	EXIT_MENU(Material.ARROW),
-	EDIT_LEVEL_OPTIONS(Material.ENDER_CHEST), 
-	PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST);
+	NEXT_PAGE(Material.SHEARS),
+	PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST),
+	PREVIOUS_PAGE(Material.RAW_FISH),
+	SEARCH(Material.COMPASS), 
+	SORT(Material.RAILS);
 
 	private final ItemStackBuilder builder;
 
@@ -32,17 +33,17 @@ public enum GeneralMenuItem implements TranslatableItem {
 		this.builder = new ItemBuilder(material, amount, data);
 	}
 
-	public ItemStack getItem() {
-		return builder.build();
+	@Override
+	public ItemStackBuilder getBuilder() {
+		return builder;
 	}
 
 	public String getDisplayName() {
 		return builder.getDisplayName() != null ? builder.getDisplayName() : name();
 	}
 
-	@Override
-	public String getTranslationKeyBase() {
-		return "menu.general-item";
+	public ItemStack getItem() {
+		return builder.build();
 	}
 
 	@Override
@@ -51,8 +52,8 @@ public enum GeneralMenuItem implements TranslatableItem {
 	}
 
 	@Override
-	public ItemStackBuilder getBuilder() {
-		return builder;
+	public String getTranslationKeyBase() {
+		return "menu.general-item";
 	}
 
 }

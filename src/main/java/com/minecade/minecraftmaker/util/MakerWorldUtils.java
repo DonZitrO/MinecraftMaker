@@ -4,6 +4,7 @@ import org.bukkit.Difficulty;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -20,6 +21,8 @@ public class MakerWorldUtils {
 		WorldCreator worldCreator = new WorldCreator(worldName);
 		plugin.getServer().setDefaultGameMode(GameMode.ADVENTURE);
 		worldCreator.generator(plugin.getDefaultWorldGenerator(worldName, null));
+		worldCreator.type(WorldType.FLAT);
+		worldCreator.generateStructures(false);
 		World world = worldCreator.createWorld();
 		setupWorld(world);
 		if (null != defaultSpawnVector) {

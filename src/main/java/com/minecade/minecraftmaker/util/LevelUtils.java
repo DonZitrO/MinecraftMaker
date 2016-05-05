@@ -27,6 +27,12 @@ public class LevelUtils {
 
 	public static final Transform IDENTITY_TRANSFORM = new Identity();
 
+	private static final int HIGHEST_LEVEL_Y = 63;
+	private static final int FLOOR_LEVEL_Y = 16;
+	private static final int DEFAULT_LEVEL_WIDTH_CHUNKS = 5;
+	private static final int MAX_LEVEL_WIDTH_CHUNKS = 10;
+	private static final int MAX_LEVELS_PER_WORLD = 10;
+
 	public static Clipboard createEmptyLevelClipboard(World world, short chunkZ, int floorBlockId) throws MinecraftMakerException {
 
 		Region region = getLevelRegion(world, chunkZ);
@@ -70,20 +76,26 @@ public class LevelUtils {
 				clipboard.setBlock(new Vector(x, maximumPoint.getBlockY(), z), barrier);
 			}
 		}
+		// construct the bottom
+		for (int x = minimumPoint.getBlockX() + 1; x < maximumPoint.getBlockX(); x++) {
+			for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ() - 3; z++) {
+				clipboard.setBlock(new Vector(x, minimumPoint.getBlockY(), z), barrier);
+			}
+		}
 		// construct the floor (optional)
 		if (floorBlockId > 0) {
 			BaseBlock floorBlock = new BaseBlock(floorBlockId);
-			clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 64, minimumPoint.getBlockZ() + 6), floorBlock);
+			clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, FLOOR_LEVEL_Y, minimumPoint.getBlockZ() + 6), floorBlock);
 			for (int x = minimumPoint.getBlockX() + 3; x < maximumPoint.getBlockX() - 2; x++) {
 				for (int z = minimumPoint.getBlockZ() + 3; z < maximumPoint.getBlockZ() - 2; z++) {
-					clipboard.setBlock(new Vector(x, 64, z), floorBlock);
+					clipboard.setBlock(new Vector(x, FLOOR_LEVEL_Y, z), floorBlock);
 				}
 			}
 		}
 		// floor block to start the level
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 64, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.BEACON));
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 65, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, 66, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, FLOOR_LEVEL_Y, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.BEACON));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, FLOOR_LEVEL_Y + 1, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, FLOOR_LEVEL_Y + 2, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
 		return clipboard;
 	}
 
@@ -137,7 +149,6 @@ public class LevelUtils {
 				clipboard.setBlock(new Vector(x, maximumPoint.getBlockY(), z), barrier);
 			}
 		}
-
 		return clipboard;
 	}
 
@@ -161,35 +172,35 @@ public class LevelUtils {
 
 	public static Region getLevelRegion(World world, short chunkZ) {
 		Vector origin = getLevelOrigin(chunkZ);
-		short width = 161;
-		short height = 129;
+		short width = DEFAULT_LEVEL_WIDTH_CHUNKS * 16;
+		short height = 66;
 		short length = 13;
 		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
 	}
 
 	public static Vector getLobbyOrigin() {
 		short originX = -1;
-		short originY = 63;
-		short originZ = 0;
+		short originY = FLOOR_LEVEL_Y - 1;
+		short originZ = -1;
 		return new Vector(originX, originY, originZ);
 	}
 
 	public static Region getLobbyRegion(World world) {
 		Vector origin = getLobbyOrigin();
-		short width = -64;
-		short height = 65;
-		short length = 64;
+		short width = -18;
+		short height = 50;
+		short length = 166;
 		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
 	}
 
 	public static short getLocationSlot(org.bukkit.Location location) {
-		if (location.getY() > 128) {
+		if (location.getY() > HIGHEST_LEVEL_Y) {
 			return -1;
 		}
-		if (location.getBlockX() < 0 || location.getBlockX() > 159) {
+		if (location.getBlockX() < 0 || location.getBlockX() > MAX_LEVEL_WIDTH_CHUNKS * 16) {
 			return -1;
 		}
-		if (location.getBlockZ() < 0 || location.getBlockZ() > 159) {
+		if (location.getBlockZ() < 0 || location.getBlockZ() > MAX_LEVELS_PER_WORLD * 16) {
 			return -1;
 		}
 		return (short) (location.getBlockZ() / 16);

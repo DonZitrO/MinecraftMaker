@@ -331,7 +331,13 @@ public class MakerDatabaseAdapter {
 			try (BufferedInputStream is = new BufferedInputStream(data.getBinaryStream()); ClipboardReader reader = ClipboardFormat.SCHEMATIC.getReader(is)) {
 				// note: this particular implementation doesn't need world data for anything. TODO: find other places where WorldData is not needed.
 				Clipboard clipboard = reader.read(null);
-				clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()));
+				if (clipboard.getRegion().getHeight() > 128) {
+					clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()).add(0,-48,0));
+				} else {
+					clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()));
+				}
+				Bukkit.getLogger().info(String.format("height: [%s]", clipboard.getRegion().getHeight()));
+				Bukkit.getLogger().info(String.format("origin: [%s]", clipboard.getOrigin().getBlockY()));
 				level.setClipboard(clipboard);
 			}
 		} catch (Exception e) {
