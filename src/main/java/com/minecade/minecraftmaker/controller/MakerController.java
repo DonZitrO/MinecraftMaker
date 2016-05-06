@@ -512,7 +512,8 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		// end level beacon placement
-		if (Material.BEACON.equals(event.getBlockPlaced().getType())) {
+		switch (event.getBlockPlaced().getType()) {
+		case BEACON:
 			if (event.getBlockPlaced().getLocation().getBlockY() < 2) {
 				event.setCancelled(true);
 				mPlayer.sendActionMessage(plugin, "level.create.error.end-beacon-too-low");
@@ -523,6 +524,13 @@ public class MakerController implements Runnable, Tickable {
 				return;
 			}
 			return;
+		// place for disabled building blocks
+		case BARRIER:
+			event.setCancelled(true);
+			mPlayer.sendActionMessage(plugin, "level.create.error.disabled-block");
+			return;
+		default:
+			break;
 		}
 	}
 
