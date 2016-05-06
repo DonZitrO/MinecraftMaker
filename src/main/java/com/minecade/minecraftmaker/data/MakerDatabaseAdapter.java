@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -33,7 +34,6 @@ import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
 import com.minecade.minecraftmaker.schematic.io.ClipboardReader;
 import com.minecade.minecraftmaker.schematic.io.ClipboardWriter;
-import com.minecade.minecraftmaker.schematic.world.Vector;
 import com.minecade.minecraftmaker.util.LevelUtils;
 
 public class MakerDatabaseAdapter {
@@ -497,16 +497,25 @@ public class MakerDatabaseAdapter {
 		try {
 			level.tryStatusTransition(LevelStatus.RENAME_READY, LevelStatus.RENAMING);
 			String levelId = level.getLevelId().toString().replace("-", "");
+			String currentLevelName = level.getLevelName();
+			int affected = 0;
 			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `level_name` = ? WHERE `level_id` = UNHEX(?)")) {
 				updateLevelSt.setString(1, newName);
 				updateLevelSt.setString(2, levelId);
-				updateLevelSt.executeUpdate();
+				affected = updateLevelSt.executeUpdate();
+				level.setLevelName(newName);
+				if (affected == 0) {
+					insertLevel(level);
+				}
 			} catch (SQLException e) {
 				e.printStackTrace();
+				level.setLevelName(currentLevelName);
 				level.tryStatusTransition(LevelStatus.RENAMING, LevelStatus.RENAME_ERROR);
 				return;
 			}
-			level.setLevelName(newName);
+			if (affected == 0 && level.getClipboard() != null) {
+				insertClipboard(levelId, level.getClipboard());
+			}
 			level.tryStatusTransition(LevelStatus.RENAMING, LevelStatus.RENAMED);
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.renameLevel - error while renaming level: [%s<%s>] - %s", level.getLevelName(), level.getLevelId(), e.getMessage()));
@@ -523,16 +532,14 @@ public class MakerDatabaseAdapter {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
-		Blob data = null;
+		String levelId = level.getLevelId().toString().replace("-", "");
 		try {
 			level.tryStatusTransition(LevelStatus.SAVE_READY, LevelStatus.SAVING);
-			String levelId = level.getLevelId().toString().replace("-", "");
-			String authorId = level.getAuthorId().toString().replace("-", "");
-			String endLocationUUID = null;
-			if (level.getRelativeEndLocation() != null) {
-				endLocationUUID = insertOrUpdateRelativeLocation(level.getRelativeEndLocation()).toString().replace("-", "");
-			}
 			if (level.getLevelSerial() > 0) {
+				String endLocationUUID = null;
+				if (level.getRelativeEndLocation() != null) {
+					endLocationUUID = insertOrUpdateRelativeLocation(level.getRelativeEndLocation()).toString().replace("-", "");
+				}
 				// after every save the author needs to clear the level again in order to publish it
 				String updateBase = "UPDATE `mcmaker`.`levels` SET `author_cleared` = 0%s WHERE `level_id` = UNHEX(?)";
 				String updateStatement = null;
@@ -555,50 +562,11 @@ public class MakerDatabaseAdapter {
 					Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.saveLevel - updated shallow data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
 				}
 			} else {
-				// level does not exist yet, create it
-				if (plugin.isDebugMode()) {
-					Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.saveLevel - inserting data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
-				}
-				String insertBase = "INSERT INTO `mcmaker`.`levels` (level_id, author_id, level_name, author_name%s) VALUES (UNHEX(?), UNHEX(?), ?, ?%s)";
-				String insertStatement = null;
-				if (endLocationUUID != null) {
-					insertStatement = String.format(insertBase, ", end_location_id", ", UNHEX(?)");
-				} else {
-					insertStatement = String.format(insertBase, "", "");
-				}
-				// insert level
-				try (PreparedStatement insertLevelSt = getConnection().prepareStatement(insertStatement)) {
-					insertLevelSt.setString(1, levelId);
-					insertLevelSt.setString(2, authorId);
-					insertLevelSt.setString(3, level.getLevelName());
-					insertLevelSt.setString(4, level.getAuthorName());
-					if (endLocationUUID != null) {
-						insertLevelSt.setString(5, endLocationUUID);
-					}
-					insertLevelSt.executeUpdate();
-				}
-				// get auto-incremented level serial
-				try (PreparedStatement byBinaryUUID = getConnection().prepareStatement(String.format("SELECT level_serial FROM mcmaker.levels WHERE level_id = UNHEX(?)"))) {
-					byBinaryUUID.setString(1, levelId);
-					ResultSet byBinaryUUIDResult = byBinaryUUID.executeQuery();
-					byBinaryUUIDResult.next();
-					level.setLevelSerial(byBinaryUUIDResult.getLong("level_serial"));
-				}
-				if (plugin.isDebugMode()) {
-					Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.saveLevel - inserted shallow data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
-				}
+				insertLevel(level);
 			}
 			// insert clipboard
 			if (level.getClipboard() != null) {
-				data = getConnection().createBlob();
-				try (PreparedStatement insertLevelBinaryData = getConnection().prepareStatement("INSERT INTO `mcmaker`.`schematics` (level_id, data) VALUES (UNHEX(?), ?)")) {
-					try (BufferedOutputStream bos = new BufferedOutputStream(data.setBinaryStream(1)); ClipboardWriter writer = ClipboardFormat.SCHEMATIC.getWriter(bos);) {
-						writer.write(level.getClipboard(), null);
-					}
-					insertLevelBinaryData.setString(1, levelId);
-					insertLevelBinaryData.setBlob(2, data);
-					insertLevelBinaryData.executeUpdate();
-				}
+				insertClipboard(levelId, level.getClipboard());
 			}
 			level.tryStatusTransition(LevelStatus.SAVING, LevelStatus.SAVED);
 			if (plugin.isDebugMode()) {
@@ -608,6 +576,29 @@ public class MakerDatabaseAdapter {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.saveLevel - error while saving Level with id: [%s] and slot [%s] - %s", level.getLevelId(), level.getChunkZ(), e.getMessage()));
 			e.printStackTrace();
 			level.disable(e.getMessage(), e);
+		}
+	}
+
+	private synchronized void insertClipboard(String levelId, Clipboard clipboard) throws SQLException, IOException {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.insertClipboard - inserting clipboard data for level: <%s>", levelId));
+		}
+		checkNotNull(levelId);
+		checkNotNull(clipboard);
+		Blob data = getConnection().createBlob();
+		try (PreparedStatement insertLevelBinaryData = getConnection().prepareStatement("INSERT INTO `mcmaker`.`schematics` (level_id, data) VALUES (UNHEX(?), ?)")) {
+			try (BufferedOutputStream bos = new BufferedOutputStream(data.setBinaryStream(1)); ClipboardWriter writer = ClipboardFormat.SCHEMATIC.getWriter(bos);) {
+				writer.write(clipboard, null);
+			}
+			insertLevelBinaryData.setString(1, levelId);
+			insertLevelBinaryData.setBlob(2, data);
+			insertLevelBinaryData.executeUpdate();
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.insertClipboard - inserted clipboard data for level: <%s>", levelId));
+			}
 		} finally {
 			if (data != null) {
 				try {
@@ -616,6 +607,49 @@ public class MakerDatabaseAdapter {
 					// no-op
 				}
 			}
+		}
+	}
+
+	private synchronized void insertLevel(MakerLevel level) throws SQLException {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.insertLevel - inserting shallow data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+		}
+		String levelId = level.getLevelId().toString().replace("-", "");
+		String authorId = level.getAuthorId().toString().replace("-", "");
+		String endLocationUUID = null;
+		if (level.getRelativeEndLocation() != null) {
+			endLocationUUID = insertOrUpdateRelativeLocation(level.getRelativeEndLocation()).toString().replace("-", "");
+		}
+		String insertBase = "INSERT INTO `mcmaker`.`levels` (level_id, author_id, level_name, author_name%s) VALUES (UNHEX(?), UNHEX(?), ?, ?%s)";
+		String insertStatement = null;
+		if (endLocationUUID != null) {
+			insertStatement = String.format(insertBase, ", end_location_id", ", UNHEX(?)");
+		} else {
+			insertStatement = String.format(insertBase, "", "");
+		}
+		// insert level
+		try (PreparedStatement insertLevelSt = getConnection().prepareStatement(insertStatement)) {
+			insertLevelSt.setString(1, levelId);
+			insertLevelSt.setString(2, authorId);
+			insertLevelSt.setString(3, level.getLevelName());
+			insertLevelSt.setString(4, level.getAuthorName());
+			if (endLocationUUID != null) {
+				insertLevelSt.setString(5, endLocationUUID);
+			}
+			insertLevelSt.executeUpdate();
+		}
+		// get auto-incremented level serial
+		try (PreparedStatement byBinaryUUID = getConnection().prepareStatement(String.format("SELECT level_serial FROM mcmaker.levels WHERE level_id = UNHEX(?)"))) {
+			byBinaryUUID.setString(1, levelId);
+			ResultSet byBinaryUUIDResult = byBinaryUUID.executeQuery();
+			byBinaryUUIDResult.next();
+			level.setLevelSerial(byBinaryUUIDResult.getLong("level_serial"));
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.insertLevel - inserted shallow data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
 		}
 	}
 

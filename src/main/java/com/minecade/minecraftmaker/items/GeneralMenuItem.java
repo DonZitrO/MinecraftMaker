@@ -17,7 +17,8 @@ public enum GeneralMenuItem implements TranslatableItem {
 	PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST),
 	PREVIOUS_PAGE(Material.RAW_FISH),
 	SEARCH(Material.COMPASS), 
-	SORT(Material.RAILS);
+	SORT(Material.RAILS), 
+	EDITOR_PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST);
 
 	private final ItemStackBuilder builder;
 

@@ -19,6 +19,7 @@ import com.minecade.core.player.PlayerUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
+import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
@@ -120,6 +121,10 @@ public class MakerPlayer implements Tickable {
 		return this.player.getUniqueId();
 	}
 
+	public boolean hasClearedLevel() {
+		return this.currentLevel != null && LevelStatus.CLEARED.equals(this.currentLevel.getStatus());
+	}
+
 	public boolean hasInventoryToOpen() {
 		return inventoryToOpen != null;
 	}
@@ -129,13 +134,17 @@ public class MakerPlayer implements Tickable {
 		return false;
 	}
 
+	@Override
+	public boolean isDisabled() {
+		return disabled;
+	}
+
 	public boolean isEditingLevel() {
 		return this.currentLevel != null && LevelStatus.EDITING.equals(this.currentLevel.getStatus());
 	}
 
-	@Override
-	public boolean isDisabled() {
-		return disabled;
+	public boolean isInBusyLevel() {
+		return currentLevel != null && currentLevel.isBusy();
 	}
 
 	public boolean isInLobby() {
@@ -146,24 +155,11 @@ public class MakerPlayer implements Tickable {
 		return this.currentLevel != null && LevelStatus.PLAYING.equals(this.currentLevel.getStatus());
 	}
 
-	public boolean hasClearedLevel() {
-		return this.currentLevel != null && LevelStatus.CLEARED.equals(this.currentLevel.getStatus());
-	}
-
 	public boolean onInventoryClick(Inventory inventory, int slot) {
 		if (personalMenus.containsKey(inventory.getName())) {
 			return personalMenus.get(inventory.getName()).onClick(this, slot);
 		}
 		return false;
-	}
-
-	public void openEditLevelOptionsMenu() {
-		AbstractMakerMenu menu = personalMenus.get(EditLevelOptionsMenu.getInstance().getName());
-		if (menu == null) {
-			menu = EditLevelOptionsMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
 	}
 
 //	public void openLevelSortbyMenu() {
@@ -175,6 +171,30 @@ public class MakerPlayer implements Tickable {
 //		inventoryToOpen = menu;
 //	}
 
+	public void onQuit() {
+		for (AbstractMakerMenu menu : personalMenus.values()) {
+			menu.destroy();
+		}
+	}
+
+	public void openEditLevelOptionsMenu() {
+		AbstractMakerMenu menu = personalMenus.get(EditLevelOptionsMenu.getInstance().getName());
+		if (menu == null) {
+			menu = EditLevelOptionsMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
+	public void openEditorPlayLevelOptionsMenu() {
+		AbstractMakerMenu menu = personalMenus.get(EditorPlayLevelOptionsMenu.getInstance().getName());
+		if (menu == null) {
+			menu = EditorPlayLevelOptionsMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
 	private void openInventoryIfAvailable() {
 		if (inventoryToOpen != null) {
 			inventoryToOpen.open(player);
@@ -182,11 +202,41 @@ public class MakerPlayer implements Tickable {
 		}
 	}
 
+	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, LevelSortBy sortBy, boolean update) {
+		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
+		if (menu == null) {
+			menu = LevelBrowserMenu.getInstance(plugin, this.getUniqueId());
+			personalMenus.put(menu.getName(), menu);
+		}
+		if (sortBy != null) {
+			menu.sortBy(sortBy);
+		}
+		if (update) {
+			menu.update();
+		}
+		inventoryToOpen = menu;
+	}
+
 	public void openLevelTemplateMenu() {
 		AbstractMakerMenu menu = personalMenus.get(LevelTemplateMenu.getInstance().getName());
 		if (menu == null) {
 			menu = LevelTemplateMenu.getInstance();
 			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
+	public void openPlayerLevelsMenu(MinecraftMakerPlugin plugin, LevelSortBy sortBy, boolean update) {
+		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
+		if (menu == null) {
+			menu = PlayerLevelsMenu.getInstance(plugin, this.getUniqueId());
+			personalMenus.put(menu.getName(), menu);
+		}
+		if (sortBy != null) {
+			menu.sortBy(sortBy);
+		}
+		if (update) {
+			menu.update();
 		}
 		inventoryToOpen = menu;
 	}
@@ -205,36 +255,6 @@ public class MakerPlayer implements Tickable {
 		if (menu == null) {
 			menu = ServerBrowserMenu.getInstance();
 			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
-	}
-
-	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, LevelSortBy sortBy, boolean update) {
-		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
-		if (menu == null) {
-			menu = LevelBrowserMenu.getInstance(plugin, this.getUniqueId());
-			personalMenus.put(menu.getName(), menu);
-		}
-		if (sortBy != null) {
-			menu.sortBy(sortBy);
-		}
-		if (update) {
-			menu.update();
-		}
-		inventoryToOpen = menu;
-	}
-
-	public void openPlayerLevelsMenu(MinecraftMakerPlugin plugin, LevelSortBy sortBy, boolean update) {
-		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
-		if (menu == null) {
-			menu = PlayerLevelsMenu.getInstance(plugin, this.getUniqueId());
-			personalMenus.put(menu.getName(), menu);
-		}
-		if (sortBy != null) {
-			menu.sortBy(sortBy);
-		}
-		if (update) {
-			menu.update();
 		}
 		inventoryToOpen = menu;
 	}
@@ -259,12 +279,6 @@ public class MakerPlayer implements Tickable {
 		PlayerUtils.resetPlayer(getPlayer(), GameMode.ADVENTURE);
 	}
 
-	public void sendTitleAndSubtitle(String title, String subtitle) {
-		if (player.isOnline()) {
-			NMSUtils.sendTitle(player, 10, 40, 10, title, subtitle);
-		}
-	}
-
 	public void sendActionMessage(Internationalizable plugin, String key, Object... args) {
 		if (player.isOnline()) {
 			if (!StringUtils.isEmpty(key)) {
@@ -281,6 +295,16 @@ public class MakerPlayer implements Tickable {
 				player.sendMessage(plugin.getMessage(key, args));
 			}
 		}
+	}
+
+	public void sendTitleAndSubtitle(String title, String subtitle) {
+		if (player.isOnline()) {
+			NMSUtils.sendTitle(player, 10, 40, 10, title, subtitle);
+		}
+	}
+
+	public void setAllowFlight(boolean allowFlight) {
+		player.setAllowFlight(allowFlight);
 	}
 
 	public void setCurrentLevel(MakerLevel level) {
@@ -332,14 +356,6 @@ public class MakerPlayer implements Tickable {
 		dirtyInventory = true;
 	}
 
-	public void setAllowFlight(boolean allowFlight) {
-		player.setAllowFlight(allowFlight);
-	}
-
-	public boolean isInBusyLevel() {
-		return currentLevel != null && currentLevel.isBusy();
-	}
-
 	public void updatePublishedLevelOnPlayerLevelsMenu(MinecraftMakerPlugin plugin, MakerLevel makerLevel) {
 		LevelBrowserMenu.addOrUpdateLevel(plugin, makerLevel);
 		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
@@ -352,12 +368,6 @@ public class MakerPlayer implements Tickable {
 		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
 		if (menu != null) {
 			menu.updateOwnedLevel(makerLevel);
-		}
-	}
-
-	public void onQuit() {
-		for (AbstractMakerMenu menu : personalMenus.values()) {
-			menu.destroy();
 		}
 	}
 

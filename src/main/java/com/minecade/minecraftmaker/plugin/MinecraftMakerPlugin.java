@@ -19,6 +19,7 @@ import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
+import com.minecade.minecraftmaker.items.EditorPlayLevelOptionItem;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelSortByItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
@@ -169,6 +170,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		}
 		// translate edit level option menu items
 		for (EditLevelOptionItem item : EditLevelOptionItem.values()) {
+			item.translate(this);
+		}
+		// translate editor play level option menu items
+		for (EditorPlayLevelOptionItem item : EditorPlayLevelOptionItem.values()) {
 			item.translate(this);
 		}
 		// translate play level option menu items

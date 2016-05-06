@@ -651,6 +651,10 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.updateInventoryOnNextTick();
 			mPlayer.openPlayLevelOptionsMenu();
 			return true;
+		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
+			mPlayer.updateInventoryOnNextTick();
+			mPlayer.openEditorPlayLevelOptionsMenu();
+			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
 			BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
 			return true;
@@ -831,7 +835,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void removeLevelFromSlot(MakerLevel makerLevel) {
-		Bukkit.getLogger().warning(String.format("MakerController.unloadLevel - unloading level with serial: [%s]", makerLevel.getLevelSerial()));
+		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
 		levelMap.remove(makerLevel.getChunkZ());
 	}
 
@@ -847,11 +851,11 @@ public class MakerController implements Runnable, Tickable {
 			player.sendMessage(plugin.getMessage("level.rename.error.no-editing"));
 			return;
 		}
-		// save before rename
-		if (mPlayer.getCurrentLevel().getLevelSerial() == 0) {
-			player.sendMessage(plugin.getMessage("level.rename.error.save-first"));
-			return;
-		}
+//		// save before rename
+//		if (mPlayer.getCurrentLevel().getLevelSerial() == 0) {
+//			player.sendMessage(plugin.getMessage("level.rename.error.save-first"));
+//			return;
+//		}
 		// rename
 		mPlayer.getCurrentLevel().rename(newName);
 	}
