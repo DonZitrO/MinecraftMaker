@@ -25,10 +25,14 @@ import com.minecade.minecraftmaker.function.operation.LevelClipboardPasteOperati
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
+import com.minecade.minecraftmaker.schematic.block.BaseBlock;
+import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
+import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.world.Extent;
 import com.minecade.minecraftmaker.schematic.world.Region;
+import com.minecade.minecraftmaker.schematic.world.Vector;
 import com.minecade.minecraftmaker.schematic.world.Vector2D;
 import com.minecade.minecraftmaker.schematic.world.WorldData;
 import com.minecade.minecraftmaker.util.LevelUtils;
@@ -77,6 +81,12 @@ public class MakerLevel implements Tickable {
 		this.plugin = plugin;
 		this.chunkZ = chunkZ;
 		this.status = LevelStatus.BLANK;
+	}
+
+	public void checkLevelBorder(Location to) {
+		if (to.getBlockY() < -1) {
+			Bukkit.getScheduler().runTask(plugin, () -> restartPlaying());
+		}
 	}
 
 	public void checkLevelEnd(Location location) {
@@ -132,6 +142,22 @@ public class MakerLevel implements Tickable {
 		mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.clear.title"), plugin.getMessage("level.clear.subtitle", formatMillis(clearTimeMillis)));
 		mPlayer.sendMessage(plugin, "level.clear.time", formatMillis(clearTimeMillis));
 		mPlayer.sendMessage(plugin, "level.clear.options");
+	}
+
+	public void continueEditing() {
+		MakerPlayer mPlayer = getPlayerIsInThisLevel(authorId);
+		if (mPlayer == null) {
+			disable(String.format("MakerLevel.continueEditing - editor is offline"), null);
+			return;
+		}
+		try {
+			tryStatusTransition(LevelStatus.PLAYING, LevelStatus.CLIPBOARD_LOADED);
+			this.currentPlayerId = null;
+			waitForBusyLevel(mPlayer, true);
+		} catch (DataException e) {
+			disable(e.getMessage(), e);
+			return;
+		}
 	}
 
 	@Override
@@ -507,6 +533,17 @@ public class MakerLevel implements Tickable {
 		this.relativeEndLocation = relativeEndLocation;
 	}
 
+	private void setupCliboardFloor() throws MinecraftMakerException {
+		BaseBlock air = new BaseBlock(currentPlayerId != null ? BlockID.AIR : BlockID.BARRIER);
+		Vector minimum = clipboard.getMinimumPoint();
+		Vector maximum = clipboard.getMaximumPoint();
+		for (int x = minimum.getBlockX(); x <= maximum.getBlockX(); x++) {
+			for (int z = minimum.getBlockZ(); z <= maximum.getBlockZ(); z++) {
+				clipboard.setBlock(new Vector(x, minimum.getBlockY(), z), air);
+			}
+		}
+	}
+
 	public boolean setupEndLocation(Location location) {
 		long startNanos = 0;
 		if (plugin.isDebugMode()) {
@@ -632,8 +669,14 @@ public class MakerLevel implements Tickable {
 	}
 
 	private void tickClipboardLoaded() {
+		try {
+			removeEntities();
+			setupCliboardFloor();
+		} catch (Exception e) {
+			disable(e.getMessage(), e);
+			return;
+		}
 		status = LevelStatus.CLIPBOARD_PASTE_READY;
-		removeEntities();
 		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
 	}
 
@@ -801,22 +844,6 @@ public class MakerLevel implements Tickable {
 		mPlayer.teleportOnNextTick(getStartLocation());
 		if (showMessage) {
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.busy.title"), plugin.getMessage("level.busy.subtitle"));
-		}
-	}
-
-	public void continueEditing() {
-		MakerPlayer mPlayer = getPlayerIsInThisLevel(authorId);
-		if (mPlayer == null) {
-			disable(String.format("MakerLevel.continueEditing - editor is offline"), null);
-			return;
-		}
-		try {
-			tryStatusTransition(LevelStatus.PLAYING, LevelStatus.CLIPBOARD_LOADED);
-			this.currentPlayerId = null;
-			waitForBusyLevel(mPlayer, true);
-		} catch (DataException e) {
-			disable(e.getMessage(), e);
-			return;
 		}
 	}
 

@@ -513,8 +513,14 @@ public class MakerController implements Runnable, Tickable {
 		}
 		// end level beacon placement
 		if (Material.BEACON.equals(event.getBlockPlaced().getType())) {
+			if (event.getBlockPlaced().getLocation().getBlockY() < 2) {
+				event.setCancelled(true);
+				mPlayer.sendActionMessage(plugin, "level.create.error.end-beacon-too-low");
+				return;
+			}
 			if(!mPlayer.getCurrentLevel().setupEndLocation(event.getBlockPlaced().getLocation())) {
 				event.setCancelled(true);
+				return;
 			}
 			return;
 		}
@@ -745,6 +751,7 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		if (mPlayer.isPlayingLevel()) {
+			mPlayer.getCurrentLevel().checkLevelBorder(event.getTo());
 			mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
 		}
 	}
