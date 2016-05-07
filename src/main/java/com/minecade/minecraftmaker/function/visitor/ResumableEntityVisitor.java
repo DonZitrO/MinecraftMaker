@@ -6,15 +6,15 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.minecade.minecraftmaker.function.EntityFunction;
+import com.minecade.minecraftmaker.function.operation.LimitedTimeRunContext;
 import com.minecade.minecraftmaker.function.operation.Operation;
-import com.minecade.minecraftmaker.function.operation.RunContext;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 
 /**
  * Visits entities as provided by an {@code Iterator}.
  */
-public class EntityVisitor implements Operation {
+public class ResumableEntityVisitor implements Operation {
 
 	private final Iterator<? extends Entity> iterator;
 	private final EntityFunction function;
@@ -28,7 +28,7 @@ public class EntityVisitor implements Operation {
 	 * @param function
 	 *            the function
 	 */
-	public EntityVisitor(Iterator<? extends Entity> iterator, EntityFunction function) {
+	public ResumableEntityVisitor(Iterator<? extends Entity> iterator, EntityFunction function) {
 		checkNotNull(iterator);
 		checkNotNull(function);
 		this.iterator = iterator;
@@ -45,14 +45,17 @@ public class EntityVisitor implements Operation {
 	}
 
 	@Override
-	public Operation resume(RunContext run) throws MinecraftMakerException {
-		while (iterator.hasNext()) {
+	public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
+		while (iterator.hasNext() && run.shouldContinue()) {
 			if (function.apply(iterator.next())) {
 				affected++;
 			}
 		}
-
-		return null;
+		if (iterator.hasNext()) {
+			return this;
+		} else {
+			return null;
+		}
 	}
 
 	@Override

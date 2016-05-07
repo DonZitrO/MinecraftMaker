@@ -7,7 +7,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import com.minecade.minecraftmaker.function.operation.Operation;
-import com.minecade.minecraftmaker.function.operation.OperationQueue;
+import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
@@ -101,7 +101,7 @@ public abstract class AbstractDelegateExtent implements Extent {
 		Operation ours = commitBefore();
 		Operation other = extent.commit();
 		if (ours != null && other != null) {
-			return new OperationQueue(ours, other);
+			return new ResumableOperationQueue(ours, other);
 		} else if (ours != null) {
 			return ours;
 		} else if (other != null) {

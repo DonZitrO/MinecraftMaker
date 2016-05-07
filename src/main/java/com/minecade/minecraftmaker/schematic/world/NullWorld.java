@@ -59,11 +59,6 @@ public class NullWorld extends AbstractWorld {
 	}
 
 	@Override
-	public boolean regenerate(Region region) {
-		return false;
-	}
-
-	@Override
 	public WorldData getWorldData() {
 		return LegacyWorldData.getInstance();
 	}

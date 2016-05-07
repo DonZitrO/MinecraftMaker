@@ -30,14 +30,20 @@ public class LevelOperatorTask extends BukkitRunnable {
 	@Override
 	public void run() {
 		// FIXME: only enable this for specific operator tasks debugging
-		//long startNanoTime = 0;
+		long startNanoTime = 0;
 		if (plugin.isDebugMode()) {
-			//startNanoTime = System.nanoTime();
+			startNanoTime = System.nanoTime();
 		}
 		try {
-			operationQueue.resume(new LimitedTimeRunContext(MAX_TIME_PER_TICK_NANOSECONDS));
+			Operation next = operationQueue.resume(new LimitedTimeRunContext(MAX_TIME_PER_TICK_NANOSECONDS));
 			if (plugin.isDebugMode()) {
-				//Bukkit.getLogger().info(String.format("MakerBuilderTask.run - operation took: [%s] nanoseconds", System.nanoTime() - startNanoTime));
+				long totalNanoTime = System.nanoTime() - startNanoTime;
+				if (totalNanoTime > MAX_TIME_PER_TICK_NANOSECONDS) {
+					Bukkit.getLogger().info(String.format("MakerBuilderTask.run - operation took: [%s] nanoseconds", totalNanoTime));
+				}
+				if (next != null && next != operationQueue) {
+					Bukkit.getLogger().severe(String.format("MakerBuilderTask.run - next operation ignored: [%s]", next));
+				}
 			}
 		} catch (MinecraftMakerException e) {
 			operationQueue.cancelCurrentOperation();

@@ -18,7 +18,7 @@ public class LevelClipboardPasteOperation implements Operation {
 	}
 
 	@Override
-	public Operation resume(RunContext runContext) throws MinecraftMakerException {
+	public Operation resume(LimitedTimeRunContext runContext) throws MinecraftMakerException {
 		if (firstRun) {
 			firstRun = false;
 			level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTE_READY, LevelStatus.PASTING_CLIPBOARD);

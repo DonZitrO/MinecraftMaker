@@ -37,7 +37,6 @@ import com.minecade.minecraftmaker.schematic.world.Vector;
 import com.minecade.minecraftmaker.schematic.world.Vector2D;
 import com.minecade.minecraftmaker.schematic.world.WorldData;
 
-@SuppressWarnings("deprecation")
 public class BukkitWorld extends AbstractWorld {
 
 	private static final Map<Integer, Effect> effects = new HashMap<Integer, Effect>();
@@ -128,56 +127,6 @@ public class BukkitWorld extends AbstractWorld {
 	@Override
 	public int getBlockLightLevel(Vector pt) {
 		return getWorld().getBlockAt(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ()).getLightLevel();
-	}
-
-	@Override
-	public boolean regenerate(Region region) {
-		// FIXME: find out how to wire up this again.
-		throw new UnsupportedOperationException();
-		// BaseBlock[] history = new BaseBlock[16 * 16 * (getMaxY() + 1)];
-		//
-		// for (Vector2D chunk : region.getChunks()) {
-		// Vector min = new Vector(chunk.getBlockX() * 16, 0, chunk.getBlockZ()
-		// * 16);
-		//
-		// // First save all the blocks inside
-		// for (int x = 0; x < 16; ++x) {
-		// for (int y = 0; y < (getMaxY() + 1); ++y) {
-		// for (int z = 0; z < 16; ++z) {
-		// Vector pt = min.add(x, y, z);
-		// int index = y * 16 * 16 + z * 16 + x;
-		// history[index] = editSession.getBlock(pt);
-		// }
-		// }
-		// }
-		//
-		// try {
-		// getWorld().regenerateChunk(chunk.getBlockX(), chunk.getBlockZ());
-		// } catch (Throwable t) {
-		// logger.log(Level.WARNING,
-		// "Chunk generation via Bukkit raised an error", t);
-		// }
-		//
-		// // Then restore
-		// for (int x = 0; x < 16; ++x) {
-		// for (int y = 0; y < (getMaxY() + 1); ++y) {
-		// for (int z = 0; z < 16; ++z) {
-		// Vector pt = min.add(x, y, z);
-		// int index = y * 16 * 16 + z * 16 + x;
-		//
-		// // We have to restore the block if it was outside
-		// if (!region.contains(pt)) {
-		// editSession.smartSetBlock(pt, history[index]);
-		// } else { // Otherwise fool with history
-		// editSession.rememberChange(pt, history[index],
-		// editSession.rawGetBlock(pt));
-		// }
-		// }
-		// }
-		// }
-		// }
-		//
-		// return true;
 	}
 
 	/**
@@ -277,6 +226,7 @@ public class BukkitWorld extends AbstractWorld {
 	public void fixAfterFastMode(Iterable<BlockVector2D> chunks) {
 		World world = getWorld();
 		for (BlockVector2D chunkPos : chunks) {
+			// TODO: check fast-mode combined with this and regenerate
 			world.refreshChunk(chunkPos.getBlockX(), chunkPos.getBlockZ());
 		}
 	}

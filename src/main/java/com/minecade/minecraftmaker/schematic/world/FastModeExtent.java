@@ -6,8 +6,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.minecade.minecraftmaker.function.operation.LimitedTimeRunContext;
 import com.minecade.minecraftmaker.function.operation.Operation;
-import com.minecade.minecraftmaker.function.operation.RunContext;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 
@@ -78,7 +78,7 @@ public class FastModeExtent extends AbstractDelegateExtent {
 	protected Operation commitBefore() {
 		return new Operation() {
 			@Override
-			public Operation resume(RunContext run) throws MinecraftMakerException {
+			public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
 				if (!dirtyChunks.isEmpty()) {
 					world.fixAfterFastMode(dirtyChunks);
 				}

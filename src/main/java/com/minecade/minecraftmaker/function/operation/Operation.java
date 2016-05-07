@@ -21,7 +21,7 @@ public interface Operation {
      * @return another operation to run that operation again, or null to stop
      * @throws MinecraftMakerException an error
      */
-    Operation resume(RunContext run) throws MinecraftMakerException;
+    Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException;
 
     /**
      * Abort the current task. After the this method is called,

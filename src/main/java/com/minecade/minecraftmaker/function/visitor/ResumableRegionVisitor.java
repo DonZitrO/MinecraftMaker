@@ -4,8 +4,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.minecade.minecraftmaker.function.RegionFunction;
+import com.minecade.minecraftmaker.function.operation.LimitedTimeRunContext;
 import com.minecade.minecraftmaker.function.operation.Operation;
-import com.minecade.minecraftmaker.function.operation.RunContext;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.world.BlockVector;
 import com.minecade.minecraftmaker.schematic.world.Region;
@@ -35,7 +35,7 @@ public class ResumableRegionVisitor implements Operation {
 	}
 
 	@Override
-	public Operation resume(RunContext run) throws MinecraftMakerException {
+	public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
 		while (regionIterator.hasNext() && run.shouldContinue()) {
 			if (function.apply(regionIterator.next())) {
 				affected++;

@@ -147,15 +147,6 @@ public interface World extends Extent {
 	void simulateBlockMine(Vector position);
 
 	/**
-	 * Regenerate an area.
-	 *
-	 * @param region
-	 *            the region
-	 * @return true if re-generation was successful
-	 */
-	boolean regenerate(Region region);
-
-	/**
 	 * Load the chunk at the given position if it isn't loaded.
 	 *
 	 * @param position

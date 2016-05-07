@@ -23,7 +23,7 @@ public class LevelClipboardCopyOperation implements Operation {
 	}
 
 	@Override
-	public Operation resume(RunContext run) throws MinecraftMakerException {
+	public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
 		if (firstRun) {
 			firstRun = false;
 			level.tryStatusTransition(LevelStatus.CLIPBOARD_COPY_READY, LevelStatus.COPYING_CLIPBOARD);

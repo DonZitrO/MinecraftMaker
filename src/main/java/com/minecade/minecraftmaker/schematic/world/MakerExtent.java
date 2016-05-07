@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.schematic.world;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -14,26 +16,22 @@ import com.minecade.minecraftmaker.schematic.util.Location;
 public class MakerExtent implements Extent {
 
 	protected final World world;
-
-	private @Nullable FastModeExtent fastModeExtent;
-	@SuppressWarnings("unused")
-	private final SurvivalModeExtent survivalExtent;
-
-	private final Extent bypassNone;
+	private final Extent internalExtent;
 
 	public MakerExtent(World world) {
-		super();
+		checkNotNull(world);
 		this.world = world;
-		if (world != null) {
-			Extent extent;
-			extent = fastModeExtent = new FastModeExtent(world, false);
-			extent = survivalExtent = new SurvivalModeExtent(extent, world);
-			this.bypassNone = extent;
-		} else {
-			Extent extent = new NullExtent();
-			extent = survivalExtent = new SurvivalModeExtent(extent, NullWorld.getInstance());
-			this.bypassNone = extent;
-		}
+		Extent extent;
+		extent = new FastModeExtent(world, false);
+		extent = new SurvivalModeExtent(extent, world);
+		extent = new BlockQuirkExtent(extent, world);
+		extent = new ChunkLoadingExtent(extent, world);
+		extent = new LastAccessExtentCache(extent);
+		extent = new DataValidatorExtent(extent, world);
+		// TODO: check if this extent it's useful on mcmaker
+		// extent = new BlockBagExtent(extent, blockBag);
+		extent = new MultiStageReorder(extent, true);
+		this.internalExtent = extent;
 	}
 
 	@Override
@@ -48,22 +46,22 @@ public class MakerExtent implements Extent {
 
 	@Override
 	public BaseBiome getBiome(Vector2D position) {
-		return bypassNone.getBiome(position);
+		return internalExtent.getBiome(position);
 	}
 
 	@Override
 	public boolean setBlock(Vector position, BaseBlock block) throws MinecraftMakerException {
-		return bypassNone.setBlock(position, block);
+		return internalExtent.setBlock(position, block);
 	}
 
 	@Override
 	public boolean setBiome(Vector2D position, BaseBiome biome) {
-		return bypassNone.setBiome(position, biome);
+		return internalExtent.setBiome(position, biome);
 	}
 
 	@Override
 	public @Nullable Operation commit() {
-		return bypassNone.commit();
+		return internalExtent.commit();
 	}
 
 	@Override
@@ -78,18 +76,18 @@ public class MakerExtent implements Extent {
 
 	@Override
 	public List<? extends Entity> getEntities(Region region) {
-		return bypassNone.getEntities(region);
+		return internalExtent.getEntities(region);
 	}
 
 	@Override
 	public List<? extends Entity> getEntities() {
-		return bypassNone.getEntities();
+		return internalExtent.getEntities();
 	}
 
 	@Override
 	@Nullable
 	public Entity createEntity(Location location, BaseEntity entity) {
-		return bypassNone.createEntity(location, entity);
+		return internalExtent.createEntity(location, entity);
 	}
 
 	public World getWorld() {

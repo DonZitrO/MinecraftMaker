@@ -14,7 +14,7 @@ import com.minecade.minecraftmaker.function.block.ExtentBlockCopy;
 import com.minecade.minecraftmaker.function.entity.ExtentEntityCopy;
 import com.minecade.minecraftmaker.function.mask.Mask;
 import com.minecade.minecraftmaker.function.mask.Masks;
-import com.minecade.minecraftmaker.function.visitor.EntityVisitor;
+import com.minecade.minecraftmaker.function.visitor.ResumableEntityVisitor;
 import com.minecade.minecraftmaker.function.visitor.ResumableRegionVisitor;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
@@ -218,7 +218,7 @@ public class ResumableForwardExtentCopy implements Operation {
 	}
 
 	@Override
-	public Operation resume(RunContext run) throws MinecraftMakerException {
+	public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
 		if (MinecraftMakerPlugin.getInstance().isDebugMode() && firstRun) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - start..."));
 			startNanoTime = System.nanoTime();
@@ -242,14 +242,18 @@ public class ResumableForwardExtentCopy implements Operation {
 			RegionFunction function = sourceFunction != null ? new CombinedRegionFunction(filter, sourceFunction) : filter;
 			ResumableRegionVisitor blockVisitor = new ResumableRegionVisitor(region, function);
 
+			// TODO: check how this entity copy stuff works and maybe move after destination commit.
 			ExtentEntityCopy entityCopy = new ExtentEntityCopy(from, destination, to, currentTransform);
 			entityCopy.setRemoving(removingEntities);
 			List<? extends Entity> entities = source.getEntities(region);
-			EntityVisitor entityVisitor = new EntityVisitor(entities.iterator(), entityCopy);
+			ResumableEntityVisitor entityVisitor = new ResumableEntityVisitor(entities.iterator(), entityCopy);
 
 			lastVisitor = blockVisitor;
 			currentTransform = currentTransform.combine(transform);
 			toResume = new DelegateOperation(this, new ResumableOperationQueue(blockVisitor, entityVisitor));
+		} else if (repetitions == 0) {
+			repetitions--;
+			toResume = new DelegateOperation(this, destination.commit());
 		} else if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		}

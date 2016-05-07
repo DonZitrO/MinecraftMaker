@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -600,7 +601,9 @@ public class MakerLevel implements Tickable {
 				mPlayer.sendMessage(plugin, "level.create.creative");
 				mPlayer.sendMessage(plugin, "level.create.beacon");
 				mPlayer.sendMessage(plugin, "level.create.menu");
-				mPlayer.sendMessage(plugin, "level.create.rename");
+				if (StringUtils.isBlank(this.levelName)) {
+					mPlayer.sendMessage(plugin, "level.create.rename");
+				}
 			} else {
 				mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.create.continue.title"), plugin.getMessage("level.create.continue.subtitle"));
 			}

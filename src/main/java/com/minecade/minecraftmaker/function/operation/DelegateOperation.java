@@ -2,6 +2,9 @@ package com.minecade.minecraftmaker.function.operation;
 
 import java.util.List;
 
+import org.bukkit.Bukkit;
+
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -31,7 +34,10 @@ public class DelegateOperation implements Operation {
 	}
 
 	@Override
-	public Operation resume(RunContext run) throws MinecraftMakerException {
+	public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
+		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | DelegateOperation.resume - about to resume operation: [%s]", delegate));
+		}
 		delegate = delegate.resume(run);
 		return delegate != null ? this : original;
 	}

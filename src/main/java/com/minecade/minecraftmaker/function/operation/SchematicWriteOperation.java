@@ -27,7 +27,7 @@ public class SchematicWriteOperation implements Operation {
 	}
 
 	@Override
-	public Operation resume(RunContext run) throws MinecraftMakerException {
+	public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
 		long startNanoTime = 0;
 		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | SchematicWriteOperation.resume - start..."));

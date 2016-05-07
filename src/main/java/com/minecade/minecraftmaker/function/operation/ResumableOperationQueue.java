@@ -7,7 +7,10 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 
+import org.bukkit.Bukkit;
+
 import com.google.common.collect.Lists;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 
 /**
@@ -81,10 +84,7 @@ public class ResumableOperationQueue implements Operation {
 	}
 
 	@Override
-	public Operation resume(RunContext run) throws MinecraftMakerException {
-		if (!(run instanceof ResumableRunContext)) {
-			throw new IllegalArgumentException("This operation is meant to run in a ResumableRunContext");
-		}
+	public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
 		if (current == null && !queue.isEmpty()) {
 			current = queue.poll();
 		}
@@ -92,6 +92,9 @@ public class ResumableOperationQueue implements Operation {
 			return current != null ? this : null;
 		}
 		if (current != null) {
+			if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | ResumableOperationQueue.resume - about to resume operation: [%s]", current));
+			}
 			current = current.resume(run);
 			if (current == null) {
 				current = queue.poll();
