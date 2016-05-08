@@ -739,6 +739,7 @@ public class MakerLevel implements Tickable {
 		}
 		this.status = LevelStatus.EDIT_READY;
 		mPlayer.sendActionMessage(plugin, "level.rename.success");
+		mPlayer.sendMessage(plugin, "level.rename.save-reminder");
 	}
 
 	private void tickRenameError() {

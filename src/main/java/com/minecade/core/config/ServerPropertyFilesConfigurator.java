@@ -58,7 +58,7 @@ public class ServerPropertyFilesConfigurator {
 		boolean changed = forcePropertyValue(bukkitConfig, "settings.connection-throttle", -1);
 		changed |= forcePropertyValue(bukkitConfig, "settings.allow-end", false);
 		changed |= forcePropertyValue(bukkitConfig, "worlds.world.generator", "VoidGenerator");
-		changed |= forcePropertyValue(bukkitConfig, "ticks-per.autosave", "0");
+		changed |= forcePropertyValue(bukkitConfig, "ticks-per.autosave", 0);
 		if (changed) {
 			Bukkit.getLogger().info(String.format("ServerPropertyFilesConfigurator.configureBukkitYML - bukkit.yml file changed - restarting server..."));
 			try {

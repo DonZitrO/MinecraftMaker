@@ -1,6 +1,5 @@
 package com.minecade.minecraftmaker.function.operation;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
@@ -170,26 +169,6 @@ public class ResumableForwardExtentCopy implements Operation {
 	}
 
 	/**
-	 * Get the number of repetitions left.
-	 *
-	 * @return the number of repetitions
-	 */
-	public int getRepetitions() {
-		return repetitions;
-	}
-
-	/**
-	 * Set the number of repetitions left.
-	 *
-	 * @param repetitions
-	 *            the number of repetitions
-	 */
-	public void setRepetitions(int repetitions) {
-		checkArgument(repetitions >= 0, "number of repetitions must be non-negative");
-		this.repetitions = repetitions;
-	}
-
-	/**
 	 * Return whether entities that are copied should be removed.
 	 *
 	 * @return true if removing
@@ -232,28 +211,23 @@ public class ResumableForwardExtentCopy implements Operation {
 		Operation toResume = null;
 		if (repetitions > 0) {
 			repetitions--;
-
 			if (currentTransform == null) {
 				currentTransform = transform;
 			}
-
 			ExtentBlockCopy blockCopy = new ExtentBlockCopy(source, from, destination, to, currentTransform);
 			RegionMaskingFilter filter = new RegionMaskingFilter(sourceMask, blockCopy);
 			RegionFunction function = sourceFunction != null ? new CombinedRegionFunction(filter, sourceFunction) : filter;
 			ResumableRegionVisitor blockVisitor = new ResumableRegionVisitor(region, function);
-
-			// TODO: check how this entity copy stuff works and maybe move after destination commit.
+			lastVisitor = blockVisitor;
+			currentTransform = currentTransform.combine(transform);
+			toResume = new DelegateOperation(this, blockVisitor);
+		} else if (repetitions == 0) {
+			repetitions--;
 			ExtentEntityCopy entityCopy = new ExtentEntityCopy(from, destination, to, currentTransform);
 			entityCopy.setRemoving(removingEntities);
 			List<? extends Entity> entities = source.getEntities(region);
 			ResumableEntityVisitor entityVisitor = new ResumableEntityVisitor(entities.iterator(), entityCopy);
-
-			lastVisitor = blockVisitor;
-			currentTransform = currentTransform.combine(transform);
-			toResume = new DelegateOperation(this, new ResumableOperationQueue(blockVisitor, entityVisitor));
-		} else if (repetitions == 0) {
-			repetitions--;
-			toResume = new DelegateOperation(this, destination.commit());
+			toResume = new DelegateOperation(this, new ResumableOperationQueue(destination.commit(), entityVisitor));
 		} else if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		}

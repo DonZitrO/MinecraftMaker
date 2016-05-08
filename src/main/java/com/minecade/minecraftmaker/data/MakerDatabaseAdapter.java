@@ -506,15 +506,15 @@ public class MakerDatabaseAdapter {
 				level.setLevelName(newName);
 				if (affected == 0) {
 					insertLevel(level);
+					if (level.getClipboard() != null) {
+						insertClipboard(levelId, level.getClipboard());
+					}
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
 				level.setLevelName(currentLevelName);
 				level.tryStatusTransition(LevelStatus.RENAMING, LevelStatus.RENAME_ERROR);
 				return;
-			}
-			if (affected == 0 && level.getClipboard() != null) {
-				insertClipboard(levelId, level.getClipboard());
 			}
 			level.tryStatusTransition(LevelStatus.RENAMING, LevelStatus.RENAMED);
 		} catch (Exception e) {

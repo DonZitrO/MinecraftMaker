@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.bukkit.Bukkit;
-
 import com.google.common.collect.Iterators;
 import com.minecade.core.util.TupleArrayList;
 import com.minecade.minecraftmaker.function.operation.LimitedTimeRunContext;

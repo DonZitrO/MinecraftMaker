@@ -309,7 +309,7 @@ public class MakerController implements Runnable, Tickable {
 		levelMap = new ConcurrentHashMap<>();
 		Bukkit.getScheduler().runTask(plugin, () -> MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld()));
 		// FIXME: remove DEV lobby
-		Bukkit.getScheduler().runTask(plugin, () -> initDevelopmentLobby());
+		// Bukkit.getScheduler().runTask(plugin, () -> initDevelopmentLobby());
 		globalTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, this, 0, 0);
 		initialized = true;
 	}
@@ -866,11 +866,10 @@ public class MakerController implements Runnable, Tickable {
 			player.sendMessage(plugin.getMessage("level.rename.error.no-editing"));
 			return;
 		}
-//		// save before rename
-//		if (mPlayer.getCurrentLevel().getLevelSerial() == 0) {
-//			player.sendMessage(plugin.getMessage("level.rename.error.save-first"));
-//			return;
-//		}
+		if (newName.equals(mPlayer.getCurrentLevel().getLevelName())) {
+			player.sendMessage(plugin.getMessage("level.rename.error.different-name"));
+			return;
+		}
 		// rename
 		mPlayer.getCurrentLevel().rename(newName);
 	}
