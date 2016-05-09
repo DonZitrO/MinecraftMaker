@@ -85,6 +85,8 @@ public class ServerPropertyFilesConfigurator {
 		}
 		boolean changed = forcePropertyValue(spigotConfig, "settings.bungeecord", true);
 		changed |= forcePropertyValue(spigotConfig, "settings.restart-on-crash", false);
+		changed |= forcePropertyValue(spigotConfig, "stats.disable-saving", true);
+		changed |= forcePropertyValue(spigotConfig, "stats.forced-stats.achievement.openInventory", 1);
 		if (changed) {
 			Bukkit.getLogger().info(String.format("ServerPropertyFilesConfigurator.configureSpigotYML - spigot.yml file changed - restarting server..."));
 			try {

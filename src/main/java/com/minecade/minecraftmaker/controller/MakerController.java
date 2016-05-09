@@ -60,7 +60,6 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.FilenameException;
-import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
@@ -84,9 +83,9 @@ public class MakerController implements Runnable, Tickable {
 	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
 	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
 
-	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.5d, 17.0d, 16.5d);
-	private static final float DEFAULT_SPAWN_YAW = -90f;
-	private static final float DEFAULT_SPAWN_PITCH = 0f;
+	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-15.0d, 25.0d, 80.0d);
+	private static final float DEFAULT_SPAWN_YAW = 90.0f;
+	private static final float DEFAULT_SPAWN_PITCH = -75.0f;
 
 	private final MinecraftMakerPlugin plugin;
 
@@ -212,7 +211,7 @@ public class MakerController implements Runnable, Tickable {
 		level.setAuthorName(author.getName());
 		author.sendActionMessage(plugin, "level.loading");
 		try {
-			level.setClipboard(LevelUtils.createEmptyLevelClipboard(getMainWorld(), level.getChunkZ(), floorBlockId));
+			level.setClipboard(LevelUtils.createEmptyLevelClipboard(level.getChunkZ(), floorBlockId));
 			level.tryStatusTransition(LevelStatus.BLANK, LevelStatus.CLIPBOARD_LOADED);
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
@@ -308,19 +307,8 @@ public class MakerController implements Runnable, Tickable {
 		});
 		levelMap = new ConcurrentHashMap<>();
 		Bukkit.getScheduler().runTask(plugin, () -> MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld()));
-		// FIXME: remove DEV lobby
-		// Bukkit.getScheduler().runTask(plugin, () -> initDevelopmentLobby());
 		globalTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, this, 0, 0);
 		initialized = true;
-	}
-
-	// FIXME: remove this
-	private void initDevelopmentLobby() {
-		try {
-			plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld()), getMakerExtent(), getMainWorldData()));
-		} catch (MinecraftMakerException e) {
-			e.printStackTrace();
-		}
 	}
 
 	@Override
@@ -902,7 +890,7 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 
-		Region levelRegion = LevelUtils.getLevelRegion(getMainWorld(), chunkZ);
+		Region levelRegion = LevelUtils.getLevelRegion(chunkZ);
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
 		clipboard.setOrigin(levelRegion.getMinimumPoint());
 		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());

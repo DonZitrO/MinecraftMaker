@@ -1,16 +1,16 @@
 package com.minecade.minecraftmaker.util;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
 import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
-import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
@@ -27,15 +27,21 @@ public class LevelUtils {
 
 	public static final Transform IDENTITY_TRANSFORM = new Identity();
 
-	private static final int HIGHEST_LEVEL_Y = 63;
-	private static final int FLOOR_LEVEL_Y = 16;
-	private static final int DEFAULT_LEVEL_WIDTH_CHUNKS = 5;
-	private static final int MAX_LEVEL_WIDTH_CHUNKS = 10;
-	private static final int MAX_LEVELS_PER_WORLD = 10;
+	private static final short HIGHEST_LEVEL_Y = 63;
+	private static final short FLOOR_LEVEL_Y = 16;
+	private static final short DEFAULT_LEVEL_WIDTH_CHUNKS = 5;
+	private static final short MAX_LEVEL_WIDTH_CHUNKS = 10;
+	private static final short MAX_LEVELS_PER_WORLD = 10;
 
-	public static Clipboard createEmptyLevelClipboard(World world, short chunkZ, int floorBlockId) throws MinecraftMakerException {
+	private static Clipboard createEmptyClipboard(Region region) throws MinecraftMakerException {
+		BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
+		clipboard.setOrigin(region.getMinimumPoint());
+		return clipboard;
+	}
 
-		Region region = getLevelRegion(world, chunkZ);
+	public static Clipboard createEmptyLevelClipboard(short chunkZ, int floorBlockId) throws MinecraftMakerException {
+
+		Region region = getLevelRegion(chunkZ);
 		Vector minimumPoint = region.getMinimumPoint();
 		Vector maximumPoint = region.getMaximumPoint();
 
@@ -99,63 +105,11 @@ public class LevelUtils {
 		return clipboard;
 	}
 
-	public static Clipboard createLobbyClipboard(World world) throws MinecraftMakerException {
-		Region region = getLobbyRegion(world);
-		Vector minimumPoint = region.getMinimumPoint();
-		Vector maximumPoint = region.getMaximumPoint();
-
-		BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
-		clipboard.setOrigin(minimumPoint);
-
-		// lobby floor
-		BaseBlock barrier = new BaseBlock(BlockID.BARRIER);
-		BaseBlock grass = new BaseBlock(BlockID.GRASS);
-		for (int x = minimumPoint.getBlockX(); x < maximumPoint.getBlockX(); x++) {
-			for (int z = minimumPoint.getBlockZ(); z < maximumPoint.getBlockZ(); z++) {
-				clipboard.setBlock(new Vector(x, minimumPoint.getBlockY(), z), barrier);
-				clipboard.setBlock(new Vector(x, minimumPoint.getBlockY() + 1, z), grass);
-			}
-		}
-		BaseBlock darkGlass = new BaseBlock(BlockID.GLASS, 15);
-		// construct the side walls
-		for (int x = minimumPoint.getBlockX(); x <= region.getMaximumPoint().getBlockX(); x++) {
-			for (int y = minimumPoint.getBlockY(); y <= region.getMaximumPoint().getBlockY(); y++) {
-				// left side wall
-				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ()), barrier);
-				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 1), (x % 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
-				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 2), barrier);
-				// right side wall
-				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ()), barrier);
-				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 1), (x % 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
-				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 2), barrier);
-			}
-		}
-		// construct the back and end walls
-		for (int y = minimumPoint.getBlockY(); y <= maximumPoint.getBlockY(); y++) {
-			for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ() - 3; z++) {
-				// triple back wall
-				clipboard.setBlock(new Vector(minimumPoint.getBlockX(), y, z), barrier);
-				clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 1, y, z), barrier);
-				clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, y, z), barrier);
-				// triple end wall
-				clipboard.setBlock(new Vector(maximumPoint.getBlockX(), y, z), barrier);
-				clipboard.setBlock(new Vector(maximumPoint.getBlockX() - 1, y, z), barrier);
-				clipboard.setBlock(new Vector(maximumPoint.getBlockX() - 2, y, z), barrier);
-			}
-		}
-		// construct the ceiling
-		for (int x = minimumPoint.getBlockX() + 1; x < maximumPoint.getBlockX(); x++) {
-			for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ() - 3; z++) {
-				clipboard.setBlock(new Vector(x, maximumPoint.getBlockY(), z), barrier);
-			}
-		}
-		return clipboard;
-	}
-
 	public static Operation createPasteOperation(Clipboard clipboard, Extent destination, WorldData worldData) {
 		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
 		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), destination, clipboard.getOrigin());
 		copy.setTransform(IDENTITY_TRANSFORM);
+		// TODO: possible performance improvement
 		boolean ignoreAirBlocks = false;
 		if (ignoreAirBlocks) {
 			copy.setSourceMask(new ExistingBlockMask(clipboard));
@@ -170,27 +124,28 @@ public class LevelUtils {
 		return new Vector(originX, originY, originZ);
 	}
 
-	public static Region getLevelRegion(World world, short chunkZ) {
+	public static Region getLevelRegion(short chunkZ) {
+		return getLevelRegion(chunkZ, DEFAULT_LEVEL_WIDTH_CHUNKS);
+	}
+
+	public static Region getLevelRegion(short chunkZ, short widthChunks) {
 		Vector origin = getLevelOrigin(chunkZ);
-		short width = DEFAULT_LEVEL_WIDTH_CHUNKS * 16;
+		short width = (short)(Math.min(widthChunks, MAX_LEVEL_WIDTH_CHUNKS) * 16);
 		short height = 66;
 		short length = 13;
-		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
+		return new CuboidRegion(origin, origin.add(width, height, length).subtract(Vector.ONE));
 	}
 
-	public static Vector getLobbyOrigin() {
-		short originX = -1;
-		short originY = FLOOR_LEVEL_Y - 1;
-		short originZ = -1;
-		return new Vector(originX, originY, originZ);
-	}
-
-	public static Region getLobbyRegion(World world) {
-		Vector origin = getLobbyOrigin();
-		short width = -18;
-		short height = 50;
-		short length = 166;
-		return new CuboidRegion(BukkitUtil.toWorld(world), origin, origin.add(width, height, length).subtract(Vector.ONE));
+	public static Clipboard createLevelRemainingEmptyClipboard(short chunkZ, Region levelRegion) throws MinecraftMakerException {
+		Region remainingRegion = getLevelRegion(chunkZ, MAX_LEVEL_WIDTH_CHUNKS);
+		remainingRegion.contract(new Vector(levelRegion.getWidth(), 0, 0));
+		Clipboard clipboard = createEmptyClipboard(remainingRegion);
+		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(
+			        String.format("[DEBUG] | LevelUtils.createLevelRemainingEmptyClipboard - revel region from: [%s] to: [%s] - remaining region from: [%s] to: [%s]",
+			                levelRegion.getMinimumPoint(), levelRegion.getMaximumPoint(), remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
+		}
+		return clipboard;
 	}
 
 	public static short getLocationSlot(org.bukkit.Location location) {
@@ -234,6 +189,93 @@ public class LevelUtils {
 		}
 		return false;
 	}
+
+	// public static Clipboard createLobbyClipboard(World world) throws
+	// MinecraftMakerException {
+	// Region region = getLobbyRegion(world);
+	// Vector minimumPoint = region.getMinimumPoint();
+	// Vector maximumPoint = region.getMaximumPoint();
+	//
+	// BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
+	// clipboard.setOrigin(minimumPoint);
+	//
+	// // lobby floor
+	// BaseBlock barrier = new BaseBlock(BlockID.BARRIER);
+	// BaseBlock grass = new BaseBlock(BlockID.GRASS);
+	// for (int x = minimumPoint.getBlockX(); x < maximumPoint.getBlockX(); x++)
+	// {
+	// for (int z = minimumPoint.getBlockZ(); z < maximumPoint.getBlockZ(); z++)
+	// {
+	// clipboard.setBlock(new Vector(x, minimumPoint.getBlockY(), z), barrier);
+	// clipboard.setBlock(new Vector(x, minimumPoint.getBlockY() + 1, z),
+	// grass);
+	// }
+	// }
+	// BaseBlock darkGlass = new BaseBlock(BlockID.GLASS, 15);
+	// // construct the side walls
+	// for (int x = minimumPoint.getBlockX(); x <=
+	// region.getMaximumPoint().getBlockX(); x++) {
+	// for (int y = minimumPoint.getBlockY(); y <=
+	// region.getMaximumPoint().getBlockY(); y++) {
+	// // left side wall
+	// clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ()), barrier);
+	// clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 1), (x %
+	// 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
+	// clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 2),
+	// barrier);
+	// // right side wall
+	// clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ()), barrier);
+	// clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 1), (x %
+	// 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
+	// clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 2),
+	// barrier);
+	// }
+	// }
+	// // construct the back and end walls
+	// for (int y = minimumPoint.getBlockY(); y <= maximumPoint.getBlockY();
+	// y++) {
+	// for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ()
+	// - 3; z++) {
+	// // triple back wall
+	// clipboard.setBlock(new Vector(minimumPoint.getBlockX(), y, z), barrier);
+	// clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 1, y, z),
+	// barrier);
+	// clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, y, z),
+	// barrier);
+	// // triple end wall
+	// clipboard.setBlock(new Vector(maximumPoint.getBlockX(), y, z), barrier);
+	// clipboard.setBlock(new Vector(maximumPoint.getBlockX() - 1, y, z),
+	// barrier);
+	// clipboard.setBlock(new Vector(maximumPoint.getBlockX() - 2, y, z),
+	// barrier);
+	// }
+	// }
+	// // construct the ceiling
+	// for (int x = minimumPoint.getBlockX() + 1; x < maximumPoint.getBlockX();
+	// x++) {
+	// for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ()
+	// - 3; z++) {
+	// clipboard.setBlock(new Vector(x, maximumPoint.getBlockY(), z), barrier);
+	// }
+	// }
+	// return clipboard;
+	// }
+
+	// public static Vector getLobbyOrigin() {
+	// short originX = -1;
+	// short originY = FLOOR_LEVEL_Y - 1;
+	// short originZ = -1;
+	// return new Vector(originX, originY, originZ);
+	// }
+	//
+	// public static Region getLobbyRegion(World world) {
+	// Vector origin = getLobbyOrigin();
+	// short width = -18;
+	// short height = 50;
+	// short length = 166;
+	// return new CuboidRegion(BukkitUtil.toWorld(world), origin,
+	// origin.add(width, height, length).subtract(Vector.ONE));
+	// }
 
 	private LevelUtils() {
 		super();

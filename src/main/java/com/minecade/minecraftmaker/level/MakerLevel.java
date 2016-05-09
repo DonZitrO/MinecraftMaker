@@ -263,7 +263,7 @@ public class MakerLevel implements Tickable {
 			return entities;
 		}
 		// FIXME: experimental - we could alternatively get the region from the clipboard and shift it to the right Z
-		Region region = LevelUtils.getLevelRegion(getWorld(), getChunkZ());
+		Region region = LevelUtils.getLevelRegion(getChunkZ());
 		for (Vector2D chunkVector : region.getChunks()) {
 			org.bukkit.Chunk chunk = plugin.getController().getMainWorld().getChunkAt(chunkVector.getBlockX(), chunkVector.getBlockZ());
 			for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
@@ -681,6 +681,17 @@ public class MakerLevel implements Tickable {
 		}
 		status = LevelStatus.CLIPBOARD_PASTE_READY;
 		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
+	}
+
+	public Region getRegion() {
+		if (clipboard == null || chunkZ < 0) {
+			return null;
+		}
+		Region region = clipboard.getRegion();
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.getRegion - region from: [%s] to: [%s]", region.getMinimumPoint(), region.getMaximumPoint()));
+		}
+		return region;
 	}
 
 	private void tickClipboardPasted() {

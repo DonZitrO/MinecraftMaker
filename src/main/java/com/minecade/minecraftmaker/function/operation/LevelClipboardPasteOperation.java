@@ -25,7 +25,7 @@ public class LevelClipboardPasteOperation implements Operation {
 			return new DelegateOperation(this, LevelUtils.createPasteOperation(level.getClipboard(), level.getMakerExtent(), level.getWorldData()));
 		}
 		level.tryStatusTransition(LevelStatus.PASTING_CLIPBOARD, LevelStatus.CLIPBOARD_PASTED);
-		return null;
+		return LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingEmptyClipboard(level.getChunkZ(), level.getRegion()), level.getMakerExtent(), level.getWorldData());
 	}
 
 	@Override

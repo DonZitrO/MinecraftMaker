@@ -27,9 +27,8 @@ public class LevelClipboardCopyOperation implements Operation {
 		if (firstRun) {
 			firstRun = false;
 			level.tryStatusTransition(LevelStatus.CLIPBOARD_COPY_READY, LevelStatus.COPYING_CLIPBOARD);
-			// FIXME: maybe do this somewhere else
 			if (level.getClipboard() == null) {
-				Region levelRegion = LevelUtils.getLevelRegion(plugin.getController().getMainWorld(), level.getChunkZ());
+				Region levelRegion = LevelUtils.getLevelRegion(level.getChunkZ());
 				BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
 				clipboard.setOrigin(levelRegion.getMinimumPoint());
 				level.setClipboard(clipboard);
