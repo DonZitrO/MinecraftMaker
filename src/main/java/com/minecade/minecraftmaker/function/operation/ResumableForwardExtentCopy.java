@@ -227,7 +227,12 @@ public class ResumableForwardExtentCopy implements Operation {
 			entityCopy.setRemoving(removingEntities);
 			List<? extends Entity> entities = source.getEntities(region);
 			ResumableEntityVisitor entityVisitor = new ResumableEntityVisitor(entities.iterator(), entityCopy);
-			toResume = new DelegateOperation(this, new ResumableOperationQueue(destination.commit(), entityVisitor));
+			Operation commit = destination.commit();
+			if (commit != null) {
+				toResume = new DelegateOperation(this, new ResumableOperationQueue(commit, entityVisitor));
+			} else {
+				toResume = new DelegateOperation(this, entityVisitor);
+			}
 		} else if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		}

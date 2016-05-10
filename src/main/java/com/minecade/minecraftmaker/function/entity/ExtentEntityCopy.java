@@ -2,7 +2,10 @@ package com.minecade.minecraftmaker.function.entity;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.bukkit.Bukkit;
+
 import com.minecade.minecraftmaker.function.EntityFunction;
+import com.minecade.minecraftmaker.schematic.bukkit.EntityType;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
@@ -73,6 +76,8 @@ public class ExtentEntityCopy implements EntityFunction {
 
 	@Override
 	public boolean apply(Entity entity) throws MinecraftMakerException {
+		EntityType registryType = entity.getFacet(EntityType.class);
+		Bukkit.getLogger().severe(String.format("Item: [%s]", registryType != null ? registryType.isItem() : false));
 		BaseEntity state = entity.getState();
 		if (state != null) {
 			Location newLocation;

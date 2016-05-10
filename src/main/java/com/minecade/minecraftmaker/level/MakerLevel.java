@@ -15,11 +15,14 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
+import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.function.operation.LevelClipboardCopyOperation;
 import com.minecade.minecraftmaker.function.operation.LevelClipboardPasteOperation;
@@ -44,7 +47,8 @@ public class MakerLevel implements Tickable {
 
 	private static final MakerRelativeLocationData RELATIVE_START_LOCATION = new MakerRelativeLocationData(2.5, 17, 6.5, -90f, 0);
 
-	private static final int MAX_LEVEL_ENTITIES = 10;
+	private static final int MAX_LEVEL_MOBS = 20;
+	private static final short MAX_LEVEL_ITEMS = 20;
 
 	private final MinecraftMakerPlugin plugin;
 
@@ -55,19 +59,16 @@ public class MakerLevel implements Tickable {
 	private String authorName;
 	private Short chunkZ;
 	private LevelStatus status;
-
 	private Clipboard clipboard;
-
 	private long clearedByAuthorMillis;
 	private Date datePublished;
-
 	private long favs;
 	private long likes;
 	private long dislikes;
-
 	private long startTime;
-
 	private UUID currentPlayerId;
+	private int lastMobCount;
+	private int lastItemCount;
 
 	private MakerRelativeLocationData relativeEndLocation;
 
@@ -259,6 +260,8 @@ public class MakerLevel implements Tickable {
 
 	public List<org.bukkit.entity.Entity> getEntities() {
 		List<org.bukkit.entity.Entity> entities = new ArrayList<>();
+		lastItemCount = 0;
+		lastMobCount = 0;
 		if (clipboard == null) {
 			return entities;
 		}
@@ -267,14 +270,24 @@ public class MakerLevel implements Tickable {
 		for (Vector2D chunkVector : region.getChunks()) {
 			org.bukkit.Chunk chunk = plugin.getController().getMainWorld().getChunkAt(chunkVector.getBlockX(), chunkVector.getBlockZ());
 			for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
-				if (EntityType.PLAYER.equals(entity.getType())) {
+				switch (entity.getType()) {
+				case PLAYER:
 					continue;
+				case DROPPED_ITEM:
+					lastItemCount++;
+					entities.add(entity);
+					break;
+				default:
+					if (entity instanceof LivingEntity) {
+						lastMobCount++;
+					}
+					entities.add(entity);
+					break;
 				}
-				entities.add(entity);
 			}
 		}
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.getEntities - current entity count: [%s] for level: [%s]", entities.size(), getLevelName()));
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.getEntities - current entity count: [%s] for level: [%s] - items: [%s] - mobs: [%s]", entities.size(), getLevelName(), lastItemCount, lastMobCount));
 		}
 		return entities;
 	}
@@ -370,8 +383,10 @@ public class MakerLevel implements Tickable {
 
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		// loading level for edition, stop mobs from moving/attacking
-		if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus()) && currentPlayerId == null) {
-			NMSUtils.stopMobFromMovingAndAttacking(event.getEntity());
+		if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus())) {
+			if (currentPlayerId == null) {
+				NMSUtils.stopMobFromMovingAndAttacking(event.getEntity());
+			}
 			return;
 		}
 		if (LevelStatus.EDITING.equals(getStatus())) {
@@ -385,19 +400,44 @@ public class MakerLevel implements Tickable {
 			default:
 				break;
 			}
-			// entity count restriction
-			int entityCount = getEntities().size();
+			// mob count restriction
+			getEntities();
 			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onCreatureSpawn - current entity count: [%s]", entityCount));
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onCreatureSpawn - current mob count: [%s]", lastMobCount));
 			}
-			if (entityCount >= MAX_LEVEL_ENTITIES) {
+			if (lastMobCount >= MAX_LEVEL_MOBS) {
 				event.setCancelled(true);
-				plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.mob-limit", entityCount);
+				plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.mob-limit", lastMobCount);
 				return;
 			}
 			NMSUtils.stopMobFromMovingAndAttacking(event.getEntity());
 			return;
 		}
+		Bukkit.getLogger().warning(String.format("MakerLevel.onCreatureSpawn - illegal creature spawn on level: [%s] with status: [%s]", getLevelName(), getStatus()));
+		event.setCancelled(true);
+	}
+
+	public void onPlayerDropItem(PlayerDropItemEvent event) {
+		if (LevelStatus.EDITING.equals(getStatus())) {
+			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
+				event.setCancelled(true);
+				return;
+			}
+			// item count restriction
+			getEntities();
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onPlayerDropItem - current item count: [%s]", lastItemCount));
+			}
+			if (lastItemCount >= MAX_LEVEL_ITEMS) {
+				event.setCancelled(true);
+				plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.item-limit", lastItemCount);
+				return;
+			}
+			NMSUtils.stopItemFromDespawning(event.getItemDrop());
+			return;
+		}
+		Bukkit.getLogger().warning(String.format("MakerLevel.onPlayerDropItem - illegal item drop on level: [%s] with status: [%s]", getLevelName(), getStatus()));
+		event.setCancelled(true);
 	}
 
 	public synchronized void onPlayerQuit() {

@@ -9,7 +9,6 @@ import com.minecade.minecraftmaker.function.operation.LimitedTimeRunContext;
 import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
-import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 
 public class LevelOperatorTask extends BukkitRunnable {
 
@@ -35,22 +34,19 @@ public class LevelOperatorTask extends BukkitRunnable {
 			startNanoTime = System.nanoTime();
 		}
 		try {
-			Operation next = operationQueue.resume(new LimitedTimeRunContext(MAX_TIME_PER_TICK_NANOSECONDS));
+			operationQueue.resume(new LimitedTimeRunContext(MAX_TIME_PER_TICK_NANOSECONDS));
 			if (plugin.isDebugMode()) {
 				long totalNanoTime = System.nanoTime() - startNanoTime;
 				if (totalNanoTime > MAX_TIME_PER_TICK_NANOSECONDS) {
-					Bukkit.getLogger().info(String.format("MakerBuilderTask.run - operation took: [%s] nanoseconds", totalNanoTime));
-				}
-				if (next != null && next != operationQueue) {
-					Bukkit.getLogger().severe(String.format("MakerBuilderTask.run - next operation ignored: [%s]", next));
+					Bukkit.getLogger().info(String.format("[DEBUG] | MakerBuilderTask.run - operation took: [%s] nanoseconds", totalNanoTime));
 				}
 			}
-		} catch (MinecraftMakerException e) {
+		} catch (Exception e) {
 			operationQueue.cancelCurrentOperation();
 			Bukkit.getLogger().severe(String.format("MakerBuilderTask.run - a severe exception occurred on the Builder Task: %s", e.getMessage()));
 			e.printStackTrace();
 			// TODO: remove this once the right exception handling is fully implemented.
-			Bukkit.shutdown();
+			// Bukkit.shutdown();
 		}
 	}
 

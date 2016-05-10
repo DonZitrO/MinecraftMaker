@@ -116,7 +116,7 @@ public class MakerListener implements Listener {
 	@EventHandler(ignoreCancelled = true)
 	public void onInventoryClick(InventoryClickEvent event) {
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MainListener.onInventoryClick - Player: [%s] - Inventory: [%s] - Slot: [%s]", event.getWhoClicked().getName(), event.getInventory().getName(), event.getSlot()));
+			Bukkit.getLogger().info(String.format("[DEBUG] | MainListener.onInventoryClick - Player: [%s] - Inventory: [%s] - Slot type: [%s] - Slot: [%s]", event.getWhoClicked().getName(), event.getInventory().getName(), event.getSlotType(), event.getSlot()));
 		}
 		plugin.getController().onInventoryClick(event);
 	}
@@ -131,15 +131,17 @@ public class MakerListener implements Listener {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerDropItem - Player: [%s] - ItemDrop: [%s] - Cancelled: [%s]", event.getPlayer().getName(), event.getItemDrop().getType(), event.isCancelled()));
 		}
-		event.setCancelled(true);
-		final Player player = event.getPlayer();
-		new BukkitRunnable() {
-			public void run() {
-				if (player.isOnline()) {
-					player.updateInventory();
+		plugin.getController().onPlayerDropItem(event);
+		if (event.isCancelled()) {
+			final Player player = event.getPlayer();
+			new BukkitRunnable() {
+				public void run() {
+					if (player.isOnline()) {
+						player.updateInventory();
+					}
 				}
-			}
-		}.runTask(plugin);
+			}.runTask(plugin);
+		}
 	}
 
 	@EventHandler

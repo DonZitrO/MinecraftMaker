@@ -28,6 +28,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -83,9 +84,9 @@ public class MakerController implements Runnable, Tickable {
 	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
 	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
 
-	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-15.0d, 25.0d, 80.0d);
+	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-15.0d, 45.0d, 80.0d);
 	private static final float DEFAULT_SPAWN_YAW = 90.0f;
-	private static final float DEFAULT_SPAWN_PITCH = -75.0f;
+	private static final float DEFAULT_SPAWN_PITCH = -15.0f;
 
 	private final MinecraftMakerPlugin plugin;
 
@@ -538,6 +539,22 @@ public class MakerController implements Runnable, Tickable {
 		level.onCreatureSpawn(event);
 	}
 
+	public void onPlayerDropItem(PlayerDropItemEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getItemDrop().getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerDropItem - cancelled item drop outside level - location: [%s]", event.getItemDrop().getLocation().toVector()));
+			return;
+		}
+		MakerLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerDropItem - cancelled item drop on unregistered level slot - location: [%s]", event.getItemDrop().getLocation().toVector()));
+			return;
+		}
+		level.onPlayerDropItem(event);
+	}
+
 	public void onEntityDamage(EntityDamageEvent event) {
 		if (!(event.getEntity() instanceof Player)) {
 			return;
@@ -592,14 +609,23 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
+		// priority for quickbar menu items
+		if (event.getSlotType() == SlotType.QUICKBAR && onMenuItemClick(mPlayer, event.getCurrentItem())) {
+			event.setCancelled(true);
+			return;
+		}
 		// specific options for editors
 		if (mPlayer.isEditingLevel()) {
 			// allow editors to interact with creative inventory
 			if(event.getInventory().getName().equals("container.inventory")) {
+				if (ItemUtils.itemNameEquals(event.getCurrentItem(), GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
+					event.setCancelled(true);
+					mPlayer.updateInventoryOnNextTick();
+				}
 				return;
 			}
 		}
-		// cancel inventory right click entirely
+		// cancel inventory right click entirely on the rest of scenarios
 		if (event.isRightClick()) {
 			event.setCancelled(true);
 			mPlayer.updateInventoryOnNextTick();
@@ -615,11 +641,6 @@ public class MakerController implements Runnable, Tickable {
 				}
 			}
 			return;
-		} else if (event.getSlotType() == SlotType.QUICKBAR) {
-			if (onMenuItemClick(mPlayer, event.getCurrentItem())) {
-				event.setCancelled(true);
-				return;
-			}
 		}
 	}
 
