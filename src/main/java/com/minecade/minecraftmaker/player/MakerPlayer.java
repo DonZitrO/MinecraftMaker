@@ -270,6 +270,7 @@ public class MakerPlayer implements Tickable {
 		player.getInventory().addItem(MakerLobbyItem.LEVEL_BROWSER.getItem());
 		// leave item
 		player.getInventory().setItem(8, MakerLobbyItem.QUIT.getItem());
+		player.getInventory().setHeldItemSlot(4);
 		// update inventory on the next tick
 		dirtyInventory = true;
 	}

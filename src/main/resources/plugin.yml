@@ -5,6 +5,10 @@ authors: [SethBling, tux2, DonZitrO]
 load: startup
 commands:
   level:
-    description: Used by devs to manipulate levels
-    usage: 'Usage: /level <create|save|load> <level-name> <chunk-z>'
-    permission-message: '§4Only console and ops are allowed to use this command!'
+    description: Used by level owners to manipulate levels
+    usage: 'Usage: /level <create|save|load|rename> <params>'
+    permission-message: '§4You are not allowed to use this command!'
+  report:
+    description: Used by players to report issues
+    usage: 'Usage: /report <report>'
+    permission-message: '§4You are not allowed to use this command!'

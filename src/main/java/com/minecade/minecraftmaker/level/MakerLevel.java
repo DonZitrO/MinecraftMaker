@@ -720,7 +720,8 @@ public class MakerLevel implements Tickable {
 			return;
 		}
 		status = LevelStatus.CLIPBOARD_PASTE_READY;
-		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
+		// a tick delay to allow entity removal by Vanilla
+		Bukkit.getScheduler().runTask(plugin, ()-> plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this)));
 	}
 
 	public Region getRegion() {

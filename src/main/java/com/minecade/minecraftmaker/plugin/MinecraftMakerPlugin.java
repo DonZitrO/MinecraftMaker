@@ -15,6 +15,7 @@ import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.util.BungeeUtils;
 import com.minecade.core.util.EmptyGenerator;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
+import com.minecade.minecraftmaker.cmd.ReportCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
@@ -102,6 +103,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		getServer().getMessenger().registerOutgoingPluginChannel(this, BungeeUtils.BUNGEECORD_CHANNEL);
 		// register commands
 		getCommand("level").setExecutor(new LevelCommandExecutor(this));
+		getCommand("report").setExecutor(new ReportCommandExecutor(this));
 		databaseAdapter = new MakerDatabaseAdapter(this);
 		// async player data saver
 		asyncLevelSaver = new AsyncLevelSaverTask(this);

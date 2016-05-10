@@ -31,7 +31,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-		// only player ops are allowed
+		// only players allowed
 		if (!(sender instanceof Player)) {
 			sender.sendMessage(command.getPermissionMessage());
 			return true;
@@ -53,7 +53,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 				sender.sendMessage(plugin.getMessage("level.rename.error.empty-name"));
 				return true;
 			}
-			if (name.length() > 32) {
+			if (name.length() > 30) {
 				sender.sendMessage(plugin.getMessage("level.rename.error.too-long"));
 				return true;
 			}
