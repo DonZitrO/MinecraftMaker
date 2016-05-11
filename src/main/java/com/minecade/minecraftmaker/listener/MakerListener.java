@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
@@ -68,6 +69,14 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockBreak - block type: [%s] - location: [%s] - cancelled: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.isCancelled()));
 		}
 		plugin.getController().onBlockBreak(event);
+	}
+
+	@EventHandler
+	public void onBlockFromTo(BlockFromToEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockFromTo - block type: [%s] - to block type: [%s] - location: [%s] - cancelled: [%s]", event.getBlock().getType(), event.getToBlock().getType(), event.getBlock().getLocation().toVector(), event.isCancelled()));
+		}
+		plugin.getController().onBlockFromTo(event);
 	}
 
 	@EventHandler

@@ -19,6 +19,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -523,6 +524,27 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void onBlockFromTo(BlockFromToEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
+		if (slot < 0) {
+			// this should allow water to flow in lobby
+			return;
+		}
+		MakerLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockFromTo - cancelled liquid block flowing on unregistered level slot - from: [%s] - to: [%s] - location: [%s]", event.getBlock().getType(), event.getToBlock().getType()));
+			return;
+		}
+		if (level.isBusy()) {
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.onBlockFromTo - cancelled liquid block flowing on busy level: [%s<%s>] with status: [%s]", level.getLevelName(), level.getLevelId(), level.getStatus()));
+			}
+			event.setCancelled(true);
+			return;
+		}
+	}
+	
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		short slot = LevelUtils.getLocationSlot(event.getLocation());
 		if (slot < 0) {
