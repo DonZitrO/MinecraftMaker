@@ -27,12 +27,11 @@ public class LevelClipboardCopyOperation implements Operation {
 		if (firstRun) {
 			firstRun = false;
 			level.tryStatusTransition(LevelStatus.CLIPBOARD_COPY_READY, LevelStatus.COPYING_CLIPBOARD);
-			if (level.getClipboard() == null) {
-				Region levelRegion = LevelUtils.getLevelRegion(level.getChunkZ());
-				BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
-				clipboard.setOrigin(levelRegion.getMinimumPoint());
-				level.setClipboard(clipboard);
-			}
+			// we need a fresh clipboard every time
+			Region levelRegion = LevelUtils.getLevelRegion(level.getChunkZ());
+			BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
+			clipboard.setOrigin(levelRegion.getMinimumPoint());
+			level.setClipboard(clipboard);
 			ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(plugin.getController().getMakerExtent(), level.getClipboard().getRegion(), level.getClipboard(), level.getClipboard().getOrigin());
 			return new DelegateOperation(this, copy);
 		}
