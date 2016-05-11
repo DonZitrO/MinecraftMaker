@@ -158,6 +158,26 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
+	private synchronized void insertLevelClear(UUID levelId, UUID playerId, long clearTimeMillis) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerDatabaseAdapter.insertLevelClear - inserting level clear time millis: [%s] for level: [%s] and player: [%s]", clearTimeMillis, levelId, playerId));
+		}
+		String levelIdString = levelId.toString().replace("-", "");
+		String playerIdString = playerId.toString().replace("-", "");
+		try (PreparedStatement insertLevelClearSt = getConnection().prepareStatement("INSERT INTO `mcmaker`.`level_clears` (`level_id`, `player_id`, `time_cleared`) VALUES (UNHEX(?), UNHEX(?), ?)")) {
+			insertLevelClearSt.setString(1, levelIdString);
+			insertLevelClearSt.setString(2, playerIdString);
+			insertLevelClearSt.setLong(3, clearTimeMillis);
+			insertLevelClearSt.executeUpdate();
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerDatabaseAdapter.insertLevelClear - unable to insert level clear time millis: [%s] for level: [%s] and player: [%s] - %s", clearTimeMillis, levelId, playerId, e.getMessage()));
+			e.printStackTrace();
+		}
+	}
+
 	private UUID insertOrUpdateRelativeLocation(MakerRelativeLocationData relativeEndLocation) throws SQLException {
 		if (relativeEndLocation.getLocationId() == null) {
 			relativeEndLocation.setLocationId(UUID.randomUUID());
@@ -186,6 +206,25 @@ public class MakerDatabaseAdapter {
 			}
 		}
 		return relativeEndLocation.getLocationId();
+	}
+
+	private synchronized void insertReport(UUID playerId, String playerName, String report) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerDatabaseAdapter.insertReport - inserting report from player: [%s<%s>] - %s", playerId, playerName, report));
+		}
+		String playerIdString = playerId.toString().replace("-", "");
+		try (PreparedStatement insertReportSt = getConnection().prepareStatement("INSERT INTO `mcmaker`.`reports` (player_id, player_name, report) VALUES (UNHEX(?), ?, ?)")) {
+			insertReportSt.setString(1, playerIdString);
+			insertReportSt.setString(2, playerName);
+			insertReportSt.setString(3, report);
+			insertReportSt.executeUpdate();
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerDatabaseAdapter.insertReport - unable to insert report: [%s] - from player: [%s<%s>] - %s", report, playerId, playerName, e.getMessage()));
+			e.printStackTrace();
+		}
 	}
 
 	private synchronized void likeLevel(UUID levelId, UUID playerId, boolean dislike) {
@@ -602,29 +641,6 @@ public class MakerDatabaseAdapter {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> renameLevel(level, newName));
 	}
 
-	private synchronized void report(UUID playerId, String playerName, String report) {
-		if (Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method should not be called from the main thread");
-		}
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerDatabaseAdapter.report - inserting report from player: [%s<%s>] - %s", playerId, playerName, report));
-		}
-		String playerIdString = playerId.toString().replace("-", "");
-		try (PreparedStatement insertReportSt = getConnection().prepareStatement("INSERT INTO `mcmaker`.`reports` (player_id, player_name, report) VALUES (UNHEX(?), ?, ?)")) {
-			insertReportSt.setString(1, playerIdString);
-			insertReportSt.setString(2, playerName);
-			insertReportSt.setString(3, report);
-			insertReportSt.executeUpdate();
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerDatabaseAdapter.report - unable to insert report: [%s] - from player: [%s<%s>] - %s", report, playerId, playerName, e.getMessage()));
-			e.printStackTrace();
-		}
-	}
-
-	public void reportAsync(UUID playerId, String playerName, String report) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> report(playerId, playerName, report));
-	}
-
 	public synchronized void saveLevel(MakerLevel level) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
@@ -676,6 +692,14 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
+	public void saveLevelClearAsync(UUID levelId, UUID playerId, long clearTimeMillis) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> insertLevelClear(levelId, playerId, clearTimeMillis));
+	}
+
+	public void saveReportAsync(UUID playerId, String playerName, String report) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> insertReport(playerId, playerName, report));
+	}
+
 	public boolean testConnection() {
 		try {
 			getConnection();
@@ -708,10 +732,6 @@ public class MakerDatabaseAdapter {
 
 	public void updateLevelAuthorClearTimeAsync(UUID levelId, long clearTimeMillis) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> updateLevelAuthorClearTime(levelId, clearTimeMillis));
-	}
-
-	public void updateLevelClearAsync(UUID levelId, UUID uniqueId, long clearTimeMillis) {
-		// TODO Auto-generated method stub
 	}
 
 }

@@ -34,7 +34,7 @@ public class ReportCommandExecutor extends AbstractCommandExecutor {
 			sender.sendMessage(plugin.getMessage("command.report.error.too-long"));
 			return true;
 		}
-		plugin.getDatabaseAdapter().reportAsync(((Player)sender).getUniqueId(), sender.getName(), report);
+		plugin.getDatabaseAdapter().saveReportAsync(((Player)sender).getUniqueId(), sender.getName(), report);
 		sender.sendMessage(plugin.getMessage("command.report.success"));
 		return true;
 	}

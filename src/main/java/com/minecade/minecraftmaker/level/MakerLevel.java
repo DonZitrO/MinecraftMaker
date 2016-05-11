@@ -130,6 +130,8 @@ public class MakerLevel implements Tickable {
 			disable(e.getMessage(), e);
 			return;
 		}
+		// TODO: warning - we get here assuming the level is published
+		plugin.getDatabaseAdapter().saveLevelClearAsync(getLevelId(), mPlayer.getUniqueId(), clearTimeMillis);
 		if (authorId.equals(mPlayer.getUniqueId())) {
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.clearLevel - author cleared published level: [%s]", getLevelName()));
@@ -138,8 +140,6 @@ public class MakerLevel implements Tickable {
 				this.clearedByAuthorMillis = clearTimeMillis;
 				plugin.getDatabaseAdapter().updateLevelAuthorClearTimeAsync(getLevelId(), clearTimeMillis);
 			}
-		} else {
-			plugin.getDatabaseAdapter().updateLevelClearAsync(getLevelId(), mPlayer.getUniqueId(), clearTimeMillis);
 		}
 		mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.clear.title"), plugin.getMessage("level.clear.subtitle", formatMillis(clearTimeMillis)));
 		mPlayer.sendMessage(plugin, "level.clear.time", formatMillis(clearTimeMillis));
@@ -272,7 +272,7 @@ public class MakerLevel implements Tickable {
 			for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
 				switch (entity.getType()) {
 				case PLAYER:
-					continue;
+					break;
 				case DROPPED_ITEM:
 					lastItemCount++;
 					entities.add(entity);

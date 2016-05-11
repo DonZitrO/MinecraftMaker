@@ -40,7 +40,6 @@ public class ResumableForwardExtentCopy implements Operation {
 	private final Region region;
 	private final Vector from;
 	private final Vector to;
-	private int repetitions = 1;
 	private Mask sourceMask = Masks.alwaysTrue();
 	private boolean removingEntities;
 	private RegionFunction sourceFunction = null;
@@ -48,7 +47,7 @@ public class ResumableForwardExtentCopy implements Operation {
 	private Transform currentTransform = null;
 	private ResumableRegionVisitor lastVisitor;
 	private int affected;
-	private boolean firstRun = true;
+	private int runs = 0;
 	private long startNanoTime = 0;
 
 	/**
@@ -198,19 +197,23 @@ public class ResumableForwardExtentCopy implements Operation {
 
 	@Override
 	public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
-		if (MinecraftMakerPlugin.getInstance().isDebugMode() && firstRun) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - start..."));
-			startNanoTime = System.nanoTime();
-		}
-		firstRun = false;
+
 		if (lastVisitor != null) {
 			affected += lastVisitor.getAffected();
 			lastVisitor = null;
 		}
 
-		Operation toResume = null;
-		if (repetitions > 0) {
-			repetitions--;
+		if (runs == -1) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - cancelled: [%s]", this));
+			return null;
+		}
+
+		if (runs == 0) {
+			runs++;
+			if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - first run: [%s]", this));
+				startNanoTime = System.nanoTime();
+			}
 			if (currentTransform == null) {
 				currentTransform = transform;
 			}
@@ -220,27 +223,29 @@ public class ResumableForwardExtentCopy implements Operation {
 			ResumableRegionVisitor blockVisitor = new ResumableRegionVisitor(region, function);
 			lastVisitor = blockVisitor;
 			currentTransform = currentTransform.combine(transform);
-			toResume = new DelegateOperation(this, blockVisitor);
-		} else if (repetitions == 0) {
-			repetitions--;
+			return new DelegateOperation(this, blockVisitor);
+		} else if (runs == 1) {
+			runs++;
 			ExtentEntityCopy entityCopy = new ExtentEntityCopy(from, destination, to, currentTransform);
 			entityCopy.setRemoving(removingEntities);
 			List<? extends Entity> entities = source.getEntities(region);
 			ResumableEntityVisitor entityVisitor = new ResumableEntityVisitor(entities.iterator(), entityCopy);
 			Operation commit = destination.commit();
 			if (commit != null) {
-				toResume = new DelegateOperation(this, new ResumableOperationQueue(commit, entityVisitor));
+				return new DelegateOperation(this, new ResumableOperationQueue(commit, entityVisitor));
 			} else {
-				toResume = new DelegateOperation(this, entityVisitor);
+				return new DelegateOperation(this, entityVisitor);
 			}
-		} else if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+		} 
+		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		}
-		return toResume;
+		return null;
 	}
 
 	@Override
 	public void cancel() {
+		runs = -1;
 	}
 
 	@Override
