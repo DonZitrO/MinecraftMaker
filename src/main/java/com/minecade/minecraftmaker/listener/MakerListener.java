@@ -9,6 +9,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
@@ -56,14 +57,6 @@ public class MakerListener implements Listener {
 	}
 
 	@EventHandler
-	public void onPlayerRespawn(final PlayerRespawnEvent event) {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerRespawn - Player: [%s] - Respawn location: [%s]", event.getPlayer().getName(), event.getRespawnLocation().toVector()));
-		}
-		plugin.getController().onPlayerRespawn(event);
-	}
-
-	@EventHandler
 	public void onBlockBreak(BlockBreakEvent event) {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockBreak - block type: [%s] - location: [%s] - cancelled: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.isCancelled()));
@@ -80,11 +73,33 @@ public class MakerListener implements Listener {
 	}
 
 	@EventHandler
+	public void onBlockPistonExtend(BlockPistonExtendEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockPistonExtend - location: [%s] - cancelled: [%s]", event.getBlock().getLocation().toVector(), event.isCancelled()));
+		}
+		plugin.getController().onBlockPistonExtend(event);
+	}
+
+	@EventHandler
 	public void onBlockPlace(BlockPlaceEvent event) {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockPlace - block type: [%s] - location: [%s] - cancelled: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.isCancelled()));
 		}
 		plugin.getController().onBlockPlace(event);
+	}
+
+	@EventHandler
+	public void onCreatureSpawn(CreatureSpawnEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureSpawn - Entity type: [%s] - Reason: [%s] - Location: [%s] - Cancelled: [%s]", event.getEntityType(), event.getSpawnReason(), event.getLocation().toVector(), event.isCancelled()));
+		}
+		// disable naturally spawning creatures
+		if (event.getSpawnReason() == SpawnReason.NATURAL) {
+			event.setCancelled(true);
+			return;
+		}
+		event.getEntity().setRemoveWhenFarAway(false);
+		plugin.getController().onCreatureSpawn(event);
 	}
 
 	@EventHandler
@@ -101,20 +116,6 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityDamage - Entity: [%s] - Cause: [%s] - Damage: [%s] - Cancelled: [%s]", event.getEntity().getName(), event.getCause(), event.getDamage(), event.isCancelled()));
 		}
 		plugin.getController().onEntityDamage(event);
-	}
-
-	@EventHandler
-	public void onCreatureSpawn(CreatureSpawnEvent event) {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureSpawn - Entity type: [%s] - Reason: [%s] - Location: [%s] - Cancelled: [%s]", event.getEntityType(), event.getSpawnReason(), event.getLocation().toVector(), event.isCancelled()));
-		}
-		// disable naturally spawning creatures
-		if (event.getSpawnReason() == SpawnReason.NATURAL) {
-			event.setCancelled(true);
-			return;
-		}
-		event.getEntity().setRemoveWhenFarAway(false);
-		plugin.getController().onCreatureSpawn(event);
 	}
 
 	@EventHandler
@@ -206,6 +207,14 @@ public class MakerListener implements Listener {
 		Bukkit.getLogger().info(String.format("MakerListener.onPlayerQuit - Player: [%s<%s>]", event.getPlayer().getName(), event.getPlayer().getUniqueId()));
 		event.setQuitMessage(null);
 		plugin.getController().onPlayerQuit(event.getPlayer());
+	}
+
+	@EventHandler
+	public void onPlayerRespawn(final PlayerRespawnEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerRespawn - Player: [%s] - Respawn location: [%s]", event.getPlayer().getName(), event.getRespawnLocation().toVector()));
+		}
+		plugin.getController().onPlayerRespawn(event);
 	}
 
 }

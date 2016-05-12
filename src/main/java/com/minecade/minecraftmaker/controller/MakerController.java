@@ -20,6 +20,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -561,6 +562,22 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		level.onCreatureSpawn(event);
+	}
+
+	public void onBlockPistonExtend(BlockPistonExtendEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockPistonExtend - cancelled piston push outside level - location: [%s]", event.getBlock().getLocation().toVector()));
+			return;
+		}
+		MakerLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockPistonExtend - cancelled piston push on unregistered level slot - location: [%s]", event.getBlock().getLocation().toVector()));
+			return;
+		}
+		level.onBlockPistonExtend(event);
 	}
 
 	public void onPlayerDropItem(PlayerDropItemEvent event) {

@@ -18,6 +18,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
@@ -392,6 +393,22 @@ public class MakerLevel implements Tickable {
 
 	private boolean isPublished() {
 		return datePublished != null;
+	}
+
+	public void onBlockPistonExtend(BlockPistonExtendEvent event) {
+		if (isBusy()) {
+			event.setCancelled(true);
+			return;
+		}
+		if (this.relativeEndLocation != null) {
+			Location end = getEndLocation();
+			for (Block toMove : event.getBlocks()) {
+				if (LevelUtils.isAboveLocation(toMove.getRelative(event.getDirection()).getLocation().toVector(), end.toVector())) {
+					event.setCancelled(true);
+					return;
+				}
+			}
+		}
 	}
 
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
