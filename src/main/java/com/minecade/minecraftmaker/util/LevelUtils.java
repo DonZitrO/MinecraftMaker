@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -105,6 +107,18 @@ public class LevelUtils {
 		return clipboard;
 	}
 
+	public static Clipboard createLevelRemainingEmptyClipboard(short chunkZ, Region levelRegion) throws MinecraftMakerException {
+		Region remainingRegion = getLevelRegion(chunkZ, MAX_LEVEL_WIDTH_CHUNKS);
+		remainingRegion.contract(new Vector(levelRegion.getWidth(), 0, 0));
+		Clipboard clipboard = createEmptyClipboard(remainingRegion);
+		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(
+			        String.format("[DEBUG] | LevelUtils.createLevelRemainingEmptyClipboard - revel region from: [%s] to: [%s] - remaining region from: [%s] to: [%s]",
+			                levelRegion.getMinimumPoint(), levelRegion.getMaximumPoint(), remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
+		}
+		return clipboard;
+	}
+
 	public static Operation createPasteOperation(Clipboard clipboard, Extent destination, WorldData worldData) {
 		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
 		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), destination, clipboard.getOrigin());
@@ -134,18 +148,6 @@ public class LevelUtils {
 		short height = 66;
 		short length = 13;
 		return new CuboidRegion(origin, origin.add(width, height, length).subtract(Vector.ONE));
-	}
-
-	public static Clipboard createLevelRemainingEmptyClipboard(short chunkZ, Region levelRegion) throws MinecraftMakerException {
-		Region remainingRegion = getLevelRegion(chunkZ, MAX_LEVEL_WIDTH_CHUNKS);
-		remainingRegion.contract(new Vector(levelRegion.getWidth(), 0, 0));
-		Clipboard clipboard = createEmptyClipboard(remainingRegion);
-		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
-			Bukkit.getLogger().info(
-			        String.format("[DEBUG] | LevelUtils.createLevelRemainingEmptyClipboard - revel region from: [%s] to: [%s] - remaining region from: [%s] to: [%s]",
-			                levelRegion.getMinimumPoint(), levelRegion.getMaximumPoint(), remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
-		}
-		return clipboard;
 	}
 
 	public static short getLocationSlot(org.bukkit.Location location) {
@@ -188,6 +190,34 @@ public class LevelUtils {
 			}
 		}
 		return false;
+	}
+
+	public static boolean isAboveLocation(org.bukkit.util.Vector location, org.bukkit.util.Vector base) {
+		checkNotNull(location);
+		if (base == null) {
+			return false;
+		}
+		if (location.getBlockX() == base.getBlockX() && location.getBlockZ() == base.getBlockZ() && location.getBlockY() > base.getBlockY()) {
+			return true;
+		}
+		return false;
+	}
+
+	public static boolean isValidEndBeaconLocation(org.bukkit.util.Vector location, Region region) {
+		checkNotNull(location);
+		if (region == null) {
+			return false;
+		}
+		if (location.getBlockY() < 2 || location.getBlockY() + 2 >= region.getMaximumPoint().getBlockY()) {
+			return false;
+		}
+		if (location.getBlockX() - 3 <= region.getMinimumPoint().getBlockX()|| location.getBlockX() + 3 >= region.getMaximumPoint().getBlockX()) {
+			return false;
+		}
+		if (location.getBlockZ() - 3 <= region.getMinimumPoint().getBlockZ()|| location.getBlockZ() + 3 >= region.getMaximumPoint().getBlockZ()) {
+			return false;
+		}
+		return true;
 	}
 
 	// public static Clipboard createLobbyClipboard(World world) throws

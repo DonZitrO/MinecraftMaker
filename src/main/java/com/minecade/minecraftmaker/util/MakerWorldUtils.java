@@ -64,7 +64,7 @@ public class MakerWorldUtils {
 		world.setGameRuleValue("keepInventory", "false");
 		// Enables/disables creepers, ghasts, and Wither blowing up blocks,
 		// endermen picking up blocks and zombies breaking doors
-		world.setGameRuleValue("mobGriefing", "false");
+		world.setGameRuleValue("mobGriefing", "true");
 		// Allows/Disallows player to naturally regenerate health,
 		// regardless of food level
 		world.setGameRuleValue("naturalRegeneration", "false");

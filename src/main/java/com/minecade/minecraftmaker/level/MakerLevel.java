@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.level;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -325,6 +327,17 @@ public class MakerLevel implements Tickable {
 		return null;
 	}
 
+	public Region getRegion() {
+		if (clipboard == null || chunkZ < 0) {
+			return null;
+		}
+		Region region = clipboard.getRegion();
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.getRegion - region from: [%s] to: [%s]", region.getMinimumPoint(), region.getMaximumPoint()));
+		}
+		return region;
+	}
+
 	public MakerRelativeLocationData getRelativeEndLocation() {
 		return relativeEndLocation;
 	}
@@ -585,7 +598,9 @@ public class MakerLevel implements Tickable {
 		}
 	}
 
-	public boolean setupEndLocation(Location location) {
+	// TODO: is this heavy enough to need a specific level state or a separate task for the level operator?
+	public void setupEndLocation(Location location) {
+		checkNotNull(location);
 		long startNanos = 0;
 		if (plugin.isDebugMode()) {
 			startNanos = System.nanoTime();
@@ -593,16 +608,16 @@ public class MakerLevel implements Tickable {
 		if (relativeEndLocation != null) {
 			Block formerBeacon = getEndLocation().getBlock();
 			formerBeacon.setType(Material.AIR);
-			formerBeacon.getState().update();
+			formerBeacon.getState().update(true, false);
 			updateBeaconBase(formerBeacon.getRelative(BlockFace.DOWN), Material.AIR);
 		}
 		updateBeaconBase(location.getBlock().getRelative(BlockFace.DOWN), Material.IRON_BLOCK);
+		updateBeaconTop(location.getBlock().getRelative(BlockFace.UP));
 		// reuse object on DB by inheriting the UUID when possible
 		relativeEndLocation = new MakerRelativeLocationData(location, relativeEndLocation != null ? relativeEndLocation.getLocationId() : null);
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.setupEndLocation took: [%s] nanoseconds", System.nanoTime() - startNanos));
 		}
-		return true;
 	}
 
 	public void startEditing() {
@@ -721,17 +736,6 @@ public class MakerLevel implements Tickable {
 		}
 		status = LevelStatus.CLIPBOARD_PASTE_READY;
 		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
-	}
-
-	public Region getRegion() {
-		if (clipboard == null || chunkZ < 0) {
-			return null;
-		}
-		Region region = clipboard.getRegion();
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.getRegion - region from: [%s] to: [%s]", region.getMinimumPoint(), region.getMaximumPoint()));
-		}
-		return region;
 	}
 
 	private void tickClipboardPasted() {
@@ -873,7 +877,7 @@ public class MakerLevel implements Tickable {
 
 	private void updateBeaconBase(Block belowFormerBeacon, Material material) {
 		belowFormerBeacon.setType(material);
-		belowFormerBeacon.getState().update();
+		belowFormerBeacon.getState().update(true, false);
 		for (BlockFace around : BlockFace.values()) {
 			switch (around) {
 			case NORTH_WEST:
@@ -886,11 +890,19 @@ public class MakerLevel implements Tickable {
 			case SOUTH_EAST:
 				Block aroundBlock = belowFormerBeacon.getRelative(around);
 				aroundBlock.setType(material);
-				aroundBlock.getState().update();
+				aroundBlock.getState().update(true, false);
 				break;
 			default:
 				break;
 			}
+		}
+	}
+
+	private void updateBeaconTop(Block aboveBeacon) {
+		while (!aboveBeacon.getType().equals(Material.BARRIER) && aboveBeacon.getLocation().getBlockY() < 128) {
+			aboveBeacon.setType(Material.AIR);
+			aboveBeacon.getState().update(true, false);
+			aboveBeacon = aboveBeacon.getRelative(BlockFace.UP);
 		}
 	}
 

@@ -504,15 +504,12 @@ public class MakerController implements Runnable, Tickable {
 		// end level beacon placement
 		switch (event.getBlockPlaced().getType()) {
 		case BEACON:
-			if (event.getBlockPlaced().getLocation().getBlockY() < 2) {
+			if (!LevelUtils.isValidEndBeaconLocation(event.getBlockPlaced().getLocation().toVector(), mPlayer.getCurrentLevel().getRegion())) {
 				event.setCancelled(true);
-				mPlayer.sendActionMessage(plugin, "level.create.error.end-beacon-too-low");
+				mPlayer.sendActionMessage(plugin, "level.create.error.end-beacon-too-close-to-border");
 				return;
 			}
-			if(!mPlayer.getCurrentLevel().setupEndLocation(event.getBlockPlaced().getLocation())) {
-				event.setCancelled(true);
-				return;
-			}
+			Bukkit.getScheduler().runTask(plugin, () -> mPlayer.getCurrentLevel().setupEndLocation(event.getBlockPlaced().getLocation()));
 			return;
 		// place for disabled building blocks
 		case BARRIER:
@@ -520,6 +517,11 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.sendActionMessage(plugin, "level.create.error.disabled-block");
 			return;
 		default:
+			if (mPlayer.getCurrentLevel().getRelativeEndLocation() != null && LevelUtils.isAboveLocation(event.getBlockPlaced().getLocation().toVector(), mPlayer.getCurrentLevel().getEndLocation().toVector())) {
+				event.setCancelled(true);
+				mPlayer.sendActionMessage(plugin, "level.create.error.block-place-above-end-beacon");
+				return;
+			}
 			break;
 		}
 	}
