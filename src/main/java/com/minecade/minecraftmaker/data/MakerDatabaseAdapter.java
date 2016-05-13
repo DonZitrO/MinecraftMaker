@@ -28,6 +28,7 @@ import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
@@ -372,7 +373,7 @@ public class MakerDatabaseAdapter {
 
 	}
 
-	private synchronized void loadLevelBySerialFull(MakerLevel level) {
+	private synchronized void loadLevelBySerialFull(MakerPlayableLevel level) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
@@ -393,11 +394,11 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	public void loadLevelBySerialFullAsync(MakerLevel level) {
+	public void loadLevelBySerialFullAsync(MakerPlayableLevel level) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadLevelBySerialFull(level));
 	}
 
-	private void loadLevelClipboard(MakerLevel level) {
+	private void loadLevelClipboard(MakerPlayableLevel level) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
@@ -424,7 +425,7 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	private void loadLevelClipboardFromResult(MakerLevel level, ResultSet resultSet) throws DataException {
+	private void loadLevelClipboardFromResult(MakerPlayableLevel level, ResultSet resultSet) throws DataException {
 		Blob data = null;
 		try {
 			data = resultSet.getBlob("data");
@@ -569,7 +570,7 @@ public class MakerDatabaseAdapter {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadUnpublishedLevelsByAuthorId(playerLevelsMenu));
 	}
 
-	private synchronized void publishLevel(MakerLevel level) {
+	private synchronized void publishLevel(MakerPlayableLevel level) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
@@ -599,11 +600,11 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	public void publishLevelAsync(MakerLevel level) {
+	public void publishLevelAsync(MakerPlayableLevel level) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> publishLevel(level));
 	}
 
-	private synchronized void renameLevel(MakerLevel level, String newName) {
+	private synchronized void renameLevel(MakerPlayableLevel level, String newName) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
@@ -637,11 +638,11 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	public void renameLevelAsync(MakerLevel level, String newName) {
+	public void renameLevelAsync(MakerPlayableLevel level, String newName) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> renameLevel(level, newName));
 	}
 
-	public synchronized void saveLevel(MakerLevel level) {
+	public synchronized void saveLevel(MakerPlayableLevel level) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}

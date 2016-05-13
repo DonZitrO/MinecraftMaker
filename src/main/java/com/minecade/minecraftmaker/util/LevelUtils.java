@@ -2,7 +2,6 @@ package com.minecade.minecraftmaker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -10,7 +9,7 @@ import org.bukkit.block.BlockFace;
 import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
 import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
-import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
@@ -31,19 +30,18 @@ public class LevelUtils {
 
 	private static final short HIGHEST_LEVEL_Y = 63;
 	private static final short FLOOR_LEVEL_Y = 16;
-	private static final short DEFAULT_LEVEL_WIDTH_CHUNKS = 5;
-	private static final short MAX_LEVEL_WIDTH_CHUNKS = 10;
 	private static final short MAX_LEVELS_PER_WORLD = 10;
 
 	private static Clipboard createEmptyClipboard(Region region) throws MinecraftMakerException {
+		checkNotNull(region);
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
 		clipboard.setOrigin(region.getMinimumPoint());
 		return clipboard;
 	}
 
-	public static Clipboard createEmptyLevelClipboard(short chunkZ, int floorBlockId) throws MinecraftMakerException {
+	public static Clipboard createEmptyLevelClipboard(short chunkZ, short widthChunks, int floorBlockId) throws MinecraftMakerException {
+		Region region = getLevelRegion(chunkZ, widthChunks);
 
-		Region region = getLevelRegion(chunkZ);
 		Vector minimumPoint = region.getMinimumPoint();
 		Vector maximumPoint = region.getMaximumPoint();
 
@@ -51,17 +49,17 @@ public class LevelUtils {
 		clipboard.setOrigin(minimumPoint);
 
 		BaseBlock barrier = new BaseBlock(BlockID.BARRIER);
-		BaseBlock darkGlass = new BaseBlock(BlockID.GLASS, 15);
+		//BaseBlock darkGlass = new BaseBlock(BlockID.GLASS, 15);
 		// construct the side walls
 		for (int x = minimumPoint.getBlockX(); x <= region.getMaximumPoint().getBlockX(); x++) {
 			for (int y = minimumPoint.getBlockY(); y <= region.getMaximumPoint().getBlockY(); y++) {
 				// left side wall
 				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ()), barrier);
-				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 1), (x % 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
+				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 1), /*(x % 16 == 0 && y % 16 == 0) ? darkGlass : */barrier);
 				clipboard.setBlock(new Vector(x, y, minimumPoint.getBlockZ() + 2), barrier);
 				// right side wall
 				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ()), barrier);
-				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 1), (x % 16 == 0 && y % 16 == 0) ? darkGlass : barrier);
+				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 1), /*(x % 16 == 0 && y % 16 == 0) ? darkGlass : */barrier);
 				clipboard.setBlock(new Vector(x, y, maximumPoint.getBlockZ() - 2), barrier);
 			}
 		}
@@ -107,16 +105,10 @@ public class LevelUtils {
 		return clipboard;
 	}
 
-	public static Clipboard createLevelRemainingEmptyClipboard(short chunkZ, Region levelRegion) throws MinecraftMakerException {
-		Region remainingRegion = getLevelRegion(chunkZ, MAX_LEVEL_WIDTH_CHUNKS);
-		remainingRegion.contract(new Vector(levelRegion.getWidth(), 0, 0));
-		Clipboard clipboard = createEmptyClipboard(remainingRegion);
-		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
-			Bukkit.getLogger().info(
-			        String.format("[DEBUG] | LevelUtils.createLevelRemainingEmptyClipboard - revel region from: [%s] to: [%s] - remaining region from: [%s] to: [%s]",
-			                levelRegion.getMinimumPoint(), levelRegion.getMaximumPoint(), remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
-		}
-		return clipboard;
+	public static Clipboard createLevelRemainingEmptyClipboard(short chunkZ, int regionWidth) throws MinecraftMakerException {
+		Region remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH_CHUNKS);
+		remainingRegion.contract(new Vector(regionWidth, 0, 0));
+		return createEmptyClipboard(remainingRegion);
 	}
 
 	public static Operation createPasteOperation(Clipboard clipboard, Extent destination, WorldData worldData) {
@@ -138,13 +130,13 @@ public class LevelUtils {
 		return new Vector(originX, originY, originZ);
 	}
 
-	public static Region getLevelRegion(short chunkZ) {
-		return getLevelRegion(chunkZ, DEFAULT_LEVEL_WIDTH_CHUNKS);
+	public static Region getDefaultLevelRegion(short chunkZ) {
+		return getLevelRegion(chunkZ, MakerPlayableLevel.DEFAULT_LEVEL_WIDTH_CHUNKS);
 	}
 
 	public static Region getLevelRegion(short chunkZ, short widthChunks) {
 		Vector origin = getLevelOrigin(chunkZ);
-		short width = (short)(Math.min(widthChunks, MAX_LEVEL_WIDTH_CHUNKS) * 16);
+		short width = (short)(Math.min(widthChunks, MakerPlayableLevel.MAX_LEVEL_WIDTH_CHUNKS) * 16);
 		short height = 66;
 		short length = 13;
 		return new CuboidRegion(origin, origin.add(width, height, length).subtract(Vector.ONE));
@@ -154,7 +146,7 @@ public class LevelUtils {
 		if (location.getY() > HIGHEST_LEVEL_Y) {
 			return -1;
 		}
-		if (location.getBlockX() < 0 || location.getBlockX() > MAX_LEVEL_WIDTH_CHUNKS * 16) {
+		if (location.getBlockX() < 0 || location.getBlockX() > MakerPlayableLevel.MAX_LEVEL_WIDTH_CHUNKS * 16) {
 			return -1;
 		}
 		if (location.getBlockZ() < 0 || location.getBlockZ() > MAX_LEVELS_PER_WORLD * 16) {

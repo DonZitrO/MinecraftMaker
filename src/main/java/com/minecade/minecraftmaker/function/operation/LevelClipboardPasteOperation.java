@@ -3,17 +3,17 @@ package com.minecade.minecraftmaker.function.operation;
 import java.util.List;
 
 import com.minecade.minecraftmaker.level.LevelStatus;
-import com.minecade.minecraftmaker.level.MakerLevel;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.util.LevelUtils;
 
 public class LevelClipboardPasteOperation implements Operation {
 
-	private final MakerLevel level;
+	private final MakerPlayableLevel level;
 
 	private boolean firstRun = true;
 
-	public LevelClipboardPasteOperation(MakerLevel level) {
+	public LevelClipboardPasteOperation(MakerPlayableLevel level) {
 		this.level = level;
 	}
 
@@ -25,7 +25,7 @@ public class LevelClipboardPasteOperation implements Operation {
 			return new DelegateOperation(this, LevelUtils.createPasteOperation(level.getClipboard(), level.getMakerExtent(), level.getWorldData()));
 		}
 		level.tryStatusTransition(LevelStatus.PASTING_CLIPBOARD, LevelStatus.CLIPBOARD_PASTED);
-		return LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingEmptyClipboard(level.getChunkZ(), level.getRegion()), level.getMakerExtent(), level.getWorldData());
+		return LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingEmptyClipboard(level.getChunkZ(), level.getLevelWidth()), level.getMakerExtent(), level.getWorldData());
 	}
 
 	@Override

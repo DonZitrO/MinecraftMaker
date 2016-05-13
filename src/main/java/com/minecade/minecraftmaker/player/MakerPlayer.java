@@ -29,6 +29,7 @@ import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.nms.NMSUtils;
@@ -38,7 +39,7 @@ public class MakerPlayer implements Tickable {
 	private final Player player;
 	private final MakerPlayerData data;
 
-	private MakerLevel currentLevel;
+	private MakerPlayableLevel currentLevel;
 
 	private ChatColor nameColor = ChatColor.RESET;
 	private final Map<String, AbstractMakerMenu> personalMenus = new HashMap<>();
@@ -85,7 +86,7 @@ public class MakerPlayer implements Tickable {
 		disabled = true;
 	}
 
-	public MakerLevel getCurrentLevel() {
+	public MakerPlayableLevel getCurrentLevel() {
 		return currentLevel;
 	}
 
@@ -308,7 +309,7 @@ public class MakerPlayer implements Tickable {
 		player.setAllowFlight(allowFlight);
 	}
 
-	public void setCurrentLevel(MakerLevel level) {
+	public void setCurrentLevel(MakerPlayableLevel level) {
 		this.currentLevel = level;
 	}
 

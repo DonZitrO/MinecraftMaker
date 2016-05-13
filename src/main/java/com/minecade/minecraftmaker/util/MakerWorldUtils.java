@@ -43,7 +43,7 @@ public class MakerWorldUtils {
 		// no thunders
 		world.setThundering(false);
 		// set day light
-		world.setTime(0);
+		world.setTime(6000);
 		// forever sunny
 		world.setWeatherDuration(Integer.MAX_VALUE);
 		// Enables/disables text output of command block commands to console

@@ -50,26 +50,22 @@ import com.minecade.core.util.BungeeUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
-import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
-import com.minecade.minecraftmaker.function.operation.SchematicWriteOperation;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
-import com.minecade.minecraftmaker.level.MakerLevel;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.FilenameException;
-import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
 import com.minecade.minecraftmaker.schematic.io.ClipboardReader;
 import com.minecade.minecraftmaker.schematic.world.BlockTransformExtent;
 import com.minecade.minecraftmaker.schematic.world.MakerExtent;
-import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.schematic.world.WorldData;
 import com.minecade.minecraftmaker.util.FileUtils;
 import com.minecade.minecraftmaker.util.LevelUtils;
@@ -110,7 +106,7 @@ public class MakerController implements Runnable, Tickable {
 	// keeps track of every player on the server
 	private Map<UUID, MakerPlayer> playerMap;
 	// keeps track of every arena on the server
-	private Map<Short, MakerLevel> levelMap;
+	private Map<Short, MakerPlayableLevel> levelMap;
 	// shallow level data for server browser
 	// private Map<Long, MakerLevel> levelsBySerialMap = Collections.synchronizedMap(new TreeMap<>());
 
@@ -199,12 +195,12 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
+	public void createEmptyLevel(MakerPlayer author, short widthChunks, int floorBlockId) {
 		if (!author.isInLobby() || author.hasPendingOperation()) {
 			author.sendActionMessage(plugin, "level.create.error.author-busy");
 			return;
 		}
-		MakerLevel level = getEmptyLevelIfAvailable();
+		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
 			author.sendActionMessage(plugin, "level.error.full");
 			return;
@@ -214,7 +210,8 @@ public class MakerController implements Runnable, Tickable {
 		level.setAuthorName(author.getName());
 		author.sendActionMessage(plugin, "level.loading");
 		try {
-			level.setClipboard(LevelUtils.createEmptyLevelClipboard(level.getChunkZ(), floorBlockId));
+			level.setWidthChunks(widthChunks);
+			level.setClipboard(LevelUtils.createEmptyLevelClipboard(level.getChunkZ(), level.getWidthChunks(), floorBlockId));
 			level.tryStatusTransition(LevelStatus.BLANK, LevelStatus.CLIPBOARD_LOADED);
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
@@ -223,13 +220,13 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void createEmptyLevel(UUID authorId, int floorBlockId) {
+	public void createEmptyLevel(UUID authorId, short widthChunks, int floorBlockId) {
 		MakerPlayer author = getPlayer(authorId);
 		if (author == null) {
 			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
 			return;
 		}
-		createEmptyLevel(author, floorBlockId);
+		createEmptyLevel(author, widthChunks, floorBlockId);
 	}
 
 	@Override
@@ -252,10 +249,10 @@ public class MakerController implements Runnable, Tickable {
 		return spawnVector.toLocation(getMainWorld(), spawnYaw, spawnPitch);
 	}
 
-	private MakerLevel getEmptyLevelIfAvailable() {
+	private MakerPlayableLevel getEmptyLevelIfAvailable() {
 		for (short i = 0; i < maxLevels; i++) {
 			if (!levelMap.containsKey(i)) {
-				MakerLevel level = new MakerLevel(plugin, i);
+				MakerPlayableLevel level = new MakerPlayableLevel(plugin, i);
 				levelMap.put(i, level);
 				return level;
 			}
@@ -263,7 +260,7 @@ public class MakerController implements Runnable, Tickable {
 		return null;
 	}
 
-	public MakerLevel getLevel(short slotId) {
+	public MakerPlayableLevel getLevel(short slotId) {
 		return levelMap.get(slotId);
 	}
 
@@ -382,7 +379,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void loadLevelForEditingBySerial(MakerPlayer mPlayer, Long levelSerial) {
-		MakerLevel level = getEmptyLevelIfAvailable();
+		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
 			mPlayer.sendActionMessage(plugin, "level.error.full");
 			return;
@@ -393,7 +390,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void loadLevelForPlayingBySerial(MakerPlayer mPlayer, Long levelSerial) {
-		MakerLevel level = getEmptyLevelIfAvailable();
+		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
 			mPlayer.sendActionMessage(plugin, "level.error.full");
 			return;
@@ -505,7 +502,7 @@ public class MakerController implements Runnable, Tickable {
 		// end level beacon placement
 		switch (event.getBlockPlaced().getType()) {
 		case BEACON:
-			if (!LevelUtils.isValidEndBeaconLocation(event.getBlockPlaced().getLocation().toVector(), mPlayer.getCurrentLevel().getRegion())) {
+			if (!LevelUtils.isValidEndBeaconLocation(event.getBlockPlaced().getLocation().toVector(), mPlayer.getCurrentLevel().getLevelRegion())) {
 				event.setCancelled(true);
 				mPlayer.sendActionMessage(plugin, "level.create.error.end-beacon-too-close-to-border");
 				return;
@@ -533,7 +530,7 @@ public class MakerController implements Runnable, Tickable {
 			// this should allow water to flow in lobby
 			return;
 		}
-		MakerLevel level = levelMap.get(slot);
+		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
 			event.setCancelled(true);
 			Bukkit.getLogger().warning(String.format("MakerController.onBlockFromTo - cancelled liquid block flowing on unregistered level slot - from: [%s] - to: [%s] - location: [%s]", event.getBlock().getType(), event.getToBlock().getType()));
@@ -555,7 +552,7 @@ public class MakerController implements Runnable, Tickable {
 			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature spawning outside level - creature type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
 			return;
 		}
-		MakerLevel level = levelMap.get(slot);
+		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
 			event.setCancelled(true);
 			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature spawning on unregistered level slot - creature type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
@@ -571,7 +568,7 @@ public class MakerController implements Runnable, Tickable {
 			Bukkit.getLogger().warning(String.format("MakerController.onBlockPistonExtend - cancelled piston push outside level - location: [%s]", event.getBlock().getLocation().toVector()));
 			return;
 		}
-		MakerLevel level = levelMap.get(slot);
+		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
 			event.setCancelled(true);
 			Bukkit.getLogger().warning(String.format("MakerController.onBlockPistonExtend - cancelled piston push on unregistered level slot - location: [%s]", event.getBlock().getLocation().toVector()));
@@ -587,7 +584,7 @@ public class MakerController implements Runnable, Tickable {
 			Bukkit.getLogger().warning(String.format("MakerController.onPlayerDropItem - cancelled item drop outside level - location: [%s]", event.getItemDrop().getLocation().toVector()));
 			return;
 		}
-		MakerLevel level = levelMap.get(slot);
+		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
 			event.setCancelled(true);
 			Bukkit.getLogger().warning(String.format("MakerController.onPlayerDropItem - cancelled item drop on unregistered level slot - location: [%s]", event.getItemDrop().getLocation().toVector()));
@@ -730,7 +727,7 @@ public class MakerController implements Runnable, Tickable {
 		event.setDeathMessage("");
 		event.getDrops().clear();
 		event.setDroppedExp(0);
-		// TODO: respawn?
+		event.getEntity().spigot().respawn();
 	}
 
 	public void onPlayerInteract(PlayerInteractEvent event) {
@@ -820,7 +817,7 @@ public class MakerController implements Runnable, Tickable {
 		// remove from map
 		MakerPlayer mPlayer = playerMap.remove(player.getUniqueId());
 		if (mPlayer != null) {
-			MakerLevel level = mPlayer.getCurrentLevel();
+			MakerPlayableLevel level = mPlayer.getCurrentLevel();
 			if (level != null) {
 				level.onPlayerQuit();
 			}
@@ -899,7 +896,7 @@ public class MakerController implements Runnable, Tickable {
 		Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
 	}
 
-	public void removeLevelFromSlot(MakerLevel makerLevel) {
+	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
 		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
 		levelMap.remove(makerLevel.getChunkZ());
 	}
@@ -929,35 +926,35 @@ public class MakerController implements Runnable, Tickable {
 		tick(getCurrentTick() + 1);
 	}
 
-	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
-		File schematicsFolder = new File(plugin.getDataFolder(), "test");
-		// if the directory does not exist, create it
-		if (!schematicsFolder.exists()) {
-			try {
-				schematicsFolder.mkdir();
-			} catch (Exception e) {
-				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
-				e.printStackTrace();
-				return;
-			}
-		}
-
-		File f;
-		try {
-			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
-		} catch (FilenameException e) {
-			// TODO notify player/sender
-			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
-			e.printStackTrace();
-			return;
-		}
-
-		Region levelRegion = LevelUtils.getLevelRegion(chunkZ);
-		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
-		clipboard.setOrigin(levelRegion.getMinimumPoint());
-		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
-		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
-	}
+//	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
+//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
+//		// if the directory does not exist, create it
+//		if (!schematicsFolder.exists()) {
+//			try {
+//				schematicsFolder.mkdir();
+//			} catch (Exception e) {
+//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
+//				e.printStackTrace();
+//				return;
+//			}
+//		}
+//
+//		File f;
+//		try {
+//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
+//		} catch (FilenameException e) {
+//			// TODO notify player/sender
+//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+//			e.printStackTrace();
+//			return;
+//		}
+//
+//		Region levelRegion = LevelUtils.getDefaultLevelRegion(chunkZ);
+//		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
+//		clipboard.setOrigin(levelRegion.getMinimumPoint());
+//		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
+//		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
+//	}
 
 	public void sendActionMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {
 		MakerPlayer mPlayer = getPlayer(playerId);
@@ -979,7 +976,7 @@ public class MakerController implements Runnable, Tickable {
 //			return;
 //		}
 		// tick levels
-		for (MakerLevel level : new ArrayList<MakerLevel>(levelMap.values())) {
+		for (MakerPlayableLevel level : new ArrayList<MakerPlayableLevel>(levelMap.values())) {
 			if (level != null) {
 				TickableUtils.tickSafely(level, currentTick);
 			}

@@ -27,6 +27,7 @@ import com.minecade.minecraftmaker.items.LevelTemplateItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
 import com.minecade.minecraftmaker.level.MakerLevel;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
 import com.minecade.minecraftmaker.nms.schematic.Spigot_v1_9_2_R1;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
@@ -149,7 +150,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		debugMode = getConfig().getBoolean("debug-mode", false);
 	}
 
-	public void saveLevelAsync(MakerLevel level) {
+	public void saveLevelAsync(MakerPlayableLevel level) {
 		asyncLevelSaver.saveLevelAsync(level);
 	}
 

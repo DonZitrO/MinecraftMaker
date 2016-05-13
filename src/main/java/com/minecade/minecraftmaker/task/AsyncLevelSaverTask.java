@@ -6,14 +6,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.minecade.minecraftmaker.level.MakerLevel;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class AsyncLevelSaverTask extends BukkitRunnable {
 
 	private MinecraftMakerPlugin plugin;
 
-	private Queue<MakerLevel> pendingSaves = new ConcurrentLinkedQueue<>();
+	private Queue<MakerPlayableLevel> pendingSaves = new ConcurrentLinkedQueue<>();
 
 	public AsyncLevelSaverTask(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
@@ -29,7 +29,7 @@ public class AsyncLevelSaverTask extends BukkitRunnable {
 		if (savesToFlush > 0 && plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | AsyncLevelSaverTask.run - Flushing [%s] pending level saves...", pendingSaves.size()));
 		}
-		MakerLevel level = pendingSaves.poll();
+		MakerPlayableLevel level = pendingSaves.poll();
 		while (level != null) {
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().info(String.format("[DEBUG] | AsyncLevelSaverTask.run - Flushing pending level save with level id: [%s]", level.getLevelId()));
@@ -42,7 +42,7 @@ public class AsyncLevelSaverTask extends BukkitRunnable {
 		}
 	}
 
-	public void saveLevelAsync(MakerLevel level) {
+	public void saveLevelAsync(MakerPlayableLevel level) {
 		pendingSaves.add(level);
 	}
 

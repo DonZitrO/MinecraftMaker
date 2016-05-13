@@ -5,6 +5,7 @@ import org.bukkit.inventory.ItemStack;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -44,7 +45,7 @@ public class LevelTemplateMenu extends AbstractMakerMenu {
 		}
 		// TODO: enhance this to allow better templates for empty levels
 		if (slot < LevelTemplateItem.values().length) {
-			plugin.getController().createEmptyLevel(mPlayer, slot);
+			plugin.getController().createEmptyLevel(mPlayer, MakerPlayableLevel.DEFAULT_LEVEL_WIDTH_CHUNKS, slot);
 			return true;
 		}
 		return true;

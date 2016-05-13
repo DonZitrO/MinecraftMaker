@@ -3,7 +3,7 @@ package com.minecade.minecraftmaker.function.operation;
 import java.util.List;
 
 import com.minecade.minecraftmaker.level.LevelStatus;
-import com.minecade.minecraftmaker.level.MakerLevel;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
@@ -13,11 +13,11 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 public class LevelClipboardCopyOperation implements Operation {
 
 	private final MinecraftMakerPlugin plugin;
-	private final MakerLevel level;
+	private final MakerPlayableLevel level;
 
 	private boolean firstRun = true;
 
-	public LevelClipboardCopyOperation(MinecraftMakerPlugin plugin, MakerLevel level) {
+	public LevelClipboardCopyOperation(MinecraftMakerPlugin plugin, MakerPlayableLevel level) {
 		this.plugin = plugin;
 		this.level = level;
 	}
@@ -28,11 +28,14 @@ public class LevelClipboardCopyOperation implements Operation {
 			firstRun = false;
 			level.tryStatusTransition(LevelStatus.CLIPBOARD_COPY_READY, LevelStatus.COPYING_CLIPBOARD);
 			// we need a fresh clipboard every time
-			Region levelRegion = LevelUtils.getLevelRegion(level.getChunkZ());
+			Region levelRegion = level.getLevelRegion();
+			if (levelRegion == null) {
+				levelRegion = LevelUtils.getLevelRegion(level.getChunkZ(), level.getWidthChunks());
+			}
 			BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
 			clipboard.setOrigin(levelRegion.getMinimumPoint());
 			level.setClipboard(clipboard);
-			ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(plugin.getController().getMakerExtent(), level.getClipboard().getRegion(), level.getClipboard(), level.getClipboard().getOrigin());
+			ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(plugin.getController().getMakerExtent(), levelRegion, level.getClipboard(), level.getClipboard().getOrigin());
 			return new DelegateOperation(this, copy);
 		}
 		level.tryStatusTransition(LevelStatus.COPYING_CLIPBOARD, LevelStatus.CLIPBOARD_COPIED);
