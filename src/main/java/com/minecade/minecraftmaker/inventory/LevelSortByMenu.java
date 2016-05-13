@@ -35,25 +35,25 @@ public class LevelSortByMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public boolean onClick(MakerPlayer mPlayer, int slot) {
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
 		if (slot >= items.length) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		ItemStack clickedItem = inventory.getItem(slot);
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		if (ItemUtils.itemNameEquals(clickedItem, LevelSortByItem.LIKES.getDisplayName())) {
 			mPlayer.openLevelBrowserMenu(plugin, LevelSortBy.LIKES, false);
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 //		} else if (ItemUtils.itemNameEquals(clickedItem, LevelSortByItem.OWNED.getDisplayName())) {
 //			mPlayer.openLevelBrowserMenu(plugin, null, false);
 //			return true;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.EXIT_MENU.getDisplayName())) {
 			mPlayer.openLevelBrowserMenu(plugin, null, false);
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
-		return true;
+		return MenuClickResult.CANCEL_UPDATE;
 	}
 
 	@Override

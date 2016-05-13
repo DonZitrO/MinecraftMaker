@@ -542,7 +542,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			mPlayer.clearInventory();
 			mPlayer.getPlayer().getInventory().setItem(0, new ItemStack(Material.BEACON));
 			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getItem());
-			mPlayer.updateInventoryOnNextTick();
+			mPlayer.updateInventory();
 			if (!playerIsInThisLevel(mPlayer)) {
 				mPlayer.setCurrentLevel(this);
 				mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.create.start.title"), plugin.getMessage("level.create.start.subtitle"));
@@ -589,7 +589,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			} else {
 				mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getItem());
 			}
-			mPlayer.updateInventoryOnNextTick();
+			mPlayer.updateInventory();
 			mPlayer.setCurrentLevel(this);
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.play.start.title"), plugin.getMessage("level.play.start.subtitle"));
 			mPlayer.sendActionMessage(plugin, "level.play.start");

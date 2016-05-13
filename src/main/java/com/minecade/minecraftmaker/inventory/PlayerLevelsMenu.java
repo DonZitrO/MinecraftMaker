@@ -118,28 +118,28 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public boolean onClick(MakerPlayer mPlayer, int slot) {
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
 		if (slot >= items.length) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		ItemStack clickedItem = inventory.getItem(slot);
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		Bukkit.getLogger().info(String.format("PlayerLevelsMenu.onClick - clicked item material: [%s]", clickedItem.getType()));
 		if (clickedItem.getType().equals(Material.SIGN_POST) || clickedItem.getType().equals(Material.SIGN)) {
 			String serial = ItemUtils.getLoreLine(clickedItem, 0);
 			if (StringUtils.isBlank(serial) || !StringUtils.isNumeric(serial)) {
 				Bukkit.getLogger().severe(String.format("PlayerLevelsMenu.onClick - unable to get level serial from lore: [%s]", serial));
-				return true;
+				return MenuClickResult.CANCEL_UPDATE;
 			}
 			plugin.getController().loadLevelForEditingBySerial(mPlayer, Long.valueOf(serial));
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 //		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
 //			mPlayer.openLevelSortbyMenu();
 //			return true;
 		}
-		return true;
+		return MenuClickResult.CANCEL_UPDATE;
 	}
 
 	public void removeLevel(MakerLevel makerLevel) {

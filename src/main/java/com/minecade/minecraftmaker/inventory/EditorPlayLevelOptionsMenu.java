@@ -35,26 +35,26 @@ public class EditorPlayLevelOptionsMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public boolean onClick(MakerPlayer mPlayer, int slot) {
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
 		if (!mPlayer.isPlayingLevel() && !mPlayer.hasClearedLevel()) {
 			Bukkit.getLogger().warning(String.format("EditorPlayLevelOptionsMenu.onClick - This menu should be available to level editors while playing only! - clicked by: [%s]", mPlayer.getName()));
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 		}
 		if (slot >= items.length) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		ItemStack clickedItem = inventory.getItem(slot);
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		if (ItemUtils.itemNameEquals(clickedItem, EditorPlayLevelOptionItem.EXIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().exitPlaying();
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditorPlayLevelOptionItem.EDIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().continueEditing();
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 		}
-		return true;
+		return MenuClickResult.CANCEL_UPDATE;
 	}
 
 	@Override

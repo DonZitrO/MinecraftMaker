@@ -35,32 +35,32 @@ public class PlayLevelOptionsMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public boolean onClick(MakerPlayer mPlayer, int slot) {
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
 		if (!mPlayer.isPlayingLevel() && !mPlayer.hasClearedLevel()) {
 			Bukkit.getLogger().warning(String.format("PlayLevelOptionsMenu.onClick - This menu should be available to level players only! - clicked by: [%s]", mPlayer.getName()));
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 		}
 		if (slot >= items.length) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		ItemStack clickedItem = inventory.getItem(slot);
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.EXIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().exitPlaying();
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.LIKE.getDisplayName())) {
 			plugin.getDatabaseAdapter().likeLevelAsync(mPlayer.getCurrentLevel().getLevelId(), mPlayer.getUniqueId(), false);
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.DISLIKE.getDisplayName())) {
 			plugin.getDatabaseAdapter().likeLevelAsync(mPlayer.getCurrentLevel().getLevelId(), mPlayer.getUniqueId(), true);
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.RESTART.getDisplayName())) {
 			mPlayer.getCurrentLevel().restartPlaying();
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 		}
-		return true;
+		return MenuClickResult.CANCEL_UPDATE;
 	}
 
 	@Override

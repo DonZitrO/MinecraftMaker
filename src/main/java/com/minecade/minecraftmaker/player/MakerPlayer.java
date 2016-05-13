@@ -22,6 +22,7 @@ import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
+import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
@@ -44,11 +45,14 @@ public class MakerPlayer implements Tickable {
 	private ChatColor nameColor = ChatColor.RESET;
 	private final Map<String, AbstractMakerMenu> personalMenus = new HashMap<>();
 
+	private AbstractMakerMenu inventoryToOpen;
+	private boolean closeInventoryRequest;
 	private boolean dirtyInventory;
+
 	private long currentTick;
 	private boolean disabled = false;
-	private AbstractMakerMenu inventoryToOpen;
 	private Location teleportDestination;
+
 
 	public MakerPlayer(Player player, MakerPlayerData data) {
 		this.player = player;
@@ -62,11 +66,11 @@ public class MakerPlayer implements Tickable {
 
 	public void clearInventory() {
 		player.getInventory().clear();
-		updateInventoryOnNextTick();
+		updateInventory();
 	}
 
 	public void closeInventory() {
-		player.closeInventory();
+		closeInventoryRequest = true;
 	}
 
 	@Override
@@ -156,11 +160,11 @@ public class MakerPlayer implements Tickable {
 		return this.currentLevel != null && LevelStatus.PLAYING.equals(this.currentLevel.getStatus());
 	}
 
-	public boolean onInventoryClick(Inventory inventory, int slot) {
+	public MenuClickResult onInventoryClick(Inventory inventory, int slot) {
 		if (personalMenus.containsKey(inventory.getName())) {
 			return personalMenus.get(inventory.getName()).onClick(this, slot);
 		}
-		return false;
+		return MenuClickResult.ALLOW;
 	}
 
 //	public void openLevelSortbyMenu() {
@@ -194,13 +198,6 @@ public class MakerPlayer implements Tickable {
 			personalMenus.put(menu.getName(), menu);
 		}
 		inventoryToOpen = menu;
-	}
-
-	private void openInventoryIfAvailable() {
-		if (inventoryToOpen != null) {
-			inventoryToOpen.open(player);
-			inventoryToOpen = null;
-		}
 	}
 
 	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, LevelSortBy sortBy, boolean update) {
@@ -343,18 +340,30 @@ public class MakerPlayer implements Tickable {
 		this.currentTick = currentTick;
 		// every tick tasks
 		teleportIfRequested();
-		updateInventoryIfDirty();
-		openInventoryIfAvailable();
+		executeRequestedInventoryOperations();
 	}
 
-	private void updateInventoryIfDirty() {
+	public void executeRequestedInventoryOperations() {
+		if (inventoryToOpen != null) {
+			inventoryToOpen.open(player);
+			inventoryToOpen = null;
+			closeInventoryRequest = false;
+			dirtyInventory = false;
+			return;
+		}
+		if (closeInventoryRequest) {
+			player.closeInventory();
+			closeInventoryRequest = false;
+			dirtyInventory = false;
+			return;
+		}
 		if (dirtyInventory) {
 			player.updateInventory();
 			dirtyInventory = false;
 		}
 	}
 
-	public void updateInventoryOnNextTick() {
+	public void updateInventory() {
 		dirtyInventory = true;
 	}
 

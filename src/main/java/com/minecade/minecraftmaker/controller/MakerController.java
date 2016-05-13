@@ -658,7 +658,7 @@ public class MakerController implements Runnable, Tickable {
 			if(event.getInventory().getName().equals("container.inventory")) {
 				if (ItemUtils.itemNameEquals(event.getCurrentItem(), GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 					event.setCancelled(true);
-					mPlayer.updateInventoryOnNextTick();
+					mPlayer.updateInventory();
 				}
 				return;
 			}
@@ -666,16 +666,24 @@ public class MakerController implements Runnable, Tickable {
 		// cancel inventory right click entirely on the rest of scenarios
 		if (event.isRightClick()) {
 			event.setCancelled(true);
-			mPlayer.updateInventoryOnNextTick();
+			mPlayer.updateInventory();
 			return;
 		}
 		// we are only interested on clicks on container type slots for custom menus and inventories
 		if (event.getSlotType() == SlotType.CONTAINER) {
 			final ItemStack clicked = event.getCurrentItem();
 			if (clicked != null && clicked.getType() != Material.AIR) {
-				if (mPlayer.onInventoryClick(event.getInventory(), event.getRawSlot())) {
+				switch (mPlayer.onInventoryClick(event.getInventory(), event.getRawSlot())) {
+				case CANCEL_CLOSE:
 					event.setCancelled(true);
 					mPlayer.closeInventory();
+					break;
+				case CANCEL_UPDATE:
+					event.setCancelled(true);
+					mPlayer.updateInventory();
+					break;
+				default:
+					break;
 				}
 			}
 			return;
@@ -693,27 +701,27 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.sendActionMessage(plugin, "general.coming-soon");
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
-			mPlayer.updateInventoryOnNextTick();
+			mPlayer.updateInventory();
 			mPlayer.openLevelTemplateMenu();
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.PLAYER_LEVELS.getDisplayName())) {
-			mPlayer.updateInventoryOnNextTick();
+			mPlayer.updateInventory();
 			mPlayer.openPlayerLevelsMenu(plugin, LevelSortBy.LIKES, true);
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
-			mPlayer.updateInventoryOnNextTick();
+			mPlayer.updateInventory();
 			mPlayer.openLevelBrowserMenu(plugin, LevelSortBy.LIKES, true);
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
-			mPlayer.updateInventoryOnNextTick();
+			mPlayer.updateInventory();
 			mPlayer.openEditLevelOptionsMenu();
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
-			mPlayer.updateInventoryOnNextTick();
+			mPlayer.updateInventory();
 			mPlayer.openPlayLevelOptionsMenu();
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
-			mPlayer.updateInventoryOnNextTick();
+			mPlayer.updateInventory();
 			mPlayer.openEditorPlayLevelOptionsMenu();
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {

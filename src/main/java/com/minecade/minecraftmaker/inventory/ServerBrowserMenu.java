@@ -67,31 +67,31 @@ public class ServerBrowserMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public boolean onClick(MakerPlayer mPlayer, int slot) {
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
 		ServerData info = serverData.get(slot + 1);
 		if (info == null) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		if (info.getServerNumber() == plugin.getServerId()) {
 			mPlayer.sendMessage(plugin, "server.error.already-connected");
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		switch (info.getStatus()) {
 		case FULL:
 			if (!mPlayer.getData().hasRank(Rank.VIP)) {
 				mPlayer.sendMessage(plugin, "server.error.vip-only", Rank.VIP.getDisplayName());
-				return true;
+				return MenuClickResult.CANCEL_UPDATE;
 			}
 			break;
 		case OPEN:
 			String bungeeId = String.format("maker%s", info.getServerNumber());
 			BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), bungeeId, plugin.getMessage("menu.serverbrowser.connecting", bungeeId));
-			break;
+			return MenuClickResult.CANCEL_CLOSE;
 		default:
 			mPlayer.sendMessage(plugin, "server.error.not-available");
 			break;
 		}
-		return true;
+		return MenuClickResult.CANCEL_UPDATE;
 	}
 
 	@Override

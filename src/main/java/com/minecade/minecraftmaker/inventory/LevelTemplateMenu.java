@@ -35,20 +35,20 @@ public class LevelTemplateMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public boolean onClick(MakerPlayer mPlayer, int slot) {
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
 		if (slot >= items.length) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		ItemStack clickedItem = inventory.getItem(slot);
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return true;
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		// TODO: enhance this to allow better templates for empty levels
 		if (slot < LevelTemplateItem.values().length) {
 			plugin.getController().createEmptyLevel(mPlayer, MakerPlayableLevel.DEFAULT_LEVEL_WIDTH_CHUNKS, slot);
-			return true;
+			return MenuClickResult.CANCEL_CLOSE;
 		}
-		return true;
+		return MenuClickResult.CANCEL_UPDATE;
 	}
 
 	@Override

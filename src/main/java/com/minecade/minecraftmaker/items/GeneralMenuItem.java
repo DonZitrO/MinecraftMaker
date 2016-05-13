@@ -12,13 +12,14 @@ public enum GeneralMenuItem implements TranslatableItem {
 	CONTINUE_EDITING(Material.EMPTY_MAP),
 	CURRENT_PAGE(Material.PAPER),
 	EDIT_LEVEL_OPTIONS(Material.ENDER_CHEST),
+	EDITOR_PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST),
 	EXIT_MENU(Material.ARROW),
+	LOADING_PAGE(Material.WATCH),
 	NEXT_PAGE(Material.SHEARS),
 	PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST),
-	PREVIOUS_PAGE(Material.RAW_FISH),
+	PREVIOUS_PAGE(Material.RAW_FISH), 
 	SEARCH(Material.COMPASS), 
-	SORT(Material.RAILS), 
-	EDITOR_PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST);
+	SORT(Material.RAILS);
 
 	private final ItemStackBuilder builder;
 
