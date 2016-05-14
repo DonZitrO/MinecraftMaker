@@ -15,6 +15,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -116,6 +117,17 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityDamage - Entity: [%s] - Cause: [%s] - Damage: [%s] - Cancelled: [%s]", event.getEntity().getName(), event.getCause(), event.getDamage(), event.isCancelled()));
 		}
 		plugin.getController().onEntityDamage(event);
+	}
+
+	@EventHandler
+	public void onEntityTeleport(EntityTeleportEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityTeleport start - entity type: [%s] - from: [%s] - to: [%s] - cancelled: [%s]", event.getEntityType(), event.getFrom().toVector(), event.getTo().toVector(), event.isCancelled()));
+		}
+		plugin.getController().onEntityTeleport(event);
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityTeleport finish - entity type: [%s] - from: [%s] - to: [%s] - cancelled: [%s]", event.getEntityType(), event.getFrom().toVector(), event.getTo().toVector(), event.isCancelled()));
+		}
 	}
 
 	@EventHandler

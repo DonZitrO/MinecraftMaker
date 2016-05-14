@@ -19,6 +19,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
@@ -33,6 +34,7 @@ import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
+import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
@@ -254,11 +256,15 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		return levelRegion;
 	}
 	
+	public int getLevelWidth() {
+		return clipboard.getDimensions().getBlockX();
+	}
+
 	// TODO: candidate for removal, use full level object when possible
 	public Extent getMakerExtent() {
 		return plugin.getController().getMakerExtent();
 	}
-	
+
 	private MakerPlayer getPlayerIsInThisLevel(UUID playerId) {
 		MakerPlayer mPlayer = plugin.getController().getPlayer(playerId);
 		if (mPlayer != null && playerIsInThisLevel(mPlayer)) {
@@ -282,7 +288,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	private World getWorld() {
 		return plugin.getController().getMainWorld();
 	}
-	
+
 	public WorldData getWorldData() {
 		return plugin.getController().getMainWorldData();
 	}
@@ -322,9 +328,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		// loading level for edition, stop mobs from moving/attacking
 		if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus())) {
-			if (currentPlayerId == null) {
-				NMSUtils.disableMobAI(event.getEntity(), currentPlayerId == null);
-			}
+			NMSUtils.disableMobAI(event.getEntity(), currentPlayerId == null);
 			return;
 		}
 		if (LevelStatus.EDITING.equals(getStatus())) {
@@ -356,6 +360,22 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		}
 		Bukkit.getLogger().warning(String.format("MakerLevel.onCreatureSpawn - illegal creature spawn on level: [%s] with status: [%s]", getLevelName(), getStatus()));
 		event.setCancelled(true);
+	}
+
+	public void onEntityTeleport(EntityTeleportEvent event) {
+		if (isBusy()) {
+			event.setCancelled(true);
+			return;
+		}
+		Region region = getLevelRegion();
+		if (region == null) {
+			event.setCancelled(true);
+			return;
+		}
+		if (!region.contains(BukkitUtil.toVector(event.getFrom())) || !region.contains(BukkitUtil.toVector(event.getTo()))) {
+			event.setCancelled(true);
+			return;
+		}
 	}
 
 	public void onPlayerDropItem(PlayerDropItemEvent event) {
@@ -406,6 +426,19 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		status = LevelStatus.PUBLISH_READY;
 		plugin.getDatabaseAdapter().publishLevelAsync(this);
 		plugin.getController().addPlayerToMainLobby(mPlayer);
+	}
+
+	private void removeCrystalFromBorders() throws MinecraftMakerException {
+		BaseBlock barrier = new BaseBlock(BlockID.BARRIER);
+		Region region = getLevelRegion();
+		final int startX = region.getMinimumPoint().getBlockX() % 16 == 0 ? region.getMinimumPoint().getBlockX() : region.getMinimumPoint().getBlockX() + (16 - (region.getMinimumPoint().getBlockX() % 16));
+		final int startY = region.getMinimumPoint().getBlockY() % 16 == 0 ? region.getMinimumPoint().getBlockY() : region.getMinimumPoint().getBlockY() + (16 - (region.getMinimumPoint().getBlockY() % 16));
+		for (int x = startX; x <= region.getMaximumPoint().getBlockX(); x += 16) {
+			for (int y = startY; y <= region.getMaximumPoint().getBlockY(); y += 16) {
+				clipboard.setBlock(new Vector(x, y, region.getMinimumPoint().getBlockZ() + 1), barrier);
+				clipboard.setBlock(new Vector(x, y, region.getMaximumPoint().getBlockZ() - 1), barrier);
+			}
+		}
 	}
 
 	private void removeEntities() {
@@ -635,19 +668,6 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
 	}
 
-	private void removeCrystalFromBorders() throws MinecraftMakerException {
-		BaseBlock barrier = new BaseBlock(BlockID.BARRIER);
-		Region region = getLevelRegion();
-		final int startX = region.getMinimumPoint().getBlockX() % 16 == 0 ? region.getMinimumPoint().getBlockX() : region.getMinimumPoint().getBlockX() + (16 - (region.getMinimumPoint().getBlockX() % 16));
-		final int startY = region.getMinimumPoint().getBlockY() % 16 == 0 ? region.getMinimumPoint().getBlockY() : region.getMinimumPoint().getBlockY() + (16 - (region.getMinimumPoint().getBlockY() % 16));
-		for (int x = startX; x <= region.getMaximumPoint().getBlockX(); x += 16) {
-			for (int y = startY; y <= region.getMaximumPoint().getBlockY(); y += 16) {
-				clipboard.setBlock(new Vector(x, y, region.getMinimumPoint().getBlockZ() + 1), barrier);
-				clipboard.setBlock(new Vector(x, y, region.getMaximumPoint().getBlockZ() - 1), barrier);
-			}
-		}
-	}
-
 	private void tickClipboardPasted() {
 		// TODO: find a better way to control these scenarios
 		if (currentPlayerId != null) {
@@ -706,7 +726,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		mPlayer.sendActionMessage(plugin, "level.rename.success");
 		mPlayer.sendMessage(plugin, "level.rename.save-reminder");
 	}
-	
+
 	private void tickRenameError() {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(authorId);
 		if (mPlayer == null) {
@@ -822,10 +842,6 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		if (showMessage) {
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.busy.title"), plugin.getMessage("level.busy.subtitle"));
 		}
-	}
-
-	public int getLevelWidth() {
-		return clipboard.getDimensions().getBlockX();
 	}
 
 }

@@ -25,6 +25,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
@@ -544,7 +545,23 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 	}
-	
+
+	public void onEntityTeleport(EntityTeleportEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getFrom());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onEntityTeleport - cancelled creature teleporting from outside level - creature type: [%s] - from: [%s]", event.getEntityType(), event.getFrom().toVector()));
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature teleporting from unregistered level slot - creature type: [%s] - location: [%s]", event.getEntityType(), event.getFrom().toVector()));
+			return;
+		}
+		level.onEntityTeleport(event);
+	}
+
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		short slot = LevelUtils.getLocationSlot(event.getLocation());
 		if (slot < 0) {
