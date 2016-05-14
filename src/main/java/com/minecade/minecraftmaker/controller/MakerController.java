@@ -22,6 +22,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
@@ -486,6 +487,37 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void onBlockFromTo(BlockFromToEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
+		if (slot < 0) {
+			// this should allow water to flow in lobby
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockFromTo - cancelled liquid block flowing on unregistered level slot - from: [%s] - to: [%s] - location: [%s]", event.getBlock().getType(), event.getToBlock().getType()));
+			return;
+		}
+		level.onBlockFromTo(event);
+	}
+
+	public void onBlockPistonExtend(BlockPistonExtendEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockPistonExtend - cancelled piston push outside level - location: [%s]", event.getBlock().getLocation().toVector()));
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockPistonExtend - cancelled piston push on unregistered level slot - location: [%s]", event.getBlock().getLocation().toVector()));
+			return;
+		}
+		level.onBlockPistonExtend(event);
+	}
+
 	public void onBlockPlace(BlockPlaceEvent event) {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onBlockPlace - player: [%s] - block type: [%s] ", event.getPlayer().getName(), event.getBlockPlaced().getType()));
@@ -512,6 +544,7 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		// place for disabled building blocks
 		case BARRIER:
+		case ENDER_CHEST:
 			event.setCancelled(true);
 			mPlayer.sendActionMessage(plugin, "level.create.error.disabled-block");
 			return;
@@ -525,35 +558,20 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void onBlockFromTo(BlockFromToEvent event) {
+	public void onBlockRedstone(BlockRedstoneEvent event) {
 		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
 		if (slot < 0) {
-			// this should allow water to flow in lobby
+			event.setNewCurrent(event.getOldCurrent());
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockRedstone - cancelled redstone change outside level - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
 			return;
 		}
 		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
-			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onBlockFromTo - cancelled liquid block flowing on unregistered level slot - from: [%s] - to: [%s] - location: [%s]", event.getBlock().getType(), event.getToBlock().getType()));
+			event.setNewCurrent(event.getOldCurrent());
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockRedstone - cancelled redstone change from unregistered level slot - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
 			return;
 		}
-		level.onBlockFromTo(event);
-	}
-
-	public void onEntityTeleport(EntityTeleportEvent event) {
-		short slot = LevelUtils.getLocationSlot(event.getFrom());
-		if (slot < 0) {
-			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onEntityTeleport - cancelled creature teleporting from outside level - creature type: [%s] - from: [%s]", event.getEntityType(), event.getFrom().toVector()));
-			return;
-		}
-		MakerPlayableLevel level = levelMap.get(slot);
-		if (level == null) {
-			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onCreatureSpawn - cancelled creature teleporting from unregistered level slot - creature type: [%s] - location: [%s]", event.getEntityType(), event.getFrom().toVector()));
-			return;
-		}
-		level.onEntityTeleport(event);
+		level.onBlockRedstone(event);
 	}
 
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
@@ -570,38 +588,6 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		level.onCreatureSpawn(event);
-	}
-
-	public void onBlockPistonExtend(BlockPistonExtendEvent event) {
-		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
-		if (slot < 0) {
-			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onBlockPistonExtend - cancelled piston push outside level - location: [%s]", event.getBlock().getLocation().toVector()));
-			return;
-		}
-		MakerPlayableLevel level = levelMap.get(slot);
-		if (level == null) {
-			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onBlockPistonExtend - cancelled piston push on unregistered level slot - location: [%s]", event.getBlock().getLocation().toVector()));
-			return;
-		}
-		level.onBlockPistonExtend(event);
-	}
-
-	public void onPlayerDropItem(PlayerDropItemEvent event) {
-		short slot = LevelUtils.getLocationSlot(event.getItemDrop().getLocation());
-		if (slot < 0) {
-			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onPlayerDropItem - cancelled item drop outside level - location: [%s]", event.getItemDrop().getLocation().toVector()));
-			return;
-		}
-		MakerPlayableLevel level = levelMap.get(slot);
-		if (level == null) {
-			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onPlayerDropItem - cancelled item drop on unregistered level slot - location: [%s]", event.getItemDrop().getLocation().toVector()));
-			return;
-		}
-		level.onPlayerDropItem(event);
 	}
 
 	public void onEntityDamage(EntityDamageEvent event) {
@@ -649,6 +635,22 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
+	}
+
+	public void onEntityTeleport(EntityTeleportEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getFrom());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onEntityTeleport - cancelled creature teleporting from outside level - creature type: [%s] - from: [%s]", event.getEntityType(), event.getFrom().toVector()));
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onEntityTeleport - cancelled creature teleporting from unregistered level slot - creature type: [%s] - location: [%s]", event.getEntityType(), event.getFrom().toVector()));
+			return;
+		}
+		level.onEntityTeleport(event);
 	}
 
 	public void onInventoryClick(InventoryClickEvent event) {
@@ -747,6 +749,22 @@ public class MakerController implements Runnable, Tickable {
 		event.getDrops().clear();
 		event.setDroppedExp(0);
 		event.getEntity().spigot().respawn();
+	}
+
+	public void onPlayerDropItem(PlayerDropItemEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getItemDrop().getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerDropItem - cancelled item drop outside level - location: [%s]", event.getItemDrop().getLocation().toVector()));
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerDropItem - cancelled item drop on unregistered level slot - location: [%s]", event.getItemDrop().getLocation().toVector()));
+			return;
+		}
+		level.onPlayerDropItem(event);
 	}
 
 	public void onPlayerInteract(PlayerInteractEvent event) {
