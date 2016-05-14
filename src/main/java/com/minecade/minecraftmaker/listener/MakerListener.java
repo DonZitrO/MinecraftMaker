@@ -11,6 +11,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityCombustEvent;
@@ -19,6 +20,7 @@ import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -27,6 +29,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.inventory.AnvilInventory;
+import org.bukkit.material.EnderChest;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import com.minecade.core.event.AsyncAccountDataLoadEvent;
@@ -87,6 +91,14 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockPlace - block type: [%s] - location: [%s] - cancelled: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.isCancelled()));
 		}
 		plugin.getController().onBlockPlace(event);
+	}
+
+	@EventHandler
+	public void onBlockRedstone(BlockRedstoneEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockRedstone - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+		}
+		plugin.getController().onBlockRedstone(event);
 	}
 
 	@EventHandler
@@ -227,6 +239,24 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerRespawn - Player: [%s] - Respawn location: [%s]", event.getPlayer().getName(), event.getRespawnLocation().toVector()));
 		}
 		plugin.getController().onPlayerRespawn(event);
+	}
+
+	@EventHandler
+	public void onPrepareAnvil(PrepareAnvilEvent event) {
+		if (event.getResult() == null) {
+			return;
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPrepareAnvil - result item type: [%s] - location: [%s]", event.getResult().getType(), event.getInventory().getLocation()));
+		}
+		switch (event.getResult().getType()) {
+		// disable renaming on this items
+		case ENDER_CHEST:
+			event.setResult(null);
+			return;
+		default:
+			break;
+		}
 	}
 
 }
