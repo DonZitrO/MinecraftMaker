@@ -537,13 +537,7 @@ public class MakerController implements Runnable, Tickable {
 			Bukkit.getLogger().warning(String.format("MakerController.onBlockFromTo - cancelled liquid block flowing on unregistered level slot - from: [%s] - to: [%s] - location: [%s]", event.getBlock().getType(), event.getToBlock().getType()));
 			return;
 		}
-		if (level.isBusy()) {
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.onBlockFromTo - cancelled liquid block flowing on busy level: [%s<%s>] with status: [%s]", level.getLevelName(), level.getLevelId(), level.getStatus()));
-			}
-			event.setCancelled(true);
-			return;
-		}
+		level.onBlockFromTo(event);
 	}
 
 	public void onEntityTeleport(EntityTeleportEvent event) {

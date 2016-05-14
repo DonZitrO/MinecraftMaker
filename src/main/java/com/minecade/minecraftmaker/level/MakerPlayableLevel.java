@@ -17,6 +17,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
@@ -87,6 +88,20 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		Location endLocation = getEndLocation();
 		if (location.getBlockX() == endLocation.getBlockX() && location.getBlockZ() == endLocation.getBlockZ() && location.getBlockY() >= endLocation.getBlockY()) {
 			clearLevel();
+		}
+	}
+
+	private void clearBlocksAboveEndBeacon() throws MinecraftMakerException {
+		if (relativeEndLocation == null) {
+			return;
+		}
+		BaseBlock air = new BaseBlock(BlockID.AIR);
+		Vector beacon = BukkitUtil.toVector(getEndLocation());
+		for (int y = beacon.getBlockY() + 1; y <= clipboard.getMaximumPoint().getBlockY(); y++) {
+			Vector above = new Vector(beacon.getBlockX(), y, beacon.getBlockZ());
+			if (clipboard.getBlock(above).getType() != BlockID.BARRIER) {
+				clipboard.setBlock(above, air);
+			}
 		}
 	}
 
@@ -192,7 +207,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			    TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)),
 			    TimeUnit.MILLISECONDS.toMillis(millis) - TimeUnit.SECONDS.toMillis(TimeUnit.MILLISECONDS.toSeconds(millis)));
 	}
-	
+
 	public short getChunkZ() {
 		return chunkZ;
 	}
@@ -200,7 +215,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	public Clipboard getClipboard() {
 		return clipboard;
 	}
-	
+
 	@Override
 	public long getCurrentTick() {
 		return currentTick;
@@ -307,6 +322,23 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	@Override
 	public synchronized boolean isDisabled() {
 		return LevelStatus.DISABLED.equals(getStatus());
+	}
+
+	public void onBlockFromTo(BlockFromToEvent event) {
+		if (isBusy()) {
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockFromTo - cancelled liquid block flowing on busy level: [%s<%s>] with status: [%s]", getLevelName(), getLevelId(), getStatus()));
+			}
+			event.setCancelled(true);
+			return;
+		}
+		if (relativeEndLocation != null && LevelUtils.isAboveLocation(event.getToBlock().getLocation().toVector(), getEndLocation().toVector())) {
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockFromTo - cancelled liquid block flowing on end beacon: [%s<%s>] with status: [%s]", getLevelName(), getLevelId(), getStatus()));
+			}
+			event.setCancelled(true);
+			return;
+		}
 	}
 
 	public void onBlockPistonExtend(BlockPistonExtendEvent event) {
@@ -513,12 +545,12 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	}
 
 	private void setupCliboardFloor() throws MinecraftMakerException {
-		BaseBlock air = new BaseBlock(currentPlayerId != null ? BlockID.AIR : BlockID.BARRIER);
+		BaseBlock limit = new BaseBlock(currentPlayerId != null ? BlockID.AIR : BlockID.BARRIER);
 		Vector minimum = clipboard.getMinimumPoint();
 		Vector maximum = clipboard.getMaximumPoint();
 		for (int x = minimum.getBlockX(); x <= maximum.getBlockX(); x++) {
 			for (int z = minimum.getBlockZ(); z <= maximum.getBlockZ(); z++) {
-				clipboard.setBlock(new Vector(x, minimum.getBlockY(), z), air);
+				clipboard.setBlock(new Vector(x, minimum.getBlockY(), z), limit);
 			}
 		}
 	}
@@ -660,6 +692,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			removeEntities();
 			removeCrystalFromBorders();
 			setupCliboardFloor();
+			clearBlocksAboveEndBeacon();
 		} catch (Exception e) {
 			disable(e.getMessage(), e);
 			return;
