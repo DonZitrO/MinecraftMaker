@@ -3,7 +3,21 @@ package com.minecade.nms;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 
+import net.minecraft.server.v1_9_R1.Entity;
+import net.minecraft.server.v1_9_R1.EntityCaveSpider;
+import net.minecraft.server.v1_9_R1.EntityHuman;
+import net.minecraft.server.v1_9_R1.EntityInsentient;
+import net.minecraft.server.v1_9_R1.EntityItem;
+import net.minecraft.server.v1_9_R1.EntitySpider;
+import net.minecraft.server.v1_9_R1.IChatBaseComponent;
+import net.minecraft.server.v1_9_R1.IChatBaseComponent.ChatSerializer;
+import net.minecraft.server.v1_9_R1.PacketPlayOutChat;
+import net.minecraft.server.v1_9_R1.PathfinderGoalMeleeAttack;
+import net.minecraft.server.v1_9_R1.PathfinderGoalNearestAttackableTarget;
+import net.minecraft.server.v1_9_R1.WorldServer;
+
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_9_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_9_R1.entity.CraftCaveSpider;
@@ -13,23 +27,8 @@ import org.bukkit.craftbukkit.v1_9_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_9_R1.entity.CraftSpider;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
-import org.bukkit.ChatColor;
 
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
-
-import net.minecraft.server.v1_9_R1.Entity;
-import net.minecraft.server.v1_9_R1.EntityInsentient;
-import net.minecraft.server.v1_9_R1.EntityItem;
-import net.minecraft.server.v1_9_R1.IChatBaseComponent;
-import net.minecraft.server.v1_9_R1.IChatBaseComponent.ChatSerializer;
-import net.minecraft.server.v1_9_R1.EntityCaveSpider;
-import net.minecraft.server.v1_9_R1.EntityHuman;
-import net.minecraft.server.v1_9_R1.EntitySpider;
-import net.minecraft.server.v1_9_R1.PacketPlayOutChat;
-import net.minecraft.server.v1_9_R1.PathfinderGoalMeleeAttack;
-import net.minecraft.server.v1_9_R1.PathfinderGoalNearestAttackableTarget;
-import net.minecraft.server.v1_9_R1.PathfinderGoalSelector;
-import net.minecraft.server.v1_9_R1.WorldServer;
 
 // let's try to move most of the NMS code to this class
 public class NMSUtils {
@@ -178,13 +177,16 @@ public class NMSUtils {
 		}
 	}
 
-	public static void stopMobFromMovingAndAttacking(org.bukkit.entity.Entity entity) {
+	public static void disableMobAI(org.bukkit.entity.Entity entity, boolean disable) {
 		if (entity instanceof CraftEntity) {
-			Entity mob = ((CraftEntity)entity).getHandle();
+			Entity mob = ((CraftEntity) entity).getHandle();
 			if (mob instanceof EntityInsentient) {
-				EntityInsentient insentient = (EntityInsentient)mob;
-				insentient.goalSelector = new PathfinderGoalSelector(insentient.world != null && insentient.world.methodProfiler != null ? insentient.world.methodProfiler : null);
-				insentient.targetSelector = new PathfinderGoalSelector(insentient.world != null && insentient.world.methodProfiler != null ? insentient.world.methodProfiler : null);
+				EntityInsentient insentient = (EntityInsentient) mob;
+				// NoAI tag - in an ideal world this should be enough
+				insentient.m(disable);
+				// clear general goal and target selectors (old method not useful for some entities like bats)
+				// insentient.goalSelector = new PathfinderGoalSelector(insentient.world != null && insentient.world.methodProfiler != null ? insentient.world.methodProfiler : null);
+				// insentient.targetSelector = new PathfinderGoalSelector(insentient.world != null && insentient.world.methodProfiler != null ? insentient.world.methodProfiler : null);
 			}
 		}
 	}

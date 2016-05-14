@@ -323,18 +323,21 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		// loading level for edition, stop mobs from moving/attacking
 		if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus())) {
 			if (currentPlayerId == null) {
-				NMSUtils.stopMobFromMovingAndAttacking(event.getEntity());
+				NMSUtils.disableMobAI(event.getEntity(), currentPlayerId == null);
 			}
 			return;
 		}
 		if (LevelStatus.EDITING.equals(getStatus())) {
-			// not supported entity types
+			// rules for specific entity types
 			switch (event.getEntityType()) {
-			case BAT:
 			case GUARDIAN:
-				event.setCancelled(true);
-				plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.not-supported-mob", event.getEntityType().toString());
-				return;
+				Material blockType = event.getLocation().getBlock().getType();
+				if (!Material.WATER.equals(blockType) && !Material.STATIONARY_WATER.equals(blockType)) {
+					event.setCancelled(true);
+					plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.water-mob", event.getEntityType().toString());
+					return;
+				}
+				break;
 			default:
 				break;
 			}
@@ -348,7 +351,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 				plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.mob-limit", lastMobCount);
 				return;
 			}
-			NMSUtils.stopMobFromMovingAndAttacking(event.getEntity());
+			NMSUtils.disableMobAI(event.getEntity(), true);
 			return;
 		}
 		Bukkit.getLogger().warning(String.format("MakerLevel.onCreatureSpawn - illegal creature spawn on level: [%s] with status: [%s]", getLevelName(), getStatus()));
