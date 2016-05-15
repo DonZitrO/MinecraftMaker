@@ -25,7 +25,9 @@ public class LevelClipboardPasteOperation implements Operation {
 			return new DelegateOperation(this, LevelUtils.createPasteOperation(level.getClipboard(), level.getMakerExtent(), level.getWorldData()));
 		}
 		level.tryStatusTransition(LevelStatus.PASTING_CLIPBOARD, LevelStatus.CLIPBOARD_PASTED);
-		return LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingEmptyClipboard(level.getChunkZ(), level.getLevelWidth()), level.getMakerExtent(), level.getWorldData());
+		return null;
+		// this is no longer needed as the previous level is now cleared before the first load
+		//return LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingEmptyClipboard(level.getChunkZ(), level.getLevelWidth()), level.getMakerExtent(), level.getWorldData());
 	}
 
 	@Override

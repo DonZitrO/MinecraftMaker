@@ -1,6 +1,6 @@
 package com.minecade.minecraftmaker.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -27,20 +27,17 @@ import com.minecade.minecraftmaker.schematic.world.WorldData;
 public class LevelUtils {
 
 	public static final Transform IDENTITY_TRANSFORM = new Identity();
-
-	private static final short HIGHEST_LEVEL_Y = 63;
-	private static final short FLOOR_LEVEL_Y = 16;
 	private static final short MAX_LEVELS_PER_WORLD = 10;
 
-	private static Clipboard createEmptyClipboard(Region region) throws MinecraftMakerException {
+	private static Clipboard createEmptyClipboard(Region region) {
 		checkNotNull(region);
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
 		clipboard.setOrigin(region.getMinimumPoint());
 		return clipboard;
 	}
 
-	public static Clipboard createEmptyLevelClipboard(short chunkZ, short widthChunks, int floorBlockId) throws MinecraftMakerException {
-		Region region = getLevelRegion(chunkZ, widthChunks);
+	public static Clipboard createEmptyLevelClipboard(short chunkZ, int floorBlockId) {
+		Region region = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH);
 
 		Vector minimumPoint = region.getMinimumPoint();
 		Vector maximumPoint = region.getMaximumPoint();
@@ -91,22 +88,22 @@ public class LevelUtils {
 		// construct the floor (optional)
 		if (floorBlockId > 0) {
 			BaseBlock floorBlock = new BaseBlock(floorBlockId);
-			clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, FLOOR_LEVEL_Y, minimumPoint.getBlockZ() + 6), floorBlock);
+			clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, MakerPlayableLevel.FLOOR_LEVEL_Y, minimumPoint.getBlockZ() + 6), floorBlock);
 			for (int x = minimumPoint.getBlockX() + 3; x < maximumPoint.getBlockX() - 2; x++) {
 				for (int z = minimumPoint.getBlockZ() + 3; z < maximumPoint.getBlockZ() - 2; z++) {
-					clipboard.setBlock(new Vector(x, FLOOR_LEVEL_Y, z), floorBlock);
+					clipboard.setBlock(new Vector(x, MakerPlayableLevel.FLOOR_LEVEL_Y, z), floorBlock);
 				}
 			}
 		}
 		// floor block to start the level
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, FLOOR_LEVEL_Y, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.BEACON));
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, FLOOR_LEVEL_Y + 1, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
-		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, FLOOR_LEVEL_Y + 2, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, MakerPlayableLevel.FLOOR_LEVEL_Y, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.BEACON));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, MakerPlayableLevel.FLOOR_LEVEL_Y + 1, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
+		clipboard.setBlock(new Vector(minimumPoint.getBlockX() + 2, MakerPlayableLevel.FLOOR_LEVEL_Y + 2, minimumPoint.getBlockZ() + 6), new BaseBlock(BlockID.AIR));
 		return clipboard;
 	}
 
 	public static Clipboard createLevelRemainingEmptyClipboard(short chunkZ, int regionWidth) throws MinecraftMakerException {
-		Region remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH_CHUNKS);
+		Region remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH);
 		remainingRegion.contract(new Vector(regionWidth, 0, 0));
 		return createEmptyClipboard(remainingRegion);
 	}
@@ -130,23 +127,20 @@ public class LevelUtils {
 		return new Vector(originX, originY, originZ);
 	}
 
-	public static Region getDefaultLevelRegion(short chunkZ) {
-		return getLevelRegion(chunkZ, MakerPlayableLevel.DEFAULT_LEVEL_WIDTH_CHUNKS);
-	}
-
-	public static Region getLevelRegion(short chunkZ, short widthChunks) {
+	public static Region getLevelRegion(short chunkZ, int levelWidth) {
+		checkArgument(levelWidth <= MakerPlayableLevel.MAX_LEVEL_WIDTH);
 		Vector origin = getLevelOrigin(chunkZ);
-		short width = (short)(Math.min(widthChunks, MakerPlayableLevel.MAX_LEVEL_WIDTH_CHUNKS) * 16);
-		short height = 66;
-		short length = 13;
+		int width = levelWidth;
+		int height = 66;
+		int length = 13;
 		return new CuboidRegion(origin, origin.add(width, height, length).subtract(Vector.ONE));
 	}
 
 	public static short getLocationSlot(org.bukkit.Location location) {
-		if (location.getY() > HIGHEST_LEVEL_Y) {
+		if (location.getY() > MakerPlayableLevel.HIGHEST_LEVEL_Y) {
 			return -1;
 		}
-		if (location.getBlockX() < 0 || location.getBlockX() > MakerPlayableLevel.MAX_LEVEL_WIDTH_CHUNKS * 16) {
+		if (location.getBlockX() < 0 || location.getBlockX() > MakerPlayableLevel.MAX_LEVEL_WIDTH - 1) {
 			return -1;
 		}
 		if (location.getBlockZ() < 0 || location.getBlockZ() > MAX_LEVELS_PER_WORLD * 16) {

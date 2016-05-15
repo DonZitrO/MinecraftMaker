@@ -197,7 +197,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void createEmptyLevel(MakerPlayer author, short widthChunks, int floorBlockId) {
+	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
 		if (!author.isInLobby() || author.hasPendingOperation()) {
 			author.sendActionMessage(plugin, "level.create.error.author-busy");
 			return;
@@ -210,10 +210,10 @@ public class MakerController implements Runnable, Tickable {
 		level.setLevelId(UUID.randomUUID());
 		level.setAuthorId(author.getUniqueId());
 		level.setAuthorName(author.getName());
-		author.sendActionMessage(plugin, "level.loading");
+		level.setupStartLocation();
+		level.waitForBusyLevel(author, true);
 		try {
-			level.setWidthChunks(widthChunks);
-			level.setClipboard(LevelUtils.createEmptyLevelClipboard(level.getChunkZ(), level.getWidthChunks(), floorBlockId));
+			level.setClipboard(LevelUtils.createEmptyLevelClipboard(level.getChunkZ(), floorBlockId));
 			level.tryStatusTransition(LevelStatus.BLANK, LevelStatus.CLIPBOARD_LOADED);
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
@@ -228,7 +228,7 @@ public class MakerController implements Runnable, Tickable {
 			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
 			return;
 		}
-		createEmptyLevel(author, widthChunks, floorBlockId);
+		createEmptyLevel(author, floorBlockId);
 	}
 
 	@Override
@@ -387,8 +387,9 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		level.setLevelSerial(levelSerial);
+		level.setupStartLocation();
+		level.waitForBusyLevel(mPlayer, true);
 		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
-		mPlayer.sendActionMessage(plugin, "level.loading");
 	}
 
 	public void loadLevelForPlayingBySerial(MakerPlayer mPlayer, Long levelSerial) {
@@ -398,9 +399,10 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		level.setLevelSerial(levelSerial);
+		level.setupStartLocation();
+		level.waitForBusyLevel(mPlayer, true);
 		level.setCurrentPlayerId(mPlayer.getUniqueId());
 		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
-		mPlayer.sendActionMessage(plugin, "level.loading");
 	}
 
 	public void onAsyncAccountDataLoad(MakerPlayerData data) {

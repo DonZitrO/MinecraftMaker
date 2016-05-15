@@ -45,7 +45,7 @@ public class LevelTemplateMenu extends AbstractMakerMenu {
 		}
 		// TODO: enhance this to allow better templates for empty levels
 		if (slot < LevelTemplateItem.values().length) {
-			plugin.getController().createEmptyLevel(mPlayer, MakerPlayableLevel.DEFAULT_LEVEL_WIDTH_CHUNKS, slot);
+			plugin.getController().createEmptyLevel(mPlayer, slot);
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		return MenuClickResult.CANCEL_UPDATE;

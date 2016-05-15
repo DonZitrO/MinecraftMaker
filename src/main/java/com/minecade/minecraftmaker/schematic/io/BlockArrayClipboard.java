@@ -13,7 +13,6 @@ import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
-import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.util.Location;
 import com.minecade.minecraftmaker.schematic.world.BaseBiome;
 import com.minecade.minecraftmaker.schematic.world.Region;
@@ -123,7 +122,7 @@ public class BlockArrayClipboard implements Clipboard {
 	}
 
 	@Override
-	public boolean setBlock(Vector position, BaseBlock block) throws MinecraftMakerException {
+	public boolean setBlock(Vector position, BaseBlock block) {
 		if (region.contains(position)) {
 			Vector v = position.subtract(region.getMinimumPoint());
 			blocks[v.getBlockX()][v.getBlockY()][v.getBlockZ()] = new BaseBlock(block);

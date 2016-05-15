@@ -30,7 +30,7 @@ public class LevelClipboardCopyOperation implements Operation {
 			// we need a fresh clipboard every time
 			Region levelRegion = level.getLevelRegion();
 			if (levelRegion == null) {
-				levelRegion = LevelUtils.getLevelRegion(level.getChunkZ(), level.getWidthChunks());
+				levelRegion = LevelUtils.getLevelRegion(level.getChunkZ(), level.getLevelWidth());
 			}
 			BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
 			clipboard.setOrigin(levelRegion.getMinimumPoint());

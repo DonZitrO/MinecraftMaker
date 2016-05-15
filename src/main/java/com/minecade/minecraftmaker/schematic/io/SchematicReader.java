@@ -6,14 +6,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
-import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.jnbt.ByteArrayTag;
 import com.minecade.minecraftmaker.schematic.jnbt.CompoundTag;
 import com.minecade.minecraftmaker.schematic.jnbt.IntTag;
@@ -36,7 +33,6 @@ import com.minecade.minecraftmaker.schematic.world.WorldData;
  */
 public class SchematicReader implements ClipboardReader {
 
-    private static final Logger log = Logger.getLogger(SchematicReader.class.getCanonicalName());
     private final NBTInputStream inputStream;
 
     /**
@@ -168,9 +164,6 @@ public class SchematicReader implements ClipboardReader {
         BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
         clipboard.setOrigin(origin);
 
-        // Don't log a torrent of errors
-        int failedBlockSets = 0;
-
         for (int x = 0; x < width; ++x) {
             for (int y = 0; y < height; ++y) {
                 for (int z = 0; z < length; ++z) {
@@ -182,21 +175,7 @@ public class SchematicReader implements ClipboardReader {
                         block.setNbtData(new CompoundTag(tileEntitiesMap.get(pt)));
                     }
 
-                    try {
-                        clipboard.setBlock(region.getMinimumPoint().add(pt), block);
-                    } catch (MinecraftMakerException e) {
-                        switch (failedBlockSets) {
-                            case 0:
-                                log.log(Level.WARNING, "Failed to set block on a Clipboard", e);
-                                break;
-                            case 1:
-                                log.log(Level.WARNING, "Failed to set block on a Clipboard (again) -- no more messages will be logged", e);
-                                break;
-                            default:
-                        }
-
-                        failedBlockSets++;
-                    }
+                    clipboard.setBlock(region.getMinimumPoint().add(pt), block);
                 }
             }
         }
