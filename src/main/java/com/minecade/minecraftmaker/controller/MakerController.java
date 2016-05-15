@@ -17,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
@@ -38,6 +39,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -935,6 +937,22 @@ public class MakerController implements Runnable, Tickable {
 		Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
 	}
 
+	public void onVehicleMove(VehicleMoveEvent event) {
+		Entity passenger = event.getVehicle().getPassenger();
+		if (passenger == null || !(passenger instanceof Player)) {
+			return;
+		}
+		final MakerPlayer mPlayer = getPlayer((Player)passenger);
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onVehicleMove - untracked player riding vehicle: [%s]", passenger.getName()));
+			return;
+		}
+		if (mPlayer.isPlayingLevel()) {
+			mPlayer.getCurrentLevel().checkLevelBorder(event.getTo());
+			mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
+		}
+	}
+
 	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
 		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
 		levelMap.remove(makerLevel.getChunkZ());
@@ -958,11 +976,6 @@ public class MakerController implements Runnable, Tickable {
 		}
 		// rename
 		mPlayer.getCurrentLevel().rename(newName);
-	}
-
-	@Override
-	public void run() {
-		tick(getCurrentTick() + 1);
 	}
 
 //	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
@@ -994,6 +1007,11 @@ public class MakerController implements Runnable, Tickable {
 //		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
 //		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
 //	}
+
+	@Override
+	public void run() {
+		tick(getCurrentTick() + 1);
+	}
 
 	public void sendActionMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {
 		MakerPlayer mPlayer = getPlayer(playerId);

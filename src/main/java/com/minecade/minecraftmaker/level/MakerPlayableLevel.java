@@ -367,10 +367,11 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 				LevelRedstoneInteraction cancelled = new LevelRedstoneInteraction(BukkitUtil.toVector(event.getBlock()), newMaterial, event.getBlock().getState().getData(), getCurrentTick(), event.getOldCurrent(), event.getNewCurrent());
 				cancelledRedstoneInteractions.put(cancelled.getLocation(), cancelled);
 				if (plugin.isDebugMode()) {
-					Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - cancelled interaction: %s", cancelled));
+					Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - saved cancelled redstone interaction: %s", cancelled));
 				}
 			} else {
-				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
+
+				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored cancelled interaction - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
 			}
 			event.setNewCurrent(event.getOldCurrent());
 			return;

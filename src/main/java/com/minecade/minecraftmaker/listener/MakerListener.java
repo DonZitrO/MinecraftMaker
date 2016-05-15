@@ -29,6 +29,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import com.minecade.core.event.AsyncAccountDataLoadEvent;
@@ -255,6 +256,11 @@ public class MakerListener implements Listener {
 		default:
 			break;
 		}
+	}
+
+	@EventHandler
+	public void onVehicleMove(VehicleMoveEvent event) {
+		plugin.getController().onVehicleMove(event);
 	}
 
 }
