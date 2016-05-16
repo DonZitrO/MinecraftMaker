@@ -184,6 +184,8 @@ public class NMSUtils {
 				EntityInsentient insentient = (EntityInsentient) mob;
 				// NoAI tag - in an ideal world this should be enough
 				insentient.m(disable);
+				// Silent tag
+				insentient.c(disable);
 				// clear general goal and target selectors (old method not useful for some entities like bats)
 				// insentient.goalSelector = new PathfinderGoalSelector(insentient.world != null && insentient.world.methodProfiler != null ? insentient.world.methodProfiler : null);
 				// insentient.targetSelector = new PathfinderGoalSelector(insentient.world != null && insentient.world.methodProfiler != null ? insentient.world.methodProfiler : null);
