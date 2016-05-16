@@ -135,9 +135,9 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 			}
 			plugin.getController().loadLevelForEditingBySerial(mPlayer, Long.valueOf(serial));
 			return MenuClickResult.CANCEL_CLOSE;
-//		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
-//			mPlayer.openLevelSortbyMenu();
-//			return true;
+		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
+			mPlayer.openPlayerLevelsMenu(MinecraftMakerPlugin.getInstance(), mPlayer.getNextLevelSortBy(), false);
+			return MenuClickResult.CANCEL_UPDATE;
 		}
 		return MenuClickResult.CANCEL_UPDATE;
 	}

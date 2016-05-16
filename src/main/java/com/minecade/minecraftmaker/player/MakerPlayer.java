@@ -1,8 +1,10 @@
 package com.minecade.minecraftmaker.player;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
@@ -16,6 +18,7 @@ import org.bukkit.inventory.Inventory;
 import com.minecade.core.data.Rank;
 import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.player.PlayerUtils;
+import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
@@ -32,6 +35,7 @@ import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
+import com.minecade.minecraftmaker.scoreboard.MakerScoreboard;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.nms.NMSUtils;
 
@@ -51,15 +55,25 @@ public class MakerPlayer implements Tickable {
 
 	private long currentTick;
 	private boolean disabled = false;
+	private MakerScoreboard makerScoreboard;
 	private Location teleportDestination;
+	private LevelSortBy levelSortBy = LevelSortBy.LEVEL_SERIAL;
+    private int levelsLikes;
 
 
 	public MakerPlayer(Player player, MakerPlayerData data) {
 		this.player = player;
 		this.data = data;
+
+		this.loadLevelsLikes();
+
+		// Score board setup
+		this.makerScoreboard = new MakerScoreboard();
+        this.makerScoreboard.setup(player);
+        this.makerScoreboard.addPlayer(this.player, this.data.getDisplayRank().getDisplayName());
 	}
 
-	public void cancelPendingOperation() {
+    public void cancelPendingOperation() {
 		// TODO keep track of all operations related to this player and cancel
 		// them.
 	}
@@ -114,13 +128,68 @@ public class MakerPlayer implements Tickable {
 		return displayName.toString();
 	}
 
+	private String getFormattedTime(long millis){
+	    return String.format("%sm %ss %sms",
+                TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+                TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)),
+                TimeUnit.MILLISECONDS.toMillis(millis) - TimeUnit.SECONDS.toMillis(TimeUnit.MILLISECONDS.toSeconds(millis)));
+	}
+
+    public int getLevelsLikes(){
+        return levelsLikes;
+    }
+
 	public String getName() {
 		return player.getName();
+	}
+
+	public LevelSortBy getNextLevelSortBy(){
+	    for(int i = 0; i<LevelSortBy.values().length; i++){
+	        if(this.levelSortBy.equals(LevelSortBy.values()[i])){
+	            i = i + 1 == LevelSortBy.values().length ? 0 : i + 1;
+	            this.levelSortBy = LevelSortBy.values()[i];
+	            break;
+	        }
+	    }
+
+	    return this.levelSortBy;
 	}
 
 	public Player getPlayer() {
 		return this.player;
 	}
+
+    public String getPlayerRecordTime(){
+        if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null){
+            for(MakerLevelClearData makerLevelClear : this.currentLevel.getLevelsClear()){
+                if(makerLevelClear.getUniqueId().equals(this.getUniqueId())){
+                    return getFormattedTime(makerLevelClear.getTimeCleared());
+                }
+            }
+        }
+
+        return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
+    }
+
+    public String getRecordUsername(){
+        if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
+                this.currentLevel.getLevelsClear().size() > 0){
+            MakerLevelClearData makerLevelClear = this.currentLevel.getLevelsClear().get(0);
+            return makerLevelClear.getUsername();
+        }
+
+        return MinecraftMakerPlugin.getInstance().getMessage("general.empty");
+    }
+
+    public String getRecordTime(){
+        if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
+                this.currentLevel.getLevelsClear().size() > 0){
+            MakerLevelClearData makerLevelClear = this.currentLevel.getLevelsClear().get(0);
+            return getFormattedTime(makerLevelClear.getTimeCleared());
+        }
+
+        return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
+    }
 
 	public UUID getUniqueId() {
 		return this.player.getUniqueId();
@@ -160,6 +229,17 @@ public class MakerPlayer implements Tickable {
 		return this.currentLevel != null && LevelStatus.PLAYING.equals(this.currentLevel.getStatus());
 	}
 
+    private void loadLevelsLikes() {
+        // TODO Auto-generated method stub
+        Collection<MakerLevel> levels = LevelBrowserMenu.getLevelsMap().values();
+
+        for(MakerLevel makerLevel : levels){
+            if(this.getUniqueId().equals(makerLevel.getAuthorId())){
+                this.levelsLikes += makerLevel.getLikes();
+            }
+        }
+    }
+
 	public MenuClickResult onInventoryClick(Inventory inventory, int slot) {
 		if (personalMenus.containsKey(inventory.getName())) {
 			return personalMenus.get(inventory.getName()).onClick(this, slot);
@@ -180,6 +260,10 @@ public class MakerPlayer implements Tickable {
 		for (AbstractMakerMenu menu : personalMenus.values()) {
 			menu.destroy();
 		}
+
+		// Remove player score board
+		this.makerScoreboard.removePlayer(this);
+		this.makerScoreboard.destroy();
 	}
 
 	public void openEditLevelOptionsMenu() {
@@ -212,6 +296,9 @@ public class MakerPlayer implements Tickable {
 		if (update) {
 			menu.update();
 		}
+
+		// Change colors according to Default/VIPs
+		menu.updateLevelItems(this.data.getHighestRank());
 		inventoryToOpen = menu;
 	}
 
@@ -319,6 +406,10 @@ public class MakerPlayer implements Tickable {
 		player.setGameMode(mode);
 	}
 
+	public void setLevelsLikes(int levelsLikes){
+        this.levelsLikes = levelsLikes;
+    }
+
 	public boolean teleport(Location location, TeleportCause cause) {
 		return player.teleport(location, cause);
 	}
@@ -341,6 +432,7 @@ public class MakerPlayer implements Tickable {
 		// every tick tasks
 		teleportIfRequested();
 		executeRequestedInventoryOperations();
+		this.makerScoreboard.update(this);
 	}
 
 	public void executeRequestedInventoryOperations() {

@@ -5,9 +5,13 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
+import org.bukkit.craftbukkit.v1_9_R1.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.material.MaterialData;
+
+import net.minecraft.server.v1_9_R1.NBTTagCompound;
+import net.minecraft.server.v1_9_R1.NBTTagList;
 
 public class ItemBuilder implements ItemStackBuilder, Cloneable {
 
@@ -17,6 +21,8 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 
 	private String displayName;
 	private List<String> lore;
+    private String uniqueId;
+    private String texture;
 
 	private List<EnchantmentWithLevel> enchantments;
 
@@ -32,7 +38,15 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 		this.material = material;
 		this.amount = amount;
 		this.data = data;
-	}
+    }
+
+    public ItemBuilder(String uniqueId, String texture){
+        this.material = Material.SKULL_ITEM;
+        this.amount = 1;
+        this.data = (short)3;
+        this.uniqueId = uniqueId;
+        this.texture = texture;
+    }
 
 	@SuppressWarnings("deprecation")
 	public ItemBuilder(MaterialData materialData) {
@@ -51,6 +65,9 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 			meta.setDisplayName(displayName);
 		}
 		if (lore != null && !lore.isEmpty()) {
+		    if(StringUtils.isNotBlank(lore.get(0).trim())){
+		        lore.add(0, StringUtils.EMPTY);
+		    }
 			meta.setLore(lore);
 		}
 		item.setItemMeta(meta);
@@ -59,8 +76,40 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 				item.addUnsafeEnchantment(ench.getEnchantment(), ench.getLevel());
 			}
 		}
-		return item;
+
+		// Skull
+		if(StringUtils.isNotBlank(this.uniqueId) && StringUtils.isNotBlank(this.texture)){
+		    return createSull(item);
+		} else{
+		    return item;
+		}
 	}
+
+    private ItemStack createSull(ItemStack item) {
+        net.minecraft.server.v1_9_R1.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
+
+        // Set textures
+        NBTTagCompound texture = new NBTTagCompound();
+        texture.setString("Value", this.texture);
+
+        NBTTagList textures = new NBTTagList();
+        textures.add(texture);
+
+        NBTTagCompound properties = new NBTTagCompound();
+        properties.set("textures", textures);
+
+        // Set unique id and textures
+        NBTTagCompound owner = new NBTTagCompound();
+        owner.setString("Id", this.uniqueId.toString());
+        owner.set("Properties", properties);
+
+        NBTTagCompound tag = nmsItem.getTag();
+        if(tag == null) tag = new NBTTagCompound();
+        tag.set("SkullOwner", owner);
+        nmsItem.setTag(tag);
+
+        return CraftItemStack.asCraftMirror(nmsItem);
+    }
 
 	@Override
 	public String getDisplayName() {
@@ -94,5 +143,4 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 	public ItemBuilder clone() {
 		return new ItemBuilder(material, amount, data).withDisplayName(displayName).withLore(lore != null ? new ArrayList<>(lore) : null).withEnchantments(enchantments != null ? new ArrayList<>(enchantments) : null);
 	}
-
 }

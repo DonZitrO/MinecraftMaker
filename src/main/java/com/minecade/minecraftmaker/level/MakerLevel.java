@@ -1,8 +1,11 @@
 package com.minecade.minecraftmaker.level;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
+import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -21,9 +24,11 @@ public class MakerLevel {
 	protected long levelSerial;
 	protected long likes;
 	protected MakerRelativeLocationData relativeEndLocation;
+	private List<MakerLevelClearData> levelsClear;
 
 	public MakerLevel(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
+		this.levelsClear = new ArrayList<MakerLevelClearData>();
 	}
 
 	public UUID getAuthorId() {
@@ -49,6 +54,10 @@ public class MakerLevel {
 	public long getFavs() {
 		return favs;
 	}
+
+    public List<MakerLevelClearData> getLevelsClear() {
+        return levelsClear;
+    }
 
 	public UUID getLevelId() {
 		return levelId;

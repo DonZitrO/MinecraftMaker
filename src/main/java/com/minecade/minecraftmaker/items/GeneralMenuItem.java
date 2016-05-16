@@ -15,11 +15,11 @@ public enum GeneralMenuItem implements TranslatableItem {
 	EDITOR_PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST),
 	EXIT_MENU(Material.ARROW),
 	LOADING_PAGE(Material.WATCH),
-	NEXT_PAGE(Material.SHEARS),
+	NEXT_PAGE("15f49744-9b61-46af-b1c3-71c6261a0d0e", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMWI2ZjFhMjViNmJjMTk5OTQ2NDcyYWVkYjM3MDUyMjU4NGZmNmY0ZTgzMjIxZTU5NDZiZDJlNDFiNWNhMTNiIn19fQ=="),
 	PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST),
-	PREVIOUS_PAGE(Material.RAW_FISH), 
-	SEARCH(Material.COMPASS), 
-	SORT(Material.RAILS);
+	PREVIOUS_PAGE("69b9a08d-4e89-4878-8be8-551caeacbf2a", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2ViZjkwNzQ5NGE5MzVlOTU1YmZjYWRhYjgxYmVhZmI5MGZiOWJlNDljNzAyNmJhOTdkNzk4ZDVmMWEyMyJ9fX0="),
+	SEARCH(Material.COMPASS),
+	SORT(Material.HOPPER);
 
 	private final ItemStackBuilder builder;
 
@@ -34,6 +34,10 @@ public enum GeneralMenuItem implements TranslatableItem {
 	private GeneralMenuItem(Material material, int amount, short data) {
 		this.builder = new ItemBuilder(material, amount, data);
 	}
+
+    private GeneralMenuItem(String uniqueId, String texture){
+        this.builder = new ItemBuilder(uniqueId, texture);
+    }
 
 	@Override
 	public ItemStackBuilder getBuilder() {
