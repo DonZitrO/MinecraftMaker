@@ -26,23 +26,6 @@ public class MakerLevel {
 		this.plugin = plugin;
 	}
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		MakerLevel other = (MakerLevel) obj;
-		if (levelId == null) {
-			if (other.levelId != null)
-				return false;
-		} else if (!levelId.equals(other.levelId))
-			return false;
-		return true;
-	}
-
 	public UUID getAuthorId() {
 		return authorId;
 	}
@@ -62,7 +45,6 @@ public class MakerLevel {
 	public long getDislikes() {
 		return dislikes;
 	}
-
 
 	public long getFavs() {
 		return favs;
@@ -84,21 +66,8 @@ public class MakerLevel {
 		return likes;
 	}
 
-
-
 	public MakerRelativeLocationData getRelativeEndLocation() {
 		return relativeEndLocation;
-	}
-
-
-
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((levelId == null) ? 0 : levelId.hashCode());
-		return result;
 	}
 
 	public boolean isClearedByAuthor() {
@@ -147,6 +116,31 @@ public class MakerLevel {
 
 	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
 		this.relativeEndLocation = relativeEndLocation;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		MakerLevel other = (MakerLevel) obj;
+		if (levelId == null) {
+			if (other.levelId != null)
+				return false;
+		} else if (!levelId.equals(other.levelId))
+			return false;
+		return true;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((levelId == null) ? 0 : levelId.hashCode());
+		return result;
 	}
 
 }

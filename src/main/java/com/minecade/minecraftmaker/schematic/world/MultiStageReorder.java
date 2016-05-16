@@ -8,12 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.Bukkit;
+
 import com.google.common.collect.Iterators;
 import com.minecade.core.util.TupleArrayList;
 import com.minecade.minecraftmaker.function.operation.LimitedTimeRunContext;
 import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.function.operation.ResumableBlockMapEntryPlacer;
 import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
@@ -153,11 +156,17 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 					case BlockID.POWERED_RAIL:
 					case BlockID.DETECTOR_RAIL:
 					case BlockID.ACTIVATOR_RAIL:
+						// FIXME: experimental - set rail blocks twice (second time force update of direction and attachment)
+						extent.setBlock(current, blockTypes.get(current));
 						// Here, rails are hardcoded to be attached to the block
 						// below them.
 						// They're also attached to the block they're ascending
 						// towards via BlockType.getAttachment.
+						if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+							Bukkit.getLogger().info(String.format("[DEBUG] | ResumableStage3Committer.resume - processing rail block - type: [%s] - location: [%s]", type, current));
+						}
 						BlockVector lowerBlock = current.add(0, -1, 0).toBlockVector();
+						Bukkit.getLogger().info(String.format("[DEBUG] | ResumableStage3Committer.resume - processing block below rail block - location: [%s] - blocks.contains: [%s] - walked.contains: [%s]", lowerBlock, blocks.contains(lowerBlock), walked.contains(lowerBlock)));
 						if (blocks.contains(lowerBlock) && !walked.contains(lowerBlock)) {
 							walked.addFirst(lowerBlock);
 						}
@@ -166,11 +175,17 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 
 					final Direction attachment = BlockType.getAttachment(type, data);
 					if (attachment == null) {
+						if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+							Bukkit.getLogger().info(String.format("[DEBUG] | ResumableStage3Committer.resume - block is not attached to anything => we can place it - type: [%s] - location: [%s]", type, current));
+						}
 						// Block is not attached to anything => we can place it
 						break;
 					}
 
 					current = current.add(attachment.toVector()).toBlockVector();
+					if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+						Bukkit.getLogger().info(String.format("[DEBUG] | ResumableStage3Committer.resume - attachment detected - location: [%s] - blocks.contains: [%s] - walked.contains: [%s]", current, blocks.contains(current), walked.contains(current)));
+					}
 
 					if (!blocks.contains(current)) {
 						// We ran outside the remaining set => assume we can
@@ -179,6 +194,9 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 					}
 
 					if (walked.contains(current)) {
+						if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+							Bukkit.getLogger().info(String.format(""));
+						}
 						// Cycle detected => This will most likely go wrong, but
 						// there's nothing we can do about it.
 						break;

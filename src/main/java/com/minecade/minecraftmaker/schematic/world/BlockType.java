@@ -404,8 +404,6 @@ public enum BlockType {
     static {
         shouldPlaceLast.add(BlockID.SAPLING);
         shouldPlaceLast.add(BlockID.BED);
-        shouldPlaceLast.add(BlockID.POWERED_RAIL);
-        shouldPlaceLast.add(BlockID.DETECTOR_RAIL);
         shouldPlaceLast.add(BlockID.LONG_GRASS);
         shouldPlaceLast.add(BlockID.DEAD_BUSH);
         shouldPlaceLast.add(BlockID.PISTON_EXTENSION);
@@ -418,7 +416,6 @@ public enum BlockType {
         shouldPlaceLast.add(BlockID.REDSTONE_WIRE);
         shouldPlaceLast.add(BlockID.CROPS);
         shouldPlaceLast.add(BlockID.LADDER);
-        shouldPlaceLast.add(BlockID.MINECART_TRACKS);
         shouldPlaceLast.add(BlockID.LEVER);
         shouldPlaceLast.add(BlockID.STONE_PRESSURE_PLATE);
         shouldPlaceLast.add(BlockID.WOODEN_PRESSURE_PLATE);
@@ -449,11 +446,15 @@ public enum BlockType {
         shouldPlaceLast.add(BlockID.PRESSURE_PLATE_HEAVY);
         shouldPlaceLast.add(BlockID.COMPARATOR_OFF);
         shouldPlaceLast.add(BlockID.COMPARATOR_ON);
-        shouldPlaceLast.add(BlockID.ACTIVATOR_RAIL);
         shouldPlaceLast.add(BlockID.IRON_TRAP_DOOR);
         shouldPlaceLast.add(BlockID.CARPET);
         shouldPlaceLast.add(BlockID.DOUBLE_PLANT);
         shouldPlaceLast.add(BlockID.DAYLIGHT_SENSOR_INVERTED);
+        // FIXME: experimental - moved all track blocks to stage 3 (final).
+        //shouldPlaceLast.add(BlockID.POWERED_RAIL);
+        //shouldPlaceLast.add(BlockID.DETECTOR_RAIL);
+        //shouldPlaceLast.add(BlockID.ACTIVATOR_RAIL);
+        //shouldPlaceLast.add(BlockID.MINECART_TRACKS);
     }
 
     /**
@@ -493,6 +494,11 @@ public enum BlockType {
         shouldPlaceFinal.add(BlockID.PISTON_MOVING_PIECE);
         shouldPlaceFinal.add(BlockID.STANDING_BANNER);
         shouldPlaceFinal.add(BlockID.WALL_BANNER);
+        // FIXME: experimental - moved all track blocks to stage 3 (final).
+        shouldPlaceFinal.add(BlockID.POWERED_RAIL);
+        shouldPlaceFinal.add(BlockID.DETECTOR_RAIL);
+        shouldPlaceFinal.add(BlockID.ACTIVATOR_RAIL);
+        shouldPlaceFinal.add(BlockID.MINECART_TRACKS);
     }
 
     /**
