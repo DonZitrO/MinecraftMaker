@@ -133,6 +133,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 //			}
 //		}
 //		return loadingPaneItems;
+//    }    return loadingPaneItems;
 //	}
 
 	public static String getTitleKey() {
@@ -162,6 +163,16 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		level.setLikes(totalLikes);
 		level.setDislikes(totalDislikes);
 		addLevelItemToPages(plugin, level);
+
+        updateLevelOwnerLikes(level);
+    }
+
+    private static void updateLevelOwnerLikes(MakerLevel makerLevel){
+        // Update owner likes
+        MakerPlayer makerPlayer = MinecraftMakerPlugin.getInstance().getController().getPlayer(makerLevel.getAuthorId());
+        if(makerPlayer != null){
+            makerPlayer.setLevelsLikes(makerPlayer.getLevelsLikes() + 1);
+        }
 	}
 
 	private int currentPage = 1;
@@ -222,11 +233,8 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
     private boolean isLevelSlot(int index){
         if(index>9 && index<17) return true;
-
         if(index>18 && index<26) return true;
-
         if(index>27 && index<35) return true;
-
         if(index>36 && index<44) return true;
 
         return false;
@@ -345,15 +353,8 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			if (item != null && isLevelSlot(i)) {
 				items[i] = item;
             }
-            //			else {
-            //				new ItemStack(Material.STAINED_GLASS_PANE);
-            //			}
-
             i++;
 		}
-        //		for (; i < inventory.getSize(); i++) {
-        //			items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
-        //		}
 		inventory.setContents(items);
 	}
 
@@ -367,7 +368,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
     }
 
     public synchronized void updateLevelItems(Rank rank){
-
         for(ItemStack itemStack : items){
             if(Material.MONSTER_EGG.equals(itemStack.getType())){
                 if(Rank.GUEST.equals(rank)){

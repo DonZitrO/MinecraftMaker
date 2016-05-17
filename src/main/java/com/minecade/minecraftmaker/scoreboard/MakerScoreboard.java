@@ -23,7 +23,6 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
  */
 public class MakerScoreboard {
 
-    //private static final String HEALTH = "Health";
     private static final String NAME = "Name";
     private static final int SERVER_ID = MinecraftMakerPlugin.getInstance().getConfig().getInt("server.id");
     private static final List<String> TITLE = Arrays.asList(
@@ -31,20 +30,22 @@ public class MakerScoreboard {
             "§LMin§B§LecraftMaker", "§LMine§B§LcraftMaker", "§LMinec§B§LraftMaker",
             "§LMinecr§B§LaftMaker", "§LMinecra§B§LftMaker", "§LMinecraf§B§LtMaker",
             "§LMinecraft§B§LMaker", "§LMinecraftM§B§Laker", "§LMinecraftMa§B§Lker",
-            "§LMinecraftMak§B§Ler", "§LMinecraftMake§B§Lr", "§B§LMinecraftMaker",
-            "§B§LMinecraftMaker", "§B§LMinecraftMaker", "§F§LMinecraftMaker",
-            "§B§LMinecraftMaker", "§F§LMinecraftMaker", "§B§LMinecraftMaker",
-            "§F§LMinecraftMaker");
+            "§LMinecraftMak§B§Ler", "§LMinecraftMake§B§Lr", "§LMinecraftMaker",
+            "§B§LMinecraftMaker", "§B§LMinecraftMaker", "§B§LMinecraftMaker",
+            "§F§LMinecraftMaker", "§B§LMinecraftMaker", "§F§LMinecraftMaker",
+            "§B§LMinecraftMaker", "§F§LMinecraftMaker");
 
     private final MinecraftMakerPlugin plugin;
+    private final MakerPlayer makerPlayer;
 
     private int index;
     private Scoreboard scoreboard;
     private HashMap<Integer, String> scores;
 
-    public MakerScoreboard(){
+    public MakerScoreboard(MakerPlayer makerPlayer){
         // Initialize variables
         this.index = 0;
+        this.makerPlayer = makerPlayer;
         this.scores = new HashMap<Integer, String>();
         this.plugin = MinecraftMakerPlugin.getInstance();
         this.scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
@@ -73,16 +74,15 @@ public class MakerScoreboard {
 
         // Unregister
         this.scoreboard.getObjective(NAME).unregister();
-        //this.scoreboard.getObjective(HEALTH).unregister();
     }
 
-    public synchronized void removePlayer(MakerPlayer makerPlayer){
+    public synchronized void removePlayer(String teamName){
         // Get online players
         for(Player player : Bukkit.getOnlinePlayers()){
             // Player needs to have a scoreboard
             if(player.getScoreboard() != null){
                 // Get team
-                Team team = scoreboard.getTeam(makerPlayer.getData().getDisplayRank().getDisplayName());
+                Team team = scoreboard.getTeam(teamName);
 
                 // Add player
                 if(team != null && team.getPlayers().contains(player)){
@@ -92,17 +92,17 @@ public class MakerScoreboard {
         }
     }
 
-    public synchronized void addPlayer(Player player, String team){
+    public synchronized void addPlayer(String teamName){
         // Register player team in online players scoreboard
         for(Player onlinePlayer : Bukkit.getOnlinePlayers()){
             // Online Player needs to have a scoreboard
             if(onlinePlayer.getScoreboard() != null){
                 // Get team
-                Team onlinePlayerTeam = onlinePlayer.getScoreboard().getTeam(team);
+                Team onlinePlayerTeam = onlinePlayer.getScoreboard().getTeam(teamName);
 
                 // Add player to online player scoreboard team
-                if(onlinePlayerTeam != null && !onlinePlayerTeam.getPlayers().contains(player)){
-                    onlinePlayerTeam.addPlayer(player);
+                if(onlinePlayerTeam != null && !onlinePlayerTeam.getPlayers().contains(this.makerPlayer.getPlayer())){
+                    onlinePlayerTeam.addPlayer(this.makerPlayer.getPlayer());
                 }
 
                 // Add online player to player scoreboard team
@@ -146,41 +146,32 @@ public class MakerScoreboard {
         }
     }
 
-    public void setup(Player player){
+    public void setup(){
         // Unregister previous objectives
         if (this.scoreboard.getObjective(NAME) != null){
             this.scoreboard.getObjective(NAME).unregister();
         }
 
-//        // Unregister previous objectives
-//        if (this.scoreboard.getObjective(HEALTH) != null){
-//            this.scoreboard.getObjective(HEALTH).unregister();
-//        }
-
         // Register objectives
         this.scoreboard.registerNewObjective(NAME, NAME);
-//        this.scoreboard.registerNewObjective(HEALTH, HEALTH);
 
         // Reset scores
-        if (player.isOnline()) {
+        if (this.makerPlayer.getPlayer().isOnline()) {
             this.resetPlayerScores();
 
             // Set objective values
             this.scoreboard.getObjective(NAME).setDisplaySlot(DisplaySlot.SIDEBAR);
             this.scoreboard.getObjective(NAME).setDisplayName(TITLE.get(index));
-//            this.scoreboard.getObjective(HEALTH).setDisplaySlot(DisplaySlot.BELOW_NAME);
-//            this.scoreboard.getObjective(HEALTH).setDisplayName(Double.toString(player.getHealth()));
-
-            player.setScoreboard(this.scoreboard);
+            this.makerPlayer.getPlayer().setScoreboard(this.scoreboard);
         } else {
             this.destroy();
         }
     }
 
-    public void update(MakerPlayer makerPlayer) {
-        this.displayFlashingTitle(makerPlayer.getCurrentTick());
+    public void update() {
+        this.displayFlashingTitle();
 
-        if(makerPlayer.getCurrentTick() % 20 == 0) {
+        if(this.makerPlayer.getCurrentTick() % 20 == 0) {
             this.setScore(13, "§4");
             this.setScore(12, plugin.getMessage("scoreboard.server.title"));
             this.setScore(11, plugin.getMessage("scoreboard.server.name", SERVER_ID));
@@ -190,34 +181,34 @@ public class MakerScoreboard {
             this.setScore(1, "§0");
             this.setScore(0, plugin.getMessage("scoreboard.url"));
 
-            if(makerPlayer.getCurrentLevel() == null){
+            if(this.makerPlayer.getCurrentLevel() == null){
                 this.setScore(9, plugin.getMessage("scoreboard.coins.title"));
-                this.setScore(8, plugin.getMessage("scoreboard.coins.name", makerPlayer.getData().getCoins()));
+                this.setScore(8, plugin.getMessage("scoreboard.coins.name", this.makerPlayer.getData().getCoins()));
                 this.setScore(6, plugin.getMessage("scoreboard.clear-level.title"));
-                this.setScore(5, plugin.getMessage("scoreboard.clear-level.name", makerPlayer.getData().getLevelsClear().size()));
+                this.setScore(5, plugin.getMessage("scoreboard.clear-level.name", this.makerPlayer.getData().getLevelsClear().size()));
                 this.setScore(3, plugin.getMessage("scoreboard.likes.title"));
-                this.setScore(2, plugin.getMessage("scoreboard.likes.name", makerPlayer.getLevelsLikes()));
-            } else if(GameMode.CREATIVE.equals(makerPlayer.getPlayer().getGameMode()) || makerPlayer.getCurrentTick() % 240 < 120){
+                this.setScore(2, plugin.getMessage("scoreboard.likes.name", this.makerPlayer.getLevelsLikes()));
+            } else if(GameMode.CREATIVE.equals(makerPlayer.getPlayer().getGameMode()) || this.makerPlayer.getCurrentTick() % 240 < 120){
                 this.setScore(9, plugin.getMessage("scoreboard.level-name.title"));
-                this.setScore(8, plugin.getMessage("scoreboard.level-name.name", StringUtils.isEmpty(makerPlayer.getCurrentLevel().getLevelName()) ?
-                        MinecraftMakerPlugin.getInstance().getMessage("general.empty") : makerPlayer.getCurrentLevel().getLevelName()));
+                this.setScore(8, plugin.getMessage("scoreboard.level-name.name", StringUtils.isEmpty(this.makerPlayer.getCurrentLevel().getLevelName()) ?
+                        MinecraftMakerPlugin.getInstance().getMessage("general.empty") : this.makerPlayer.getCurrentLevel().getLevelName()));
                 this.setScore(6, plugin.getMessage("scoreboard.level-author.title"));
-                this.setScore(5, plugin.getMessage("scoreboard.level-author.name", makerPlayer.getCurrentLevel().getAuthorName()));
+                this.setScore(5, plugin.getMessage("scoreboard.level-author.name", this.makerPlayer.getCurrentLevel().getAuthorName()));
                 this.setScore(3, plugin.getMessage("scoreboard.level-likes.title"));
-                this.setScore(2, plugin.getMessage("scoreboard.level-likes.name", makerPlayer.getCurrentLevel().getLikes()));
+                this.setScore(2, plugin.getMessage("scoreboard.level-likes.name", this.makerPlayer.getCurrentLevel().getLikes()));
             } else {
                 this.setScore(9, plugin.getMessage("scoreboard.level-player.title"));
-                this.setScore(8, plugin.getMessage("scoreboard.level-player.name", makerPlayer.getRecordUsername()));
+                this.setScore(8, plugin.getMessage("scoreboard.level-player.name", this.makerPlayer.getRecordUsername()));
                 this.setScore(6, plugin.getMessage("scoreboard.level-time.title"));
-                this.setScore(5, plugin.getMessage("scoreboard.level-time.name", makerPlayer.getRecordTime()));
+                this.setScore(5, plugin.getMessage("scoreboard.level-time.name", this.makerPlayer.getRecordTime()));
                 this.setScore(3, plugin.getMessage("scoreboard.player-best.title"));
-                this.setScore(2, plugin.getMessage("scoreboard.player-best.name", makerPlayer.getPlayerRecordTime()));
+                this.setScore(2, plugin.getMessage("scoreboard.player-best.name", this.makerPlayer.getPlayerRecordTime()));
             }
         }
     }
 
-    private void displayFlashingTitle(long currentTick){
-        if(this.scoreboard.getObjective(NAME) != null && currentTick % 3 == 0){
+    private void displayFlashingTitle(){
+        if(this.scoreboard.getObjective(NAME) != null && this.makerPlayer.getCurrentTick() % 3 == 0){
             this.index = this.index == TITLE.size() - 1 ? 0 : this.index + 1;
             this.scoreboard.getObjective(NAME).setDisplayName(TITLE.get(this.index));
         }

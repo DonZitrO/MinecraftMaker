@@ -6,7 +6,6 @@ import org.bukkit.inventory.ItemStack;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
-import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -53,7 +52,6 @@ public class PlayLevelOptionsMenu extends AbstractMakerMenu {
 			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.LIKE.getDisplayName())) {
 			plugin.getDatabaseAdapter().likeLevelAsync(mPlayer.getCurrentLevel().getLevelId(), mPlayer.getUniqueId(), false);
-			updateLevelOwnerLikes(mPlayer.getCurrentLevel());
 			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.DISLIKE.getDisplayName())) {
 			plugin.getDatabaseAdapter().likeLevelAsync(mPlayer.getCurrentLevel().getLevelId(), mPlayer.getUniqueId(), true);
@@ -73,13 +71,6 @@ public class PlayLevelOptionsMenu extends AbstractMakerMenu {
 	@Override
 	public boolean isShared() {
 		return true;
-	}
-
-	private void updateLevelOwnerLikes(MakerLevel makerLevel){
-	    MakerPlayer makerPlayer = MinecraftMakerPlugin.getInstance().getController().getPlayer(makerLevel.getAuthorId());
-	    if(makerPlayer != null){
-	        makerPlayer.setLevelsLikes(makerPlayer.getLevelsLikes() + 1);
-	    }
 	}
 
 }

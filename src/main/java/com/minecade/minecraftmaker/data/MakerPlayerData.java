@@ -12,8 +12,6 @@ public class MakerPlayerData extends MinecadeAccountData {
 
 	public MakerPlayerData(UUID uniqueId, String username) {
 		super(uniqueId, username);
-
-		//this.levels = new ArrayList<MakerLevelData>();
 		this.levelsClear = new ArrayList<MakerLevelClearData>();
 	}
 

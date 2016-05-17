@@ -56,10 +56,11 @@ public class MakerPlayer implements Tickable {
 	private long currentTick;
 	private boolean disabled = false;
 	private MakerScoreboard makerScoreboard;
+
 	private Location teleportDestination;
+
 	private LevelSortBy levelSortBy = LevelSortBy.LEVEL_SERIAL;
     private int levelsLikes;
-
 
 	public MakerPlayer(Player player, MakerPlayerData data) {
 		this.player = player;
@@ -68,9 +69,9 @@ public class MakerPlayer implements Tickable {
 		this.loadLevelsLikes();
 
 		// Score board setup
-		this.makerScoreboard = new MakerScoreboard();
-        this.makerScoreboard.setup(player);
-        this.makerScoreboard.addPlayer(this.player, this.data.getDisplayRank().getDisplayName());
+		this.makerScoreboard = new MakerScoreboard(this);
+        this.makerScoreboard.setup();
+        this.makerScoreboard.addPlayer(this.data.getDisplayRank().getDisplayName());
 	}
 
     public void cancelPendingOperation() {
@@ -230,7 +231,6 @@ public class MakerPlayer implements Tickable {
 	}
 
     private void loadLevelsLikes() {
-        // TODO Auto-generated method stub
         Collection<MakerLevel> levels = LevelBrowserMenu.getLevelsMap().values();
 
         for(MakerLevel makerLevel : levels){
@@ -262,7 +262,7 @@ public class MakerPlayer implements Tickable {
 		}
 
 		// Remove player score board
-		this.makerScoreboard.removePlayer(this);
+		this.makerScoreboard.removePlayer(this.data.getDisplayRank().getDisplayName());
 		this.makerScoreboard.destroy();
 	}
 
@@ -432,7 +432,7 @@ public class MakerPlayer implements Tickable {
 		// every tick tasks
 		teleportIfRequested();
 		executeRequestedInventoryOperations();
-		this.makerScoreboard.update(this);
+		this.makerScoreboard.update();
 	}
 
 	public void executeRequestedInventoryOperations() {
