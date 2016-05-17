@@ -74,7 +74,8 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	private int lastMobCount;
 	private long startTime;
 	private LevelStatus status;
-	private boolean firstTimeLoaded = true;
+	//private boolean firstTimeLoaded = true;
+	private boolean firstTimeEdited = true;
 
 	public MakerPlayableLevel(MinecraftMakerPlugin plugin, short chunkZ) {
 		super(plugin);
@@ -631,7 +632,8 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			mPlayer.getPlayer().getInventory().setItem(0, new ItemStack(Material.BEACON));
 			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getItem());
 			mPlayer.updateInventory();
-			if (!playerIsInThisLevel(mPlayer)) {
+			if (firstTimeEdited) {
+				firstTimeEdited = false;
 				mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.create.start.title"), plugin.getMessage("level.create.start.subtitle"));
 				mPlayer.sendMessage(plugin, "level.create.creative");
 				mPlayer.sendMessage(plugin, "level.create.beacon");
@@ -716,10 +718,10 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			return;
 		}
 		status = LevelStatus.CLIPBOARD_PASTE_READY;
-		if (firstTimeLoaded) {
-			firstTimeLoaded = false;
-			plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createEmptyLevelClipboard(getChunkZ(), 0), getMakerExtent(), getWorldData()));
-		}
+//		if (firstTimeLoaded) {
+//			firstTimeLoaded = false;
+//			plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createEmptyLevelClipboard(getChunkZ(), 0), getMakerExtent(), getWorldData()));
+//		}
 		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
 	}
 

@@ -84,7 +84,8 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 		if (BlockType.shouldPlaceLast(block.getType())) {
 			// Place torches, etc. last
 			stage2.put(location.toBlockVector(), block);
-			return !(lazyBlock.getType() == block.getType() && lazyBlock.getData() == block.getData());
+			// FIXME: experimental - set air block where problematic blocks are going to be placed
+			return super.setBlock(location, new BaseBlock(BlockID.AIR));
 		} else if (BlockType.shouldPlaceFinal(block.getType())) {
 			// Place signs, reed, etc even later
 			stage3.put(location.toBlockVector(), block);
@@ -156,7 +157,7 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 					case BlockID.POWERED_RAIL:
 					case BlockID.DETECTOR_RAIL:
 					case BlockID.ACTIVATOR_RAIL:
-						// FIXME: experimental - set rail blocks twice (second time force update of direction and attachment)
+						// FIXME: experimental - set rail blocks twice (second time forces the update of direction and attachment)
 						extent.setBlock(current, blockTypes.get(current));
 						// Here, rails are hardcoded to be attached to the block
 						// below them.
