@@ -2,6 +2,7 @@ package com.minecade.minecraftmaker.player;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +21,7 @@ import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.player.PlayerUtils;
 import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
+import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
@@ -44,11 +46,13 @@ public class MakerPlayer implements Tickable {
 	private final Player player;
 	private final MakerPlayerData data;
 
+	private MakerSteveData steveData;
 	private MakerPlayableLevel currentLevel;
 	private MakerScoreboard makerScoreboard;
 
 	private ChatColor nameColor = ChatColor.RESET;
 	private final Map<String, AbstractMakerMenu> personalMenus = new HashMap<>();
+	private final LinkedList<String> pendingActionMessages = new LinkedList<>();
 
 	private AbstractMakerMenu inventoryToOpen;
 	private boolean closeInventoryRequest;
@@ -103,6 +107,26 @@ public class MakerPlayer implements Tickable {
 		}
 		// TODO: player disable logic (kick, probably)
 		disabled = true;
+	}
+
+	public void executeRequestedInventoryOperations() {
+		if (inventoryToOpen != null) {
+			inventoryToOpen.open(player);
+			inventoryToOpen = null;
+			closeInventoryRequest = false;
+			dirtyInventory = false;
+			return;
+		}
+		if (closeInventoryRequest) {
+			player.closeInventory();
+			closeInventoryRequest = false;
+			dirtyInventory = false;
+			return;
+		}
+		if (dirtyInventory) {
+			player.updateInventory();
+			dirtyInventory = false;
+		}
 	}
 
 	public MakerPlayableLevel getCurrentLevel() {
@@ -208,11 +232,6 @@ public class MakerPlayer implements Tickable {
 		return inventoryToOpen != null;
 	}
 
-	public boolean hasPendingOperation() {
-		// TODO check if the player is currently waiting for an operation to complete
-		return false;
-	}
-
 	@Override
 	public boolean isDisabled() {
 		return disabled;
@@ -227,7 +246,11 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public boolean isInLobby() {
-		return this.currentLevel == null;
+		return this.currentLevel == null && !isInSteve();
+	}
+
+	public boolean isInSteve() {
+		return steveData != null;
 	}
 
 	public boolean isPlayingLevel() {
@@ -244,13 +267,6 @@ public class MakerPlayer implements Tickable {
         }
     }
 
-	public MenuClickResult onInventoryClick(Inventory inventory, int slot) {
-		if (personalMenus.containsKey(inventory.getName())) {
-			return personalMenus.get(inventory.getName()).onClick(this, slot);
-		}
-		return MenuClickResult.ALLOW;
-	}
-
 //	public void openLevelSortbyMenu() {
 //		AbstractMakerMenu menu = personalMenus.get(LevelSortByMenu.getInstance().getName());
 //		if (menu == null) {
@@ -259,6 +275,13 @@ public class MakerPlayer implements Tickable {
 //		}
 //		inventoryToOpen = menu;
 //	}
+
+	public MenuClickResult onInventoryClick(Inventory inventory, int slot) {
+		if (personalMenus.containsKey(inventory.getName())) {
+			return personalMenus.get(inventory.getName()).onClick(this, slot);
+		}
+		return MenuClickResult.ALLOW;
+	}
 
 	public void onQuit() {
 		for (AbstractMakerMenu menu : personalMenus.values()) {
@@ -371,7 +394,7 @@ public class MakerPlayer implements Tickable {
 	public void sendActionMessage(Internationalizable plugin, String key, Object... args) {
 		if (player.isOnline()) {
 			if (!StringUtils.isEmpty(key)) {
-				NMSUtils.sendActionMessage(player, plugin.getMessage(key, args));
+				pendingActionMessages.add(plugin.getMessage(key, args));
 			}
 		}
 	}
@@ -383,6 +406,12 @@ public class MakerPlayer implements Tickable {
 			} else {
 				player.sendMessage(plugin.getMessage(key, args));
 			}
+		}
+	}
+
+	private void sendPendingActionMessageIfAvailable() {
+		if (getCurrentTick() % 60 == 23 && !pendingActionMessages.isEmpty()) {
+			NMSUtils.sendActionMessage(player, pendingActionMessages.pollFirst());
 		}
 	}
 
@@ -413,6 +442,10 @@ public class MakerPlayer implements Tickable {
         this.levelsLikes = levelsLikes;
     }
 
+	public void setSteveData(MakerSteveData steveData) {
+		this.steveData = steveData;
+	}
+
 	public boolean teleport(Location location, TeleportCause cause) {
 		return player.teleport(location, cause);
 	}
@@ -435,27 +468,8 @@ public class MakerPlayer implements Tickable {
 		// every tick tasks
 		teleportIfRequested();
 		executeRequestedInventoryOperations();
+		sendPendingActionMessageIfAvailable();
 		this.makerScoreboard.update();
-	}
-
-	public void executeRequestedInventoryOperations() {
-		if (inventoryToOpen != null) {
-			inventoryToOpen.open(player);
-			inventoryToOpen = null;
-			closeInventoryRequest = false;
-			dirtyInventory = false;
-			return;
-		}
-		if (closeInventoryRequest) {
-			player.closeInventory();
-			closeInventoryRequest = false;
-			dirtyInventory = false;
-			return;
-		}
-		if (dirtyInventory) {
-			player.updateInventory();
-			dirtyInventory = false;
-		}
 	}
 
 	public void updateInventory() {

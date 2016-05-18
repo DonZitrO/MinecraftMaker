@@ -6,8 +6,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,6 +58,7 @@ import com.minecade.core.item.ItemUtils;
 import com.minecade.core.player.PlayerUtils;
 import com.minecade.core.util.BungeeUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
+import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
@@ -62,6 +66,7 @@ import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
+import com.minecade.minecraftmaker.level.MakerLevel;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -88,6 +93,7 @@ public class MakerController implements Runnable, Tickable {
 	private static final int DEFAULT_MAX_LEVELS = 10;
 	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
 	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
+	private static final int MIN_STEVE_LEVELS = 16;
 
 	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-15.0d, 45.0d, 80.0d);
 	private static final float DEFAULT_SPAWN_YAW = 90.0f;
@@ -114,9 +120,8 @@ public class MakerController implements Runnable, Tickable {
 	private Map<UUID, MakerPlayer> playerMap;
 	// keeps track of every arena on the server
 	private Map<Short, MakerPlayableLevel> levelMap;
-	// shallow level data for server browser
-	// private Map<Long, MakerLevel> levelsBySerialMap = Collections.synchronizedMap(new TreeMap<>());
-
+	// steve level serials
+	private final Set<Long> steveLevelSerials = new HashSet<>();
 	// an async thread loads the data to this map, then the main thread process it
 	private final Map<UUID, MakerPlayerData> accountDataMap = Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayerData>(MAX_ACCOUNT_DATA_ENTRIES * 2) {
 		private static final long serialVersionUID = 1L;
@@ -126,7 +131,6 @@ public class MakerController implements Runnable, Tickable {
 		}
 
 	});
-
 	// used to control the fast relogin hack
 	private final Map<UUID, Long> nextAllowedLogins = Collections.synchronizedMap(new LinkedHashMap<UUID, Long>() {
 		private static final long serialVersionUID = 1L;
@@ -215,7 +219,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
-		if (!author.isInLobby() || author.hasPendingOperation()) {
+		if (!author.isInLobby()) {
 			author.sendActionMessage(plugin, "level.create.error.author-busy");
 			return;
 		}
@@ -397,7 +401,41 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void startSteve(MakerPlayer mPlayer) {
+		if (!mPlayer.isInLobby()) {
+			mPlayer.sendActionMessage(plugin, "level.play.error.player-busy");
+			return;
+		}
+		Set<Long> levels = getSteveLevels();
+		if (levels.isEmpty() || levels.size() < MIN_STEVE_LEVELS) {
+			mPlayer.sendActionMessage(plugin, "steve.error.few-levels");
+			return;
+		}
+		MakerPlayableLevel level = getEmptyLevelIfAvailable();
+		if (level == null) {
+			mPlayer.sendActionMessage(plugin, "level.error.full");
+			return;
+		}
+		level.setupStartLocation();
+		level.waitForBusyLevel(mPlayer, false);
+		level.setCurrentPlayerId(mPlayer.getUniqueId());
+		MakerSteveData steveData = new MakerSteveData(levels);
+		level.setSteveData(steveData);
+		mPlayer.setSteveData(steveData);
+		level.setLevelSerial(steveData.getRandomLevel());
+		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
+	}
+
+	// intentionally copy this to avoid tampering with the original set
+	private Set<Long> getSteveLevels() {
+		return new HashSet<Long>(steveLevelSerials);
+	}
+
 	public void loadLevelForEditingBySerial(MakerPlayer mPlayer, Long levelSerial) {
+		if (!mPlayer.isInLobby()) {
+			mPlayer.sendActionMessage(plugin, "level.play.error.author-busy");
+			return;
+		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
 			mPlayer.sendActionMessage(plugin, "level.error.full");
@@ -410,6 +448,10 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void loadLevelForPlayingBySerial(MakerPlayer mPlayer, Long levelSerial) {
+		if (!mPlayer.isInLobby()) {
+			mPlayer.sendActionMessage(plugin, "level.play.error.player-busy");
+			return;
+		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
 			mPlayer.sendActionMessage(plugin, "level.error.full");
@@ -739,7 +781,7 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.openServerBrowserMenu();
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.STEVE_CHALLENGE.getDisplayName())) {
-			mPlayer.sendActionMessage(plugin, "general.coming-soon");
+			startSteve(mPlayer);
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
 			mPlayer.updateInventory();
@@ -1068,6 +1110,27 @@ public class MakerController implements Runnable, Tickable {
 				TickableUtils.tickSafely(mPlayer, currentTick);
 			}
 		}
+	}
+
+	public void loadPublishedLevelsCallback(List<MakerLevel> levels, int levelCount) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		for (MakerLevel level : levels) {
+			LevelBrowserMenu.addOrUpdateLevel(plugin, level, false);
+		}
+		LevelBrowserMenu.updateLevelCount(levelCount);
+		LevelBrowserMenu.updateAllMenues();
+	}
+
+	public void clearSteve(MakerPlayableLevel makerPlayableLevel, MakerPlayer mPlayer) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void finishSteve(MakerPlayableLevel makerPlayableLevel, MakerPlayer mPlayer) {
+		// TODO Auto-generated method stub
+
 	}
 
 }

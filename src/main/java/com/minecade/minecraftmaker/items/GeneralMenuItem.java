@@ -19,7 +19,8 @@ public enum GeneralMenuItem implements TranslatableItem {
 	PLAY_LEVEL_OPTIONS(Material.ENDER_CHEST),
 	PREVIOUS_PAGE("69b9a08d-4e89-4878-8be8-551caeacbf2a", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2ViZjkwNzQ5NGE5MzVlOTU1YmZjYWRhYjgxYmVhZmI5MGZiOWJlNDljNzAyNmJhOTdkNzk4ZDVmMWEyMyJ9fX0="),
 	SEARCH(Material.COMPASS),
-	SORT(Material.HOPPER);
+	SORT(Material.HOPPER),
+	STEVE_LEVEL_OPTIONS(Material.ENDER_CHEST);
 
 	private final ItemStackBuilder builder;
 

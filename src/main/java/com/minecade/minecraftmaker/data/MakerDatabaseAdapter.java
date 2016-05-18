@@ -23,7 +23,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import com.minecade.core.data.DatabaseException;
 import com.minecade.core.data.MinecadeAccountData;
 import com.minecade.core.data.Rank;
-import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
@@ -607,7 +606,7 @@ public class MakerDatabaseAdapter {
 		}
 
 		final int records = levelRecords;
-		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.addOrUpdateLevels(plugin, levels, records));
+		Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().loadPublishedLevelsCallback(levels, records));
 	}
 
 	public void loadPublishedLevelsAsync(LevelSortBy sortBy, int offset, int limit) {

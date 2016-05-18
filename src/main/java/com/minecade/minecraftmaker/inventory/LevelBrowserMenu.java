@@ -57,7 +57,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		addOrUpdateLevel(plugin, level, true);
 	}
 
-	private static void addOrUpdateLevel(Internationalizable plugin, MakerLevel level, boolean update) {
+	public static void addOrUpdateLevel(Internationalizable plugin, MakerLevel level, boolean update) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
@@ -71,20 +71,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		if (update) {
 			updateAllMenues();
 		}
-	}
-
-	public static void addOrUpdateLevels(MinecraftMakerPlugin plugin, Collection<MakerLevel> levels, int records) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.addOrUpdateLevels - total levels: [%s]", levels.size()));
-		}
-		for (MakerLevel level : levels) {
-			addOrUpdateLevel(plugin, level, false);
-		}
-		LevelBrowserMenu.records = records;
-		updateAllMenues();
 	}
 
 	private static int compareLikesAndSerial(MakerLevel l1, MakerLevel l2) {
@@ -122,10 +108,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		return menu;
 	}
 
-    public static Map<UUID, MakerLevel> getLevelsMap(){
-        return levelMap;
-    }
-
 	private static ItemStack getLevelItem(Internationalizable plugin, MakerLevel level) {
         ItemBuilder builder = new ItemBuilder(Material.MONSTER_EGG);
 		builder.withDisplayName(plugin.getMessage("menu.level-browser.level.display-name", level.getLevelName()));
@@ -144,20 +126,9 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		return builder.build();
 	}
 
-//	private static ItemStack[] getLoadingPaneItems() {
-//		if (loadingPaneItems == null) {
-//			loadingPaneItems = new ItemStack[36];
-//			for (int i = 0; i < loadingPaneItems.length; i++) {
-//				if (i == 20 || i == 22 || i == 24) {
-//					loadingPaneItems[i] = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short)15);
-//				} else {
-//					loadingPaneItems[i] = new ItemStack(Material.STAINED_GLASS_PANE);
-//				}
-//			}
-//		}
-//		return loadingPaneItems;
-//    }    return loadingPaneItems;
-//	}
+    public static Map<UUID, MakerLevel> getLevelsMap(){
+        return levelMap;
+    }
 
 	public static String getTitleKey() {
 		return "menu.level-browser.title";
@@ -168,13 +139,20 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		plugin.getDatabaseAdapter().loadPublishedLevelsAsync(LevelSortBy.LIKES, 0, LEVELS_PER_PAGE);
 	}
 
-	private static void updateAllMenues() {
+	public static void updateAllMenues() {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		for (LevelBrowserMenu menu : userLevelBrowserMenuMap.values()) {
 			menu.update();
 		}
+	}
+
+	public static void updateLevelCount(int levelCount) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		LevelBrowserMenu.records = levelCount;
 	}
 
 	public static void updateLevelLikes(Internationalizable plugin, UUID levelId, long totalLikes, long totalDislikes) {
