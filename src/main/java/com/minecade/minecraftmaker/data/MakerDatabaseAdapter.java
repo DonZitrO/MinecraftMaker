@@ -370,42 +370,8 @@ public class MakerDatabaseAdapter {
 	 * This loads specific MCMaker Account data or creates it
 	 */
 	protected synchronized void loadAdditionalData(MakerPlayerData data) throws SQLException {
-        //this.loadPlayerLevels(data);
         this.loadPlayerLevelsCleared(data);
 	}
-
-//	private synchronized void loadPlayerLevels(MakerPlayerData data){
-//	    if (Bukkit.isPrimaryThread()) {
-//	        throw new RuntimeException("This method should NOT be called from the main thread");
-//	    }
-//	    String uniqueId = data.getUniqueId().toString().replace("-", "");
-//
-//        // Levels
-//        try (PreparedStatement query = getConnection().prepareStatement(String.format(
-//                " SELECT l.level_name, l.level_serial, l.author_cleared, " +
-//                " (SELECT COUNT(level_id) FROM mcmaker.level_likes ll " +
-//                " WHERE ll.level_id = l.level_id AND ll.dislike = FALSE) likes " +
-//                " FROM mcmaker.levels l WHERE l.author_id = UNHEX(?) "))) {
-//            query.setString(1, uniqueId);
-//            ResultSet resultSet = query.executeQuery();
-//
-//            if (resultSet.next()) {
-//                MakerLevelData level = new MakerLevelData();
-//                level.setName(resultSet.getString("level_name"));
-//                level.setSerial(resultSet.getInt("level_serial"));
-//                level.setAuthorCleared(resultSet.getInt("author_cleared"));
-//                level.setLikes(resultSet.getInt("likes"));
-//
-//                data.getLevels().add(level);
-//                data.setLevelsLikes(data.getLevelsLikes() + level.getLikes());
-//            }
-//        } catch (Exception e) {
-//            Bukkit.getLogger().severe(String.format("loadLevels - error while getting player's levels: %s", e.getMessage()));
-//            e.printStackTrace();
-//            return;
-//        }
-//
-//	}
 
     private synchronized void loadPlayerLevelsCleared(MakerPlayerData data){
         if (Bukkit.isPrimaryThread()) {
@@ -446,7 +412,7 @@ public class MakerDatabaseAdapter {
 			if (resultSet.next()) {
 				loadLevelFromResult(level, resultSet, false);
 				loadLevelClipboard(level);
-				loadLevelRecord(level);
+				loadLevelRecords(level);
 			} else {
 				level.disable(String.format("Unable to find level with serial: [%s]", level.getLevelSerial()), null);
 			}
@@ -528,6 +494,7 @@ public class MakerDatabaseAdapter {
 		level.setLevelSerial(result.getLong("level_serial"));
 		level.setLevelName(result.getString("level_name"));
 		level.setAuthorId(new UUID(authorIdBytes.getLong(), authorIdBytes.getLong()));
+		level.setAuthorRank(loadHighestRank(result));
 		level.setAuthorName(result.getString("author_name"));
 		byte[] locationId = result.getBytes("end_location_id");
 		if (locationId != null) {
@@ -554,34 +521,51 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-    private synchronized void loadLevelRecord(MakerLevel makerLevel) throws SQLException {
-        if (Bukkit.isPrimaryThread()) {
-            throw new RuntimeException("This method should not be called from the main thread");
-        }
+	private synchronized void loadLevelRecords(MakerLevel makerLevel) throws SQLException {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
 
-        String levelId = makerLevel.getLevelId().toString().replace("-", "");
-        try (PreparedStatement preparedStatement = getConnection().prepareStatement(
-                " SELECT a.unique_id, a.username, COUNT(lc.tries) tries, MIN(lc.time_cleared) time_cleared" +
-                " FROM mcmaker.level_clears lc " +
-                " INNER JOIN minecade.accounts a ON a.unique_id = lc.player_id " +
-                " WHERE lc.time_cleared > 0 AND lc.level_id = UNHEX(?) " +
-                " GROUP BY level_id, a.unique_id, a.username " +
-                " ORDER BY lc.time_cleared ")) {
-            preparedStatement.setString(1, levelId);
-            ResultSet resultSet = preparedStatement.executeQuery();
+		String levelId = makerLevel.getLevelId().toString().replace("-", "");
+		try (PreparedStatement preparedStatement = getConnection().prepareStatement(
+				" SELECT a.unique_id, a.username, COUNT(lc.tries) tries, MIN(lc.time_cleared) time_cleared" +
+				" FROM mcmaker.level_clears lc " +
+				" INNER JOIN minecade.accounts a ON a.unique_id = lc.player_id " +
+				" WHERE lc.time_cleared > 0 AND lc.level_id = UNHEX(?) " +
+				" GROUP BY level_id, a.unique_id, a.username " +
+				" ORDER BY lc.time_cleared ")) {
+			preparedStatement.setString(1, levelId);
+			ResultSet resultSet = preparedStatement.executeQuery();
 
-            while (resultSet.next()) {
-                ByteBuffer uniqueId = ByteBuffer.wrap(resultSet.getBytes("unique_id"));
+			while (resultSet.next()) {
+				ByteBuffer uniqueId = ByteBuffer.wrap(resultSet.getBytes("unique_id"));
 
-                MakerLevelClearData levelClear = new MakerLevelClearData();
-                levelClear.setUniqueId(new UUID(uniqueId.getLong(), uniqueId.getLong()));
-                levelClear.setUsername(resultSet.getString("username"));
-                levelClear.setTries(resultSet.getInt("tries"));
-                levelClear.setTimeCleared(resultSet.getLong("time_cleared"));
-                makerLevel.getLevelsClear().add(levelClear);
-            }
-        }
-    }
+				MakerLevelClearData levelClear = new MakerLevelClearData();
+				levelClear.setUniqueId(new UUID(uniqueId.getLong(), uniqueId.getLong()));
+				levelClear.setUsername(resultSet.getString("username"));
+				levelClear.setTries(resultSet.getInt("tries"));
+				levelClear.setTimeCleared(resultSet.getLong("time_cleared"));
+				makerLevel.getLevelsClear().add(levelClear);
+			}
+		}
+	}
+
+	private Rank loadHighestRank(ResultSet result){
+		Rank highestRank = Rank.GUEST;
+
+		// Owner rank
+		for (Rank rank : Rank.values()) {
+			try{
+				if (rank.getColumnName() != null && result.getBoolean(rank.getColumnName())) {
+					highestRank = rank;
+				}
+			} catch (SQLException e) {
+				Bukkit.getLogger().warning(String.format("Rank column not found: %s - %s", rank.getColumnName(), e.getMessage()));
+			}
+		}
+
+		return highestRank;
+	}
 
 	private synchronized void loadPublishedLevels(LevelSortBy sortBy, int offset, int limit) {
 		if (Bukkit.isPrimaryThread()) {
@@ -590,20 +574,28 @@ public class MakerDatabaseAdapter {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadPublishedLevels - sortBy: [%s] - offset: [%s] - limit: [%s]", sortBy.name(), offset, limit));
 		}
+		int levelRecords = 0;
 		checkNotNull(sortBy);
 		List<MakerLevel> levels = new ArrayList<>(limit);
 		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format(
-				"SELECT `levels`.*, SUM(CASE WHEN `dislike` = 0 THEN 1 ELSE 0 END) as likes, SUM(CASE WHEN `dislike` = 1 THEN 1 ELSE 0 END) as dislikes " +
-				"FROM `mcmaker`.`levels` LEFT JOIN `mcmaker`.`level_likes` on `levels`.`level_id` = `level_likes`.`level_id` " +
-				"WHERE `date_published` IS NOT NULL GROUP BY `level_id` ORDER BY ? DESC LIMIT ?,?"))) {
-			levelPageQuery.setString(1, sortBy.name());
+				" SELECT `levels`.*, " +
+				" a.vip, a.pro, a.legendary, a.elite, a.titan, a.youtuber, a.gm, a.mgm, a.admin, a.dev, a.`owner`, " +
+				" SUM(CASE WHEN `dislike` = 0 THEN 1 ELSE 0 END) as likes, " +
+				" SUM(CASE WHEN `dislike` = 1 THEN 1 ELSE 0 END) as dislikes, " +
+				" (SELECT COUNT(`levels`.level_id) FROM `mcmaker`.`levels` WHERE `date_published` IS NOT NULL) records " +
+				" FROM `mcmaker`.`levels` " +
+				" INNER JOIN %s.accounts a ON a.unique_id = `levels`.author_id " +
+				" LEFT JOIN `mcmaker`.`level_likes` on `levels`.`level_id` = `level_likes`.`level_id` " +
+				" WHERE `date_published` IS NOT NULL GROUP BY `level_id` ORDER BY ? DESC LIMIT ?, ?", networkSchema))) {
+			levelPageQuery.setString(1, sortBy.getDataCriteria());
 			levelPageQuery.setInt(2, offset);
 			levelPageQuery.setInt(3, limit);
 			ResultSet resultSet = levelPageQuery.executeQuery();
 			while (resultSet.next()) {
 				MakerLevel level = new MakerLevel(plugin);
 				loadLevelFromResult(level, resultSet, true);
-				loadLevelRecord(level);
+				levelRecords = resultSet.getInt("records");
+				loadLevelRecords(level);
 				levels.add(level);
 			}
 			if (plugin.isDebugMode()) {
@@ -613,7 +605,9 @@ public class MakerDatabaseAdapter {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
 			e.printStackTrace();
 		}
-		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.addOrUpdateLevels(plugin, levels));
+
+		final int records = levelRecords;
+		Bukkit.getScheduler().runTask(plugin, () -> LevelBrowserMenu.addOrUpdateLevels(plugin, levels, records));
 	}
 
 	public void loadPublishedLevelsAsync(LevelSortBy sortBy, int offset, int limit) {
@@ -649,7 +643,7 @@ public class MakerDatabaseAdapter {
 			while (resultSet.next()) {
 				MakerLevel level = new MakerLevel(plugin);
 				loadLevelFromResult(level, resultSet, false);
-				loadLevelRecord(level);
+				loadLevelRecords(level);
 				levels.add(level);
 			}
 		} catch (Exception e) {

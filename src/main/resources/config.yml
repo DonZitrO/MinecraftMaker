@@ -13,4 +13,4 @@ messaging:
 server:
   id: <server-id>
   port: <server-port>
-  pvp: fals
+  pvp: false

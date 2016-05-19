@@ -3,6 +3,7 @@ package com.minecade.minecraftmaker.inventory;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -14,11 +15,9 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.minecade.core.data.Rank;
 import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemUtils;
@@ -39,10 +38,13 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	private static TreeSet<MakerLevel> levelsByLikes = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> compareLikesAndSerial(l1, l2));
 	private static TreeSet<MakerLevel> levelsByName = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> l1.getLevelName().compareToIgnoreCase(l2.getLevelName()));
 	private static TreeSet<MakerLevel> levelsBySerial = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
+	private static TreeSet<MakerLevel> levelsByPublishDate = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> comparePublishDatesAndSerial(l1, l2));
+	private static TreeSet<MakerLevel> levelsByRank = new TreeSet<MakerLevel>((MakerLevel l1, MakerLevel l2) -> compareRanksAndSerial(l1, l2));
 
 	//private static ItemStack[] loadingPaneItems;
 
 	private static long lastLoadRequest;
+	private static int records;
 
 	private static void addLevelItemToPages(Internationalizable plugin, MakerLevel level) {
 		levelItems.put(level.getLevelId(), getLevelItem(plugin, level));
@@ -64,12 +66,14 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		levelsByName.add(level);
 		levelsBySerial.add(level);
 		levelsByLikes.add(level);
+		levelsByPublishDate.add(level);
+		levelsByRank.add(level);;
 		if (update) {
 			updateAllMenues();
 		}
 	}
 
-	public static void addOrUpdateLevels(MinecraftMakerPlugin plugin, Collection<MakerLevel> levels) {
+	public static void addOrUpdateLevels(MinecraftMakerPlugin plugin, Collection<MakerLevel> levels, int records) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
@@ -79,11 +83,28 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		for (MakerLevel level : levels) {
 			addOrUpdateLevel(plugin, level, false);
 		}
+		LevelBrowserMenu.records = records;
 		updateAllMenues();
 	}
 
 	private static int compareLikesAndSerial(MakerLevel l1, MakerLevel l2) {
 		int diff = Long.valueOf(l2.getLikes()).compareTo(Long.valueOf(l1.getLikes()));
+		if (diff != 0) {
+			return diff;
+		}
+		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+	}
+
+	private static int comparePublishDatesAndSerial(MakerLevel l1, MakerLevel l2) {
+		int diff = l1.getDatePublished().compareTo(l2.getDatePublished());
+		if (diff != 0) {
+			return diff;
+		}
+		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+	}
+
+	private static int compareRanksAndSerial(MakerLevel l1, MakerLevel l2) {
+		int diff = l1.getAuthorRank().compareTo(l2.getAuthorRank());
 		if (diff != 0) {
 			return diff;
 		}
@@ -112,11 +133,13 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		lore.add(plugin.getMessage("menu.level-browser.level.serial", level.getLevelSerial()));
         lore.add(StringUtils.EMPTY);
 		lore.add(plugin.getMessage("menu.level-browser.level.created-by", level.getAuthorName()));
-        lore.add(StringUtils.EMPTY);
+		lore.add(plugin.getMessage("menu.level-browser.level.created-by-rank", level.getAuthorRank().getDisplayName()));
+		lore.add(StringUtils.EMPTY);
 		lore.add(plugin.getMessage("menu.level-browser.level.likes", level.getLikes()));
 		lore.add(plugin.getMessage("menu.level-browser.level.dislikes", level.getDislikes()));
 		lore.add(plugin.getMessage("menu.level-browser.level.favorites", level.getFavs()));
-        lore.add(StringUtils.EMPTY);
+		lore.add(plugin.getMessage("menu.level-browser.level.publish-date", level.getDatePublished()));
+		lore.add(StringUtils.EMPTY);
 		builder.withLore(lore);
 		return builder.build();
 	}
@@ -164,15 +187,14 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		level.setDislikes(totalDislikes);
 		addLevelItemToPages(plugin, level);
 
-        updateLevelOwnerLikes(level);
-    }
+		updateLevelOwnerLikes(level);
+	}
 
-    private static void updateLevelOwnerLikes(MakerLevel makerLevel){
-        // Update owner likes
-        MakerPlayer makerPlayer = MinecraftMakerPlugin.getInstance().getController().getPlayer(makerLevel.getAuthorId());
-        if(makerPlayer != null){
-            makerPlayer.setLevelsLikes(makerPlayer.getLevelsLikes() + 1);
-        }
+	private static void updateLevelOwnerLikes(MakerLevel makerLevel){
+		MakerPlayer makerPlayer = MinecraftMakerPlugin.getInstance().getController().getPlayer(makerLevel.getAuthorId());
+		if(makerPlayer != null){
+			makerPlayer.setLevelsLikes(makerPlayer.getLevelsLikes() + 1);
+		}
 	}
 
 	private int currentPage = 1;
@@ -210,7 +232,8 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private int getTotalPages() {
-		return (levelItems.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
+		//return (levelItems.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
+		return (records + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
 	}
 
 	public UUID getViewerId() {
@@ -218,18 +241,22 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private void init() {
-        for (int i = 0; i < inventory.getSize(); i++) {
-            items[i] = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short)15);
-        }
-
-        items[2] = GeneralMenuItem.SEARCH.getItem();
-        items[6] = GeneralMenuItem.SORT.getItem();
-        items[18] = GeneralMenuItem.PREVIOUS_PAGE.getItem();
-        items[26] = GeneralMenuItem.NEXT_PAGE.getItem();
-        items[47] = GeneralMenuItem.CURRENT_PAGE.getItem();
-        items[51] = GeneralMenuItem.EXIT_MENU.getItem();
-		updateCurrentPageItem();
+		for (int i = 0; i < inventory.getSize(); i++) {
+			items[i] = new ItemStack(Material.STAINED_GLASS_PANE, 1);
 		}
+
+		items[2] = GeneralMenuItem.SEARCH.getItem();
+		items[6] = GeneralMenuItem.SORT.getItem();
+		items[18] = GeneralMenuItem.PREVIOUS_PAGE.getItem();
+		items[26] = GeneralMenuItem.NEXT_PAGE.getItem();
+		items[47] = GeneralMenuItem.CURRENT_PAGE.getItem();
+		items[51] = GeneralMenuItem.EXIT_MENU.getItem();
+
+		updateCurrentPageItem();
+		updatePreviousPageItem();
+		updateNextPageItem();
+		updateSortItem(null);
+	}
 
     private boolean isLevelSlot(int index){
         if(index>9 && index<17) return true;
@@ -256,7 +283,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			if (lastLoadRequest + MIN_INTERVAL_PER_LOAD_REQUEST_MILLIS < System.currentTimeMillis()) {
 				nextRequest = true;
 				lastLoadRequest = System.currentTimeMillis();
-				plugin.getDatabaseAdapter().loadPublishedLevelsAsync(sortBy, getCurrentOffset(), LEVELS_PER_PAGE * 2);
+				plugin.getDatabaseAdapter().loadPublishedLevelsAsync(sortBy, getCurrentOffset(), LEVELS_PER_PAGE);
 				// displayLoadingPage();
 			} else {
 				// too fast load requests - no-op
@@ -321,11 +348,17 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 		Collection<MakerLevel> allLevels = null;
 		switch (sortBy) {
+		case DATE_PUBLISHED:
+			allLevels = levelsByPublishDate;
+			break;
 		case LEVEL_NAME:
 			allLevels = levelsByName;
 			break;
 		case LIKES:
 			allLevels = levelsByLikes;
+			break;
+		case RANK:
+			allLevels = levelsByRank;
 			break;
 		default:
 			allLevels = levelsBySerial;
@@ -346,37 +379,70 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 				currentPageLevels = getCurrentPageLevels(allLevels);
 			}
 		}
+
+		MakerPlayer makerPlayer = MinecraftMakerPlugin.getInstance().getController().getPlayer(this.viewerId);
 		updateCurrentPageItem();
-        int i = 10;
-		for (MakerLevel level : currentPageLevels) {
-			ItemStack item = levelItems.get(level.getLevelId());
-			if (item != null && isLevelSlot(i)) {
-				items[i] = item;
-            }
-            i++;
+		updatePreviousPageItem();
+		updateNextPageItem();
+		if(makerPlayer != null){
+			for (int i= 10; i<items.length; i++) {
+				if (isLevelSlot(i)) {
+					int currentPageLevelIndex = i - 10;
+					if(currentPageLevels.size() > currentPageLevelIndex){
+						MakerLevel makerLevel = currentPageLevels.get(currentPageLevelIndex);
+						if(makerLevel != null){
+							ItemStack item = levelItems.get(makerLevel.getLevelId());
+							if(item != null) items[i] = item;
+						}
+					} else if(currentPageLevels.size() > 0){
+						items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
+					}
+				}
+			}
+
+			updateSortItem(makerPlayer.getLevelSortBy());
 		}
 		inventory.setContents(items);
 	}
 
 	private void updateCurrentPageItem() {
-        if (items[47] == null) items[47] = GeneralMenuItem.CURRENT_PAGE.getItem();
+		if (items[47] == null) items[47] = GeneralMenuItem.CURRENT_PAGE.getItem();
 
-        ItemMeta currentPageMeta = items[47].getItemMeta();
-        currentPageMeta.setDisplayName(String.format("%s %s/%s",
-                GeneralMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, getTotalPages()));
-        items[47].setItemMeta(currentPageMeta);
-    }
-
-    public synchronized void updateLevelItems(Rank rank){
-        for(ItemStack itemStack : items){
-            if(Material.MONSTER_EGG.equals(itemStack.getType())){
-                if(Rank.GUEST.equals(rank)){
-                    itemStack.setDurability(EntityType.RABBIT.getTypeId());
-                } else {
-                    itemStack.setDurability(EntityType.CREEPER.getTypeId());
-                }
-            }
-		}
+		ItemMeta currentPageMeta = items[47].getItemMeta();
+		currentPageMeta.setDisplayName(String.format("%s %s/%s",
+				GeneralMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, getTotalPages()));
+		items[47].setItemMeta(currentPageMeta);
 	}
 
+	private void updateNextPageItem(){
+		if (items[26] == null) items[26] = GeneralMenuItem.NEXT_PAGE.getItem();
+
+		int nextPage = currentPage < getTotalPages() ? currentPage + 1 : currentPage;
+		ItemMeta nextPageMeta = items[26].getItemMeta();
+		nextPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F%s --->", nextPage)));
+		items[26].setItemMeta(nextPageMeta);
+	}
+
+	private void updatePreviousPageItem(){
+		if (items[18] == null) items[18] = GeneralMenuItem.PREVIOUS_PAGE.getItem();
+
+		int previousPage = currentPage > 1 ? currentPage - 1 : currentPage;
+		ItemMeta previousPageMeta = items[18].getItemMeta();
+		previousPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F<--- %s", previousPage)));
+		items[18].setItemMeta(previousPageMeta);
+	}
+
+	private void updateSortItem(LevelSortBy levelSortBy){
+		if (items[6] == null) items[6] = GeneralMenuItem.SORT.getItem();
+
+		ItemMeta sortMeta = items[6].getItemMeta();
+		sortMeta.setLore(Arrays.asList(
+				StringUtils.EMPTY,
+				LevelSortBy.LEVEL_NAME.getDisplayName(levelSortBy),
+				LevelSortBy.LEVEL_SERIAL.getDisplayName(levelSortBy),
+				LevelSortBy.LIKES.getDisplayName(levelSortBy),
+				LevelSortBy.DATE_PUBLISHED.getDisplayName(levelSortBy),
+				LevelSortBy.RANK.getDisplayName(levelSortBy)));
+		items[6].setItemMeta(sortMeta);
+	}
 }

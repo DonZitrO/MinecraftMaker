@@ -45,6 +45,7 @@ public class MakerPlayer implements Tickable {
 	private final MakerPlayerData data;
 
 	private MakerPlayableLevel currentLevel;
+	private MakerScoreboard makerScoreboard;
 
 	private ChatColor nameColor = ChatColor.RESET;
 	private final Map<String, AbstractMakerMenu> personalMenus = new HashMap<>();
@@ -55,11 +56,10 @@ public class MakerPlayer implements Tickable {
 
 	private long currentTick;
 	private boolean disabled = false;
-	private MakerScoreboard makerScoreboard;
 
 	private Location teleportDestination;
 
-	private LevelSortBy levelSortBy = LevelSortBy.LEVEL_SERIAL;
+	private LevelSortBy levelSortBy = LevelSortBy.LIKES;
     private int levelsLikes;
 
 	public MakerPlayer(Player player, MakerPlayerData data) {
@@ -130,15 +130,19 @@ public class MakerPlayer implements Tickable {
 	}
 
 	private String getFormattedTime(long millis){
-	    return String.format("%sm %ss %sms",
-                TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
-                TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)),
-                TimeUnit.MILLISECONDS.toMillis(millis) - TimeUnit.SECONDS.toMillis(TimeUnit.MILLISECONDS.toSeconds(millis)));
+		return String.format("%sm %ss %sms",
+				TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+				TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)),
+				TimeUnit.MILLISECONDS.toMillis(millis) - TimeUnit.SECONDS.toMillis(TimeUnit.MILLISECONDS.toSeconds(millis)));
 	}
 
-    public int getLevelsLikes(){
-        return levelsLikes;
-    }
+	public LevelSortBy getLevelSortBy(){
+		return this.levelSortBy;
+	}
+
+	public int getLevelsLikes(){
+		return levelsLikes;
+	}
 
 	public String getName() {
 		return player.getName();
@@ -298,7 +302,6 @@ public class MakerPlayer implements Tickable {
 		}
 
 		// Change colors according to Default/VIPs
-		menu.updateLevelItems(this.data.getHighestRank());
 		inventoryToOpen = menu;
 	}
 

@@ -54,14 +54,10 @@ public class MakerListener implements Listener {
 		}
 	}
 
-    /**
-     * @param event
-     * @author kvnamo
-     */
-    @EventHandler
-    public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
-        plugin.getController().onAsyncPlayerChat(event);
-    }
+	@EventHandler
+	public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
+		plugin.getController().onAsyncPlayerChat(event);
+	}
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	public final void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {

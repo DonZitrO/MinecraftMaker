@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import com.minecade.core.data.Rank;
 import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -15,6 +16,7 @@ public class MakerLevel {
 
 	protected UUID authorId;
 	protected String authorName;
+	protected Rank authorRank;
 	protected long clearedByAuthorMillis;
 	protected Date datePublished;
 	protected long dislikes;
@@ -24,6 +26,7 @@ public class MakerLevel {
 	protected long levelSerial;
 	protected long likes;
 	protected MakerRelativeLocationData relativeEndLocation;
+
 	private List<MakerLevelClearData> levelsClear;
 
 	public MakerLevel(MinecraftMakerPlugin plugin) {
@@ -37,6 +40,10 @@ public class MakerLevel {
 
 	public String getAuthorName() {
 		return authorName;
+	}
+
+	public Rank getAuthorRank() {
+		return authorRank;
 	}
 
 	public long getClearedByAuthorMillis() {
@@ -55,16 +62,16 @@ public class MakerLevel {
 		return favs;
 	}
 
-    public List<MakerLevelClearData> getLevelsClear() {
-        return levelsClear;
-    }
-
 	public UUID getLevelId() {
 		return levelId;
 	}
 
 	public String getLevelName() {
 		return levelName;
+	}
+
+	public List<MakerLevelClearData> getLevelsClear() {
+		return levelsClear;
 	}
 
 	public long getLevelSerial() {
@@ -97,6 +104,10 @@ public class MakerLevel {
 
 	public void setAuthorName(String authorName) {
 		this.authorName = authorName;
+	}
+
+	public void setAuthorRank(Rank authorRank) {
+		this.authorRank = authorRank;
 	}
 
 	public void setDatePublished(Date datePublished) {

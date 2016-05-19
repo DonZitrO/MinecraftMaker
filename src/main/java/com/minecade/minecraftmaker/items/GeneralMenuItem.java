@@ -35,9 +35,9 @@ public enum GeneralMenuItem implements TranslatableItem {
 		this.builder = new ItemBuilder(material, amount, data);
 	}
 
-    private GeneralMenuItem(String uniqueId, String texture){
-        this.builder = new ItemBuilder(uniqueId, texture);
-    }
+	private GeneralMenuItem(String uniqueId, String texture){
+		this.builder = new ItemBuilder(uniqueId, texture);
+	}
 
 	@Override
 	public ItemStackBuilder getBuilder() {

@@ -160,17 +160,17 @@ public class MakerController implements Runnable, Tickable {
 
 		// TODO: welcome stuff if needed
 		mPlayer.getPlayer().sendMessage(new String[]{
-		        this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-		        this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-		        this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-		        this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-		        this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-		        this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome1"),
-		        this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome2"),
-		        this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome3"),
-		        this.plugin.getMessage("player.welcome4"), this.plugin.getMessage("player.welcome5"),
-		        this.plugin.getMessage("player.welcome6"), this.plugin.getMessage("player.welcome7"),
-		        this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome8")});
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome1"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome2"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome3"),
+				this.plugin.getMessage("player.welcome4"), this.plugin.getMessage("player.welcome5"),
+				this.plugin.getMessage("player.welcome6"), this.plugin.getMessage("player.welcome7"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome8")});
 	}
 
 	public void addPlayerToMainLobby(MakerPlayer mPlayer) {
@@ -443,14 +443,14 @@ public class MakerController implements Runnable, Tickable {
 		});
 	}
 
-    public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
-        MakerPlayer makerPlayer = getPlayer(event.getPlayer().getUniqueId());
-        if (makerPlayer != null) {
-            event.setFormat(String.format("%%s%s: %%s", StringUtils.EMPTY, ChatColor.GRAY, ChatColor.DARK_GRAY));
-        } else {
-            event.setCancelled(true);
-        }
-    }
+	public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
+		MakerPlayer makerPlayer = getPlayer(event.getPlayer().getUniqueId());
+		if (makerPlayer != null) {
+			event.setFormat(String.format("%%s%s: %%s", StringUtils.EMPTY, ChatColor.GRAY, ChatColor.DARK_GRAY));
+		} else {
+			event.setCancelled(true);
+		}
+	}
 
 	public void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
 		// allow vanilla white-list logic to work

@@ -8,14 +8,14 @@ import com.minecade.core.data.MinecadeAccountData;
 
 public class MakerPlayerData extends MinecadeAccountData {
 
-    private List<MakerLevelClearData> levelsClear;
+	private List<MakerLevelClearData> levelsClear;
 
 	public MakerPlayerData(UUID uniqueId, String username) {
 		super(uniqueId, username);
 		this.levelsClear = new ArrayList<MakerLevelClearData>();
 	}
 
-    public List<MakerLevelClearData> getLevelsClear() {
-        return levelsClear;
-    }
+	public List<MakerLevelClearData> getLevelsClear() {
+		return levelsClear;
+	}
 }
