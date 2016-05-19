@@ -128,7 +128,6 @@ public class LevelUtils {
 	}
 
 	public static Region getLevelRegion(short chunkZ, int levelWidth) {
-		checkArgument(levelWidth <= MakerPlayableLevel.MAX_LEVEL_WIDTH);
 		Vector origin = getLevelOrigin(chunkZ);
 		int width = levelWidth;
 		int height = 66;

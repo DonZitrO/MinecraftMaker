@@ -76,7 +76,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	private int lastMobCount;
 	private long startTime;
 	private LevelStatus status;
-	//private boolean firstTimeLoaded = true;
+	private boolean firstTimeLoaded = true;
 	private boolean firstTimeEdited = true;
 	private MakerSteveData steveData;
 
@@ -262,6 +262,12 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		status = LevelStatus.DISABLE_READY;
 	}
 
+	public void fixClipboard() throws MinecraftMakerException {
+		removeCrystalFromBorders();
+		setupCliboardFloor();
+		clearBlocksAboveEndBeacon();
+	}
+
 	private String formatMillis(long millis) {
 		return String.format("%02d:%02d:%02d,%03d",
 			    TimeUnit.MILLISECONDS.toHours(millis),
@@ -321,7 +327,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	}
 
 	public Region getLevelRegion() {
-		return clipboard != null ? clipboard.getRegion() : LevelUtils.getLevelRegion(chunkZ, getLevelWidth());
+		return LevelUtils.getLevelRegion(chunkZ, getLevelWidth());
 	}
 
 	public int getLevelWidth() {
@@ -381,9 +387,15 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		return steveData != null;
 	}
 
+	@Override
+	protected void reset() {
+		super.reset();
+		this.firstTimeLoaded = true;
+		this.status = LevelStatus.BLANK;
+	}
+
 	private void loadNextSteveLevel(MakerPlayer mPlayer) {
 		reset();
-		this.status = LevelStatus.BLANK;
 		waitForBusyLevel(mPlayer, false);
 		setLevelSerial(steveData.getRandomLevel());
 		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(this);
@@ -432,16 +444,19 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		}
 		if (isBusy()) {
 			Material newMaterial = null;
-			if (event.getOldCurrent() == 15 && event.getNewCurrent() == 0 && StringUtils.endsWith(event.getBlock().getType().name(), "ON")) {
-				newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "ON").concat("OFF"));
-			} else if (event.getOldCurrent() == 0 && event.getNewCurrent() == 15 && StringUtils.endsWith(event.getBlock().getType().name(), "OFF")) {
-				newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "OFF").concat("ON"));
-			}
-			if (newMaterial != null) {
-				LevelRedstoneInteraction cancelled = new LevelRedstoneInteraction(BukkitUtil.toVector(event.getBlock()), newMaterial, event.getBlock().getState().getData(), getCurrentTick(), event.getOldCurrent(), event.getNewCurrent());
-				cancelledRedstoneInteractions.put(cancelled.getLocation(), cancelled);
-				if (plugin.isDebugMode()) {
-					Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - saved cancelled redstone interaction: %s", cancelled));
+			// TODO: replace for stage 3 pasting when implemented
+			if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus())) {
+				if (event.getOldCurrent() == 15 && event.getNewCurrent() == 0 && StringUtils.endsWith(event.getBlock().getType().name(), "ON")) {
+					newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "ON").concat("OFF"));
+				} else if (event.getOldCurrent() == 0 && event.getNewCurrent() == 15 && StringUtils.endsWith(event.getBlock().getType().name(), "OFF")) {
+					newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "OFF").concat("ON"));
+				}
+				if (newMaterial != null) {
+					LevelRedstoneInteraction cancelled = new LevelRedstoneInteraction(BukkitUtil.toVector(event.getBlock()), newMaterial, event.getBlock().getState().getData(), getCurrentTick(), event.getOldCurrent(), event.getNewCurrent());
+					cancelledRedstoneInteractions.put(cancelled.getLocation(), cancelled);
+					if (plugin.isDebugMode()) {
+						Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - saved cancelled redstone interaction: %s", cancelled));
+					}
 				}
 			} else {
 				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored cancelled interaction - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
@@ -563,13 +578,13 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 
 	private void removeCrystalFromBorders() throws MinecraftMakerException {
 		BaseBlock barrier = new BaseBlock(BlockID.BARRIER);
-		Region region = getLevelRegion();
-		final int startX = region.getMinimumPoint().getBlockX() % 16 == 0 ? region.getMinimumPoint().getBlockX() : region.getMinimumPoint().getBlockX() + (16 - (region.getMinimumPoint().getBlockX() % 16));
-		final int startY = region.getMinimumPoint().getBlockY() % 16 == 0 ? region.getMinimumPoint().getBlockY() : region.getMinimumPoint().getBlockY() + (16 - (region.getMinimumPoint().getBlockY() % 16));
-		Bukkit.getLogger().severe(String.format("startX: %s - startY: %s", startX, startY));
-		for (int x = startX; x <= region.getMaximumPoint().getBlockX(); x += 16) {
-			for (int y = startY; y <= region.getMaximumPoint().getBlockY(); y += 16) {
-				Bukkit.getLogger().severe(String.format("x: %s - y: %s", x, y));
+		Region region = clipboard.getRegion();
+		//final int startX = region.getMinimumPoint().getBlockX() % 16 == 0 ? region.getMinimumPoint().getBlockX() : region.getMinimumPoint().getBlockX() + (16 - (region.getMinimumPoint().getBlockX() % 16));
+		//final int startY = region.getMinimumPoint().getBlockY() % 16 == 0 ? region.getMinimumPoint().getBlockY() : region.getMinimumPoint().getBlockY() + (16 - (region.getMinimumPoint().getBlockY() % 16));
+		//Bukkit.getLogger().severe(String.format("startX: %s - startY: %s", startX, startY));
+		for (int x = region.getMinimumPoint().getBlockX(); x <= region.getMaximumPoint().getBlockX(); x++) {
+			for (int y = region.getMinimumPoint().getBlockY(); y <= region.getMaximumPoint().getBlockY(); y++) {
+				//Bukkit.getLogger().severe(String.format("x: %s - y: %s - z1: %s - z2: %s", x, y,  region.getMinimumPoint().getBlockZ() + 1,  region.getMinimumPoint().getBlockZ() -1));
 				clipboard.setBlock(new Vector(x, y, region.getMinimumPoint().getBlockZ() + 1), barrier);
 				clipboard.setBlock(new Vector(x, y, region.getMaximumPoint().getBlockZ() - 1), barrier);
 			}
@@ -868,9 +883,9 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	private void tickClipboardLoaded() {
 		try {
 			removeEntities();
-			removeCrystalFromBorders();
-			setupCliboardFloor();
-			clearBlocksAboveEndBeacon();
+			if (firstTimeLoaded) {
+				fixClipboard();
+			}
 		} catch (Exception e) {
 			disable(e.getMessage(), e);
 			return;
@@ -882,10 +897,10 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			}
 		}
 		status = LevelStatus.CLIPBOARD_PASTE_READY;
-//		if (firstTimeLoaded) {
-//			firstTimeLoaded = false;
-//			plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createEmptyLevelClipboard(getChunkZ(), 0), getMakerExtent(), getWorldData()));
-//		}
+		if (firstTimeLoaded) {
+			firstTimeLoaded = false;
+			plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createEmptyLevelClipboard(getChunkZ(), 0), getMakerExtent(), getWorldData()));
+		}
 		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
 	}
 
