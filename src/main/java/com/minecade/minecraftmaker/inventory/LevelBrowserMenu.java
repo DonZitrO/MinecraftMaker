@@ -160,7 +160,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 //	}
 
 	public static String getTitleKey() {
-        // return StringUtils.center(MinecraftMakerPlugin.getInstance().getMessage("menu.level-browser.title"), 32, StringUtils.EMPTY);
 		return "menu.level-browser.title";
 	}
 
@@ -384,6 +383,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		updateCurrentPageItem();
 		updatePreviousPageItem();
 		updateNextPageItem();
+
 		if(makerPlayer != null){
 			for (int i= 10; i<items.length; i++) {
 				if (isLevelSlot(i)) {
