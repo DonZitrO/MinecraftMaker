@@ -16,16 +16,16 @@ public class MakerSteveData {
 	private final List<Long> levels;
 	private final Set<Long> levelsCleared = new HashSet<>();
 	private final Set<Long> levelsSkipped = new HashSet<>();
-	// private Long currentLevelId;
+	// private Long currentlevelSerial;
 
 	public MakerSteveData(Set<Long> levels) {
 		checkArgument(levels.size() > 0);
 		this.levels = new ArrayList<Long>(levels);
 	}
 
-	public void clearLevel(Long levelId) {
-		levels.remove(levelId);
-		levelsCleared.add(levelId);
+	public void clearLevel(Long levelSerial) {
+		levels.remove(levelSerial);
+		levelsCleared.add(levelSerial);
 	}
 
 	public long getRandomLevel() {
@@ -35,18 +35,18 @@ public class MakerSteveData {
 		return levels.get(RANDOM.nextInt(levels.size()));
 	}
 
-	public boolean hasClearedLevel(Long levelId) {
-		return levelsCleared.contains(levelId);
+	public boolean hasClearedLevel(Long levelSerial) {
+		return levelsCleared.contains(levelSerial);
 	}
 
-	public boolean hasSkippedLevel(Long levelId) {
-		return levelsSkipped.contains(levelId);
+	public boolean hasSkippedLevel(Long levelSerial) {
+		return levelsSkipped.contains(levelSerial);
 	}
 
-	public void skipLevel(Long levelId) {
+	public void skipLevel(Long levelSerial) {
 		lives--;
-		levels.remove(levelId);
-		levelsSkipped.add(levelId);
+		levels.remove(levelSerial);
+		levelsSkipped.add(levelSerial);
 	}
 
 	public boolean tryAgain() {

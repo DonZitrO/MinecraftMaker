@@ -462,6 +462,7 @@ public class MakerDatabaseAdapter {
 				// note: this particular implementation doesn't need world data for anything. TODO: find other places where WorldData is not needed.
 				Clipboard clipboard = reader.read(null);
 				if (clipboard.getRegion().getHeight() > 128) {
+					Bukkit.getLogger().severe(String.format("remove this level: [%s]", level.getLevelName()));
 						clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()).add(0, -48, 0));
 					if (level.getRelativeEndLocation() != null) {
 						level.setRelativeEndLocation(new MakerRelativeLocationData(level.getEndLocation().add(0,-48,0),level.getRelativeEndLocation().getLocationId()));
@@ -469,8 +470,9 @@ public class MakerDatabaseAdapter {
 				} else {
 					clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()));
 				}
-				Bukkit.getLogger().info(String.format("height: [%s]", clipboard.getRegion().getHeight()));
-				Bukkit.getLogger().info(String.format("origin: [%s]", clipboard.getOrigin().getBlockY()));
+				Bukkit.getLogger().severe(String.format("height: [%s]", clipboard.getRegion().getHeight()));
+				Bukkit.getLogger().severe(String.format("origin: [%s]", clipboard.getOrigin().getBlockY()));
+				Bukkit.getLogger().severe(String.format("end: [%s]", level.getRelativeEndLocation()));
 				level.setClipboard(clipboard);
 			}
 		} catch (Exception e) {
@@ -705,8 +707,8 @@ public class MakerDatabaseAdapter {
 				updateLevelSt.setString(1, newName);
 				updateLevelSt.setString(2, levelId);
 				affected = updateLevelSt.executeUpdate();
-				level.setLevelName(newName);
 				if (affected == 0) {
+					level.setLevelName(newName);
 					insertLevel(level);
 					if (level.getClipboard() != null) {
 						insertClipboard(levelId, level.getClipboard());

@@ -75,4 +75,9 @@ public class MakerRelativeLocationData {
 		this.locationId = locationId;
 	}
 
+	@Override
+	public String toString() {
+		return "MakerRelativeLocationData [x=" + x + ", y=" + y + ", z=" + z + ", yaw=" + yaw + ", pitch=" + pitch + ", locationId=" + locationId + "]";
+	}
+
 }

@@ -31,6 +31,7 @@ import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
+import com.minecade.minecraftmaker.inventory.SteveLevelOptionsMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
@@ -53,6 +54,7 @@ public class MakerPlayer implements Tickable {
 	private ChatColor nameColor = ChatColor.RESET;
 	private final Map<String, AbstractMakerMenu> personalMenus = new HashMap<>();
 	private final LinkedList<String> pendingActionMessages = new LinkedList<>();
+	private long lastActionMessageTick;
 
 	private AbstractMakerMenu inventoryToOpen;
 	private boolean closeInventoryRequest;
@@ -246,7 +248,7 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public boolean isInLobby() {
-		return this.currentLevel == null && !isInSteve();
+		return this.currentLevel == null;
 	}
 
 	public boolean isInSteve() {
@@ -370,6 +372,15 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
+	public void openSteveLevelOptionsMenu() {
+		AbstractMakerMenu menu = personalMenus.get(SteveLevelOptionsMenu.getInstance().getName());
+		if (menu == null) {
+			menu = SteveLevelOptionsMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
 	public void resetLobbyInventory() {
 		// clear inventory
 		player.getInventory().clear();
@@ -392,9 +403,10 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void sendActionMessage(Internationalizable plugin, String key, Object... args) {
-		if (player.isOnline()) {
-			if (!StringUtils.isEmpty(key)) {
-				pendingActionMessages.add(plugin.getMessage(key, args));
+		if (!StringUtils.isEmpty(key)) {
+			String message = plugin.getMessage(key, args);
+			if (!message.equals(pendingActionMessages.peekFirst())) {
+				pendingActionMessages.add(message);
 			}
 		}
 	}
@@ -410,8 +422,9 @@ public class MakerPlayer implements Tickable {
 	}
 
 	private void sendPendingActionMessageIfAvailable() {
-		if (getCurrentTick() % 60 == 23 && !pendingActionMessages.isEmpty()) {
+		if (!pendingActionMessages.isEmpty() && getCurrentTick() - lastActionMessageTick > 40) {
 			NMSUtils.sendActionMessage(player, pendingActionMessages.pollFirst());
+			lastActionMessageTick = getCurrentTick();
 		}
 	}
 

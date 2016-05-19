@@ -71,7 +71,6 @@ import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
-import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.FilenameException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
@@ -186,6 +185,8 @@ public class MakerController implements Runnable, Tickable {
 				mPlayer.getPlayer().kickPlayer(plugin.getMessage("lobby.join.error.teleport"));
 			}
 		}
+		// steve challenge data
+		mPlayer.setSteveData(null);
 		// current level
 		mPlayer.setCurrentLevel(null);
 		// set lobby inventory
@@ -318,6 +319,11 @@ public class MakerController implements Runnable, Tickable {
 		return playerMap.size();
 	}
 
+	// intentionally copy this to avoid tampering with the original set
+	private Set<Long> getSteveLevels() {
+		return new HashSet<Long>(steveLevelSerials);
+	}
+
 	public void init() {
 		if (initialized) {
 			throw new IllegalStateException("This controller is already initialized");
@@ -426,11 +432,6 @@ public class MakerController implements Runnable, Tickable {
 		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
 	}
 
-	// intentionally copy this to avoid tampering with the original set
-	private Set<Long> getSteveLevels() {
-		return new HashSet<Long>(steveLevelSerials);
-	}
-
 	public void loadLevelForEditingBySerial(MakerPlayer mPlayer, Long levelSerial) {
 		if (!mPlayer.isInLobby()) {
 			mPlayer.sendActionMessage(plugin, "level.play.error.author-busy");
@@ -462,6 +463,17 @@ public class MakerController implements Runnable, Tickable {
 		level.waitForBusyLevel(mPlayer, true);
 		level.setCurrentPlayerId(mPlayer.getUniqueId());
 		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
+	}
+
+	public void loadPublishedLevelsCallback(List<MakerLevel> levels) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		for (MakerLevel level : levels) {
+			steveLevelSerials.add(level.getLevelSerial());
+			LevelBrowserMenu.addOrUpdateLevel(plugin, level, false);
+		}
+		LevelBrowserMenu.updateAllMenues();
 	}
 
 	public void onAsyncAccountDataLoad(MakerPlayerData data) {
@@ -685,7 +697,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 		if (mPlayer.isPlayingLevel()) {
 			if (event.getCause() == DamageCause.VOID) {
-				Bukkit.getScheduler().runTask(plugin, () -> mPlayer.getCurrentLevel().restartPlaying());
+				mPlayer.getCurrentLevel().restartPlaying();
 				event.setCancelled(true);
 				return;
 			}
@@ -781,7 +793,7 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.openServerBrowserMenu();
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.STEVE_CHALLENGE.getDisplayName())) {
-			startSteve(mPlayer);
+			startSteveChallenge(mPlayer);
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
 			mPlayer.updateInventory();
@@ -806,6 +818,10 @@ public class MakerController implements Runnable, Tickable {
 		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
 			mPlayer.updateInventory();
 			mPlayer.openEditorPlayLevelOptionsMenu();
+			return true;
+		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
+			mPlayer.updateInventory();
+			mPlayer.openSteveLevelOptionsMenu();
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
 			BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
@@ -980,7 +996,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 		if (mPlayer.isPlayingLevel()) {
 			event.setRespawnLocation(mPlayer.getCurrentLevel().getStartLocation());
-			Bukkit.getScheduler().runTask(plugin, () -> mPlayer.getCurrentLevel().restartPlaying());
+			mPlayer.getCurrentLevel().restartPlaying();
 			return;
 		}
 		if (mPlayer.hasClearedLevel()) {
@@ -989,19 +1005,11 @@ public class MakerController implements Runnable, Tickable {
 		}
 		if (mPlayer.isEditingLevel()) {
 			event.setRespawnLocation(mPlayer.getCurrentLevel().getStartLocation());
-			try {
-				mPlayer.getCurrentLevel().tryStatusTransition(LevelStatus.EDITING, LevelStatus.EDIT_READY);
-			} catch (DataException e) {
-				e.printStackTrace();
-				mPlayer.getCurrentLevel().disable(e.getMessage(), e);
+			return;
+		}
 				event.setRespawnLocation(getDefaultSpawnLocation());
 				Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
 			}
-			return;
-		}
-		event.setRespawnLocation(getDefaultSpawnLocation());
-		Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
-	}
 
 	public void onVehicleMove(VehicleMoveEvent event) {
 		Entity passenger = event.getVehicle().getPassenger();
@@ -1033,11 +1041,11 @@ public class MakerController implements Runnable, Tickable {
 		}
 		// needs to be editing that level
 		if (!mPlayer.isEditingLevel()) {
-			player.sendMessage(plugin.getMessage("level.rename.error.no-editing"));
+			mPlayer.sendActionMessage(plugin, "level.rename.error.no-editing");
 			return;
 		}
 		if (newName.equals(mPlayer.getCurrentLevel().getLevelName())) {
-			player.sendMessage(plugin.getMessage("level.rename.error.different-name"));
+			mPlayer.sendActionMessage(plugin, "level.rename.error.different-name");
 			return;
 		}
 		// rename
@@ -1086,18 +1094,35 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void startSteveChallenge(MakerPlayer mPlayer) {
+		if (!mPlayer.isInLobby()) {
+			mPlayer.sendActionMessage(plugin, "level.play.error.player-busy");
+			return;
+		}
+		Set<Long> levels = getSteveLevels();
+		if (levels.isEmpty() || levels.size() < MIN_STEVE_LEVELS) {
+			mPlayer.sendActionMessage(plugin, "steve.error.few-levels");
+			return;
+		}
+		MakerPlayableLevel level = getEmptyLevelIfAvailable();
+		if (level == null) {
+			mPlayer.sendActionMessage(plugin, "level.error.full");
+			return;
+		}
+		level.setupStartLocation();
+		level.waitForBusyLevel(mPlayer, false);
+		level.setCurrentPlayerId(mPlayer.getUniqueId());
+		MakerSteveData steveData = new MakerSteveData(levels);
+		level.setSteveData(steveData);
+		mPlayer.setSteveData(steveData);
+		level.setLevelSerial(steveData.getRandomLevel());
+		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
+		mPlayer.sendTitleAndSubtitle(plugin.getMessage("steve.start.title"), plugin.getMessage("steve.start.subtitle"));
+	}
+
 	@Override
 	public void tick(long currentTick) {
 		this.currentTick = currentTick;
-//		if (this.currentTick == 1) {
-//			MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld());
-//			try {
-//				plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createLobbyClipboard(this.getMainWorld()), getMakerExtent(), getMainWorldData()));
-//			} catch (MinecraftMakerException e) {
-//				e.printStackTrace();
-//			}
-//			return;
-//		}
 		// tick levels
 		for (MakerPlayableLevel level : new ArrayList<MakerPlayableLevel>(levelMap.values())) {
 			if (level != null) {

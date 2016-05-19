@@ -37,8 +37,8 @@ public class SteveLevelOptionsMenu extends AbstractMakerMenu {
 
 	@Override
 	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
-		if (!mPlayer.isPlayingLevel() && !mPlayer.hasClearedLevel()) {
-			Bukkit.getLogger().warning(String.format("PlayLevelOptionsMenu.onClick - This menu should be available to level players only! - clicked by: [%s]", mPlayer.getName()));
+		if (!mPlayer.isPlayingLevel() || !mPlayer.isInSteve()) {
+			Bukkit.getLogger().warning(String.format("SteveLevelOptionsMenu.onClick - This menu should be available to steve level players only! - clicked by: [%s]", mPlayer.getName()));
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		if (slot >= items.length) {
@@ -48,14 +48,17 @@ public class SteveLevelOptionsMenu extends AbstractMakerMenu {
 		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
 			return MenuClickResult.CANCEL_UPDATE;
 		}
-		if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.EXIT.getDisplayName())) {
-			mPlayer.getCurrentLevel().exitPlaying();
+		if (ItemUtils.itemNameEquals(clickedItem, SteveLevelOptionItem.EXIT.getDisplayName())) {
+			mPlayer.getCurrentLevel().finishSteveChallenge();
 			return MenuClickResult.CANCEL_CLOSE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.LIKE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, SteveLevelOptionItem.LIKE.getDisplayName())) {
 			plugin.getDatabaseAdapter().likeLevelAsync(mPlayer.getCurrentLevel().getLevelId(), mPlayer.getUniqueId(), false);
 			return MenuClickResult.CANCEL_CLOSE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.DISLIKE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, SteveLevelOptionItem.DISLIKE.getDisplayName())) {
 			plugin.getDatabaseAdapter().likeLevelAsync(mPlayer.getCurrentLevel().getLevelId(), mPlayer.getUniqueId(), true);
+			return MenuClickResult.CANCEL_CLOSE;
+		} else if (ItemUtils.itemNameEquals(clickedItem, SteveLevelOptionItem.SKIP.getDisplayName())) {
+			mPlayer.getCurrentLevel().skipSteveLevel();
 			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, PlayLevelOptionItem.RESTART.getDisplayName())) {
 			mPlayer.getCurrentLevel().restartPlaying();

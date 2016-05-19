@@ -98,6 +98,20 @@ public class MakerLevel {
 		return datePublished != null;
 	}
 
+	protected void reset() {
+		authorId = null;
+		authorName = null;
+		clearedByAuthorMillis = 0;
+		datePublished = null;
+		dislikes = 0;
+		favs = 0;
+		levelId = null;
+		levelName = null;
+		levelSerial = 0;
+		likes = 0;
+		relativeEndLocation = null;
+	}
+
 	public void setAuthorId(UUID authorId) {
 		this.authorId = authorId;
 	}
