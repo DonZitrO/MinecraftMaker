@@ -32,6 +32,7 @@ import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -451,6 +452,18 @@ public class MakerController implements Runnable, Tickable {
 		LevelBrowserMenu.updateAllMenues();
 	}
 
+	public void loadPublishedLevelsCallback(List<MakerLevel> levels, int levelCount) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		for (MakerLevel level : levels) {
+			steveLevelSerials.add(level.getLevelSerial());
+			LevelBrowserMenu.addOrUpdateLevel(plugin, level, false);
+		}
+		LevelBrowserMenu.updateLevelCount(levelCount);
+		LevelBrowserMenu.updateAllMenues();
+	}
+
 	public void onAsyncAccountDataLoad(MakerPlayerData data) {
 		if (playerMap.containsKey(data.getUniqueId())) {
 			Bukkit.getLogger().warning(String.format("MakerController.onAccountDataLoaded - Player is already registered on the server with valid data: [%s]", data.getUsername()));
@@ -692,6 +705,24 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
+	}
+
+	public void onEntityExplode(EntityExplodeEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			event.blockList().clear();
+			Bukkit.getLogger().warning(String.format("MakerController.onEntityExplode - cancelled entity explosion outside level - type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			event.blockList().clear();
+			Bukkit.getLogger().warning(String.format("MakerController.onEntityExplode - cancelled entity explosion on unregistered slot - creature type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
+			return;
+		}
+		level.onEntityExplode(event);
 	}
 
 	public void onEntityTeleport(EntityTeleportEvent event) {
@@ -1007,26 +1038,6 @@ public class MakerController implements Runnable, Tickable {
 		levelMap.remove(makerLevel.getChunkZ());
 	}
 
-	public void renameLevel(Player player, String newName) {
-		final MakerPlayer mPlayer = getPlayer(player);
-		if (mPlayer == null) {
-			Bukkit.getLogger().warning(String.format("MakerController.renameLevel - untracked Player: [%s]", player.getName()));
-			player.sendMessage(plugin.getMessage("level.rename.error"));
-			return;
-		}
-		// needs to be editing that level
-		if (!mPlayer.isEditingLevel()) {
-			mPlayer.sendActionMessage(plugin, "level.rename.error.no-editing");
-			return;
-		}
-		if (newName.equals(mPlayer.getCurrentLevel().getLevelName())) {
-			mPlayer.sendActionMessage(plugin, "level.rename.error.different-name");
-			return;
-		}
-		// rename
-		mPlayer.getCurrentLevel().rename(newName);
-	}
-
 //	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
 //		File schematicsFolder = new File(plugin.getDataFolder(), "test");
 //		// if the directory does not exist, create it
@@ -1056,6 +1067,26 @@ public class MakerController implements Runnable, Tickable {
 //		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
 //		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
 //	}
+
+	public void renameLevel(Player player, String newName) {
+		final MakerPlayer mPlayer = getPlayer(player);
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.renameLevel - untracked Player: [%s]", player.getName()));
+			player.sendMessage(plugin.getMessage("level.rename.error"));
+			return;
+		}
+		// needs to be editing that level
+		if (!mPlayer.isEditingLevel()) {
+			mPlayer.sendActionMessage(plugin, "level.rename.error.no-editing");
+			return;
+		}
+		if (newName.equals(mPlayer.getCurrentLevel().getLevelName())) {
+			mPlayer.sendActionMessage(plugin, "level.rename.error.different-name");
+			return;
+		}
+		// rename
+		mPlayer.getCurrentLevel().rename(newName);
+	}
 
 	@Override
 	public void run() {
@@ -1110,18 +1141,6 @@ public class MakerController implements Runnable, Tickable {
 				TickableUtils.tickSafely(mPlayer, currentTick);
 			}
 		}
-	}
-
-	public void loadPublishedLevelsCallback(List<MakerLevel> levels, int levelCount) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		for (MakerLevel level : levels) {
-			steveLevelSerials.add(level.getLevelSerial());
-			LevelBrowserMenu.addOrUpdateLevel(plugin, level, false);
-		}
-		LevelBrowserMenu.updateLevelCount(levelCount);
-		LevelBrowserMenu.updateAllMenues();
 	}
 
 }

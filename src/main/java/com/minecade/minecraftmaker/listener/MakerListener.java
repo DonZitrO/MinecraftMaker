@@ -16,6 +16,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -134,6 +135,14 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityDamage - Entity: [%s] - Cause: [%s] - Damage: [%s] - Cancelled: [%s]", event.getEntity().getName(), event.getCause(), event.getDamage(), event.isCancelled()));
 		}
 		plugin.getController().onEntityDamage(event);
+	}
+
+	@EventHandler
+	public void onEntityExplode(EntityExplodeEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityExplode - type: [%s] - location: [%s]", event.getEntityType(), event.getLocation().toVector()));
+		}
+		plugin.getController().onEntityExplode(event);
 	}
 
 	@EventHandler

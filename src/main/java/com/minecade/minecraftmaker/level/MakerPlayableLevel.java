@@ -6,6 +6,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +25,7 @@ import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
@@ -387,13 +389,6 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		return steveData != null;
 	}
 
-	@Override
-	protected void reset() {
-		super.reset();
-		this.firstTimeLoaded = true;
-		this.status = LevelStatus.BLANK;
-	}
-
 	private void loadNextSteveLevel(MakerPlayer mPlayer) {
 		reset();
 		waitForBusyLevel(mPlayer, false);
@@ -501,6 +496,22 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		}
 		Bukkit.getLogger().warning(String.format("MakerLevel.onCreatureSpawn - illegal creature spawn on level: [%s] with status: [%s]", getLevelName(), getStatus()));
 		event.setCancelled(true);
+	}
+
+	public void onEntityExplode(EntityExplodeEvent event) {
+		if (isBusy()) {
+			event.setCancelled(true);
+			event.blockList().clear();
+			return;
+		}
+		ListIterator<Block> iterator = event.blockList().listIterator();
+		// protect beacons and their power blocks
+		while (iterator.hasNext()) {
+			Block block = iterator.next();
+			if(Material.BEACON.equals(block.getType()) || LevelUtils.isBeaconPowerBlock(block)) {
+				iterator.remove();
+			}
+		}
 	}
 
 	public void onEntityTeleport(EntityTeleportEvent event) {
@@ -625,6 +636,13 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			return;
 		}
 		plugin.getDatabaseAdapter().renameLevelAsync(this, newName);
+	}
+
+	@Override
+	protected void reset() {
+		super.reset();
+		this.firstTimeLoaded = true;
+		this.status = LevelStatus.BLANK;
 	}
 
 	public void restartPlaying() {
