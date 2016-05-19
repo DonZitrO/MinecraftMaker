@@ -16,7 +16,6 @@ public class MakerSteveData {
 	private final List<Long> levels;
 	private final Set<Long> levelsCleared = new HashSet<>();
 	private final Set<Long> levelsSkipped = new HashSet<>();
-	// private Long currentlevelSerial;
 
 	public MakerSteveData(Set<Long> levels) {
 		checkArgument(levels.size() > 0);
@@ -35,6 +34,10 @@ public class MakerSteveData {
 		return levels.get(RANDOM.nextInt(levels.size()));
 	}
 
+	public boolean hasMoreLevels() {
+		return levels.size() > 0;
+	}
+
 	public boolean hasClearedLevel(Long levelSerial) {
 		return levelsCleared.contains(levelSerial);
 	}
@@ -43,8 +46,10 @@ public class MakerSteveData {
 		return levelsSkipped.contains(levelSerial);
 	}
 
-	public void skipLevel(Long levelSerial) {
-		lives--;
+	public void skipLevel(Long levelSerial, boolean loseLife) {
+		if (loseLife) {
+			lives--;
+		}
 		levels.remove(levelSerial);
 		levelsSkipped.add(levelSerial);
 	}

@@ -259,6 +259,8 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 				subtitle = plugin.getMessage("steve.failed.lives.subtitle");
 			}
 		}
+		// TODO: persist steve data
+		steveData = null;
 		mPlayer.sendTitleAndSubtitle(title, subtitle);
 		plugin.getController().addPlayerToMainLobby(mPlayer);
 		status = LevelStatus.DISABLE_READY;
@@ -390,6 +392,10 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	}
 
 	private void loadNextSteveLevel(MakerPlayer mPlayer) {
+		if (!steveData.hasMoreLevels()) {
+			finishSteveChallenge();
+			return;
+		}
 		reset();
 		waitForBusyLevel(mPlayer, false);
 		setLevelSerial(steveData.getRandomLevel());
@@ -771,6 +777,10 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	}
 
 	public void skipSteveLevel() {
+		skipSteveLevel(true);
+	}
+
+	public void skipSteveLevel(boolean loseLife) {
 		if (isBusy()) {
 			disable("attemped to skip a busy a level", null);
 			return;
@@ -780,7 +790,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			disable("player is no longer on this level", null);
 			return;
 		}
-		steveData.skipLevel(getLevelSerial());
+		steveData.skipLevel(getLevelSerial(), loseLife);
 		removeEntities();
 		loadNextSteveLevel(mPlayer);
 	}
@@ -932,6 +942,10 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	}
 
 	private void tickDisableReady() {
+		if (isSteve() && steveData.hasMoreLevels()) {
+			skipSteveLevel(false);
+			return;
+		}
 		this.status = LevelStatus.DISABLED;
 		this.cancelledRedstoneInteractions.clear();
 		this.cancelledRedstoneInteractions = null;
