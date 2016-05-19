@@ -407,31 +407,6 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void startSteve(MakerPlayer mPlayer) {
-		if (!mPlayer.isInLobby()) {
-			mPlayer.sendActionMessage(plugin, "level.play.error.player-busy");
-			return;
-		}
-		Set<Long> levels = getSteveLevels();
-		if (levels.isEmpty() || levels.size() < MIN_STEVE_LEVELS) {
-			mPlayer.sendActionMessage(plugin, "steve.error.few-levels");
-			return;
-		}
-		MakerPlayableLevel level = getEmptyLevelIfAvailable();
-		if (level == null) {
-			mPlayer.sendActionMessage(plugin, "level.error.full");
-			return;
-		}
-		level.setupStartLocation();
-		level.waitForBusyLevel(mPlayer, false);
-		level.setCurrentPlayerId(mPlayer.getUniqueId());
-		MakerSteveData steveData = new MakerSteveData(levels);
-		level.setSteveData(steveData);
-		mPlayer.setSteveData(steveData);
-		level.setLevelSerial(steveData.getRandomLevel());
-		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
-	}
-
 	public void loadLevelForEditingBySerial(MakerPlayer mPlayer, Long levelSerial) {
 		if (!mPlayer.isInLobby()) {
 			mPlayer.sendActionMessage(plugin, "level.play.error.author-busy");
@@ -1142,20 +1117,11 @@ public class MakerController implements Runnable, Tickable {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		for (MakerLevel level : levels) {
+			steveLevelSerials.add(level.getLevelSerial());
 			LevelBrowserMenu.addOrUpdateLevel(plugin, level, false);
 		}
 		LevelBrowserMenu.updateLevelCount(levelCount);
 		LevelBrowserMenu.updateAllMenues();
-	}
-
-	public void clearSteve(MakerPlayableLevel makerPlayableLevel, MakerPlayer mPlayer) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void finishSteve(MakerPlayableLevel makerPlayableLevel, MakerPlayer mPlayer) {
-		// TODO Auto-generated method stub
-
 	}
 
 }

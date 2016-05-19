@@ -462,7 +462,7 @@ public class MakerDatabaseAdapter {
 				// note: this particular implementation doesn't need world data for anything. TODO: find other places where WorldData is not needed.
 				Clipboard clipboard = reader.read(null);
 				if (clipboard.getRegion().getHeight() > 128) {
-					Bukkit.getLogger().severe(String.format("remove this level: [%s]", level.getLevelName()));
+						Bukkit.getLogger().severe(String.format("remove this level: [%s]", level.getLevelName()));
 						clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()).add(0, -48, 0));
 					if (level.getRelativeEndLocation() != null) {
 						level.setRelativeEndLocation(new MakerRelativeLocationData(level.getEndLocation().add(0,-48,0),level.getRelativeEndLocation().getLocationId()));
@@ -470,9 +470,6 @@ public class MakerDatabaseAdapter {
 				} else {
 					clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()));
 				}
-				Bukkit.getLogger().severe(String.format("height: [%s]", clipboard.getRegion().getHeight()));
-				Bukkit.getLogger().severe(String.format("origin: [%s]", clipboard.getOrigin().getBlockY()));
-				Bukkit.getLogger().severe(String.format("end: [%s]", level.getRelativeEndLocation()));
 				level.setClipboard(clipboard);
 			}
 		} catch (Exception e) {
@@ -752,6 +749,7 @@ public class MakerDatabaseAdapter {
 				} else {
 					updateStatement = String.format(updateBase, "");
 				}
+				int changed = 0;
 				try (PreparedStatement updateLevelSt = getConnection().prepareStatement(updateStatement)) {
 					updateLevelSt.setString(1, level.getLevelName());
 					if (endLocationUUID != null) {
@@ -760,10 +758,10 @@ public class MakerDatabaseAdapter {
 					} else {
 						updateLevelSt.setString(1, levelId);
 					}
-					Bukkit.getLogger().severe(String.format("Affected rows: [%s]", updateLevelSt.executeUpdate()));
+					changed = updateLevelSt.executeUpdate();
 				}
 				if (plugin.isDebugMode()) {
-					Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.saveLevel - updated shallow data for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+					Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.saveLevel - updated shallow data for level: [%s<%s>] - changed: [%s]", level.getLevelName(), level.getLevelId(), changed > 0));
 				}
 			} else {
 				insertLevel(level);

@@ -446,9 +446,9 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			Material newMaterial = null;
 			// TODO: replace for stage 3 pasting when implemented
 			if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus())) {
-				if (event.getOldCurrent() == 15 && event.getNewCurrent() == 0 && StringUtils.endsWith(event.getBlock().getType().name(), "ON")) {
+				if (event.getOldCurrent() == 15 && event.getNewCurrent() == 0 && StringUtils.endsWith(event.getBlock().getType().name(), "_ON")) {
 					newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "ON").concat("OFF"));
-				} else if (event.getOldCurrent() == 0 && event.getNewCurrent() == 15 && StringUtils.endsWith(event.getBlock().getType().name(), "OFF")) {
+				} else if (event.getOldCurrent() == 0 && event.getNewCurrent() == 15 && StringUtils.endsWith(event.getBlock().getType().name(), "_OFF")) {
 					newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "OFF").concat("ON"));
 				}
 				if (newMaterial != null) {
@@ -642,7 +642,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		@SuppressWarnings("deprecation")
 		boolean changed = BukkitUtil.toLocation(getWorld(), cancelled.getLocation()).getBlock().setTypeIdAndData(cancelled.getMaterial().getId(), cancelled.getMaterialData().getData(), true);
 		if (!changed) {
-			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerLevel.restoreRedstoneInteraction - unable to restore interaction - tick: [%s] - interaction: [%s]", getCurrentTick(), cancelled));
+			Bukkit.getLogger().warning(String.format("MakerLevel.restoreRedstoneInteraction - unchanged redstone interaction - tick: [%s] - interaction: [%s]", getCurrentTick(), cancelled));
 		}
 	}
 

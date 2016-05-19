@@ -128,7 +128,7 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 		}
 		Bukkit.getLogger().info(String.format("PlayerLevelsMenu.onClick - clicked item material: [%s]", clickedItem.getType()));
 		if (clickedItem.getType().equals(Material.SIGN_POST) || clickedItem.getType().equals(Material.SIGN)) {
-			String serial = ItemUtils.getLoreLine(clickedItem, 0);
+			String serial = ItemUtils.getLoreLine(clickedItem, 1);
 			if (StringUtils.isBlank(serial) || !StringUtils.isNumeric(serial)) {
 				Bukkit.getLogger().severe(String.format("PlayerLevelsMenu.onClick - unable to get level serial from lore: [%s]", serial));
 				return MenuClickResult.CANCEL_UPDATE;
