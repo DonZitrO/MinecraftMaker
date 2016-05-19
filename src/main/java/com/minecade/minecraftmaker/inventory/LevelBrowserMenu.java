@@ -283,7 +283,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			if (lastLoadRequest + MIN_INTERVAL_PER_LOAD_REQUEST_MILLIS < System.currentTimeMillis()) {
 				nextRequest = true;
 				lastLoadRequest = System.currentTimeMillis();
-				plugin.getDatabaseAdapter().loadPublishedLevelsAsync(sortBy, getCurrentOffset(), LEVELS_PER_PAGE);
+				plugin.getDatabaseAdapter().loadPublishedLevelsAsync(sortBy, getCurrentOffset(), LEVELS_PER_PAGE * 2);
 				// displayLoadingPage();
 			} else {
 				// too fast load requests - no-op
