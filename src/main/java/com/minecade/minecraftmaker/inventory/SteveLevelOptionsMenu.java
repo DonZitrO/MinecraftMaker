@@ -37,17 +37,15 @@ public class SteveLevelOptionsMenu extends AbstractMakerMenu {
 
 	@Override
 	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
+		MenuClickResult result = super.onClick(mPlayer, slot);
+		if (!MenuClickResult.ALLOW.equals(result)) {
+			return result;
+		}
 		if (!mPlayer.isPlayingLevel() || !mPlayer.isInSteve()) {
 			Bukkit.getLogger().warning(String.format("SteveLevelOptionsMenu.onClick - This menu should be available to steve level players only! - clicked by: [%s]", mPlayer.getName()));
 			return MenuClickResult.CANCEL_CLOSE;
 		}
-		if (slot >= items.length) {
-			return MenuClickResult.CANCEL_UPDATE;
-		}
 		ItemStack clickedItem = inventory.getItem(slot);
-		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return MenuClickResult.CANCEL_UPDATE;
-		}
 		if (ItemUtils.itemNameEquals(clickedItem, SteveLevelOptionItem.EXIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().finishSteveChallenge();
 			return MenuClickResult.CANCEL_CLOSE;

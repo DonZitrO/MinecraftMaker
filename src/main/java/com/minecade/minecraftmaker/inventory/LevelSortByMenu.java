@@ -38,13 +38,11 @@ public class LevelSortByMenu extends AbstractMakerMenu {
 
 	@Override
 	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
-		if (slot >= items.length) {
-			return MenuClickResult.CANCEL_UPDATE;
+		MenuClickResult result = super.onClick(mPlayer, slot);
+		if (!MenuClickResult.ALLOW.equals(result)) {
+			return result;
 		}
 		ItemStack clickedItem = inventory.getItem(slot);
-		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return MenuClickResult.CANCEL_UPDATE;
-		}
 		Bukkit.getLogger().severe("ChatColor.stripColor(stack.getItemMeta().getDisplayName())):" + ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName()));
 		Bukkit.getLogger().severe("GeneralMenuItem.EXIT_MENU.getDisplayName():" + ChatColor.stripColor(GeneralMenuItem.EXIT_MENU.getDisplayName()));
 		if (ItemUtils.itemNameEquals(clickedItem, LevelSortByItem.LIKES.getDisplayName())) {

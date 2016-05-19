@@ -6,6 +6,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.inventory.ActiveItemEnchantment;
+import com.minecade.core.item.ItemUtils;
+import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -66,7 +68,19 @@ public abstract class AbstractMakerMenu {
 		}
 	}
 
-	public abstract MenuClickResult onClick(MakerPlayer mPlayer, int slot);
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
+		if (slot >= items.length) {
+			return MenuClickResult.CANCEL_UPDATE;
+		}
+		ItemStack clickedItem = inventory.getItem(slot);
+		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
+			return MenuClickResult.CANCEL_UPDATE;
+		}
+		if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.EXIT_MENU.getDisplayName())) {
+			return MenuClickResult.CANCEL_CLOSE;
+		}
+		return MenuClickResult.ALLOW;
+	}
 
 	public void open(Player player) {
 		if (player == null) {

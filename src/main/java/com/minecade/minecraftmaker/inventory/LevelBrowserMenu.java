@@ -270,13 +270,11 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	@Override
 	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
-		if (slot >= items.length) {
-			return MenuClickResult.CANCEL_UPDATE;
+		MenuClickResult result = super.onClick(mPlayer, slot);
+		if (!MenuClickResult.ALLOW.equals(result)) {
+			return result;
 		}
 		ItemStack clickedItem = inventory.getItem(slot);
-		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return MenuClickResult.CANCEL_UPDATE;
-		}
 		Bukkit.getLogger().info(String.format("LevelBrowserMenu.onClick - clicked item material: [%s]", clickedItem.getType()));
         if (clickedItem.getType().equals(Material.MONSTER_EGG)) {
             String serial = ItemUtils.getLoreLine(clickedItem, 1);

@@ -68,6 +68,10 @@ public class ServerBrowserMenu extends AbstractMakerMenu {
 
 	@Override
 	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
+		MenuClickResult result = super.onClick(mPlayer, slot);
+		if (!MenuClickResult.ALLOW.equals(result)) {
+			return result;
+		}
 		ServerData info = serverData.get(slot + 1);
 		if (info == null) {
 			return MenuClickResult.CANCEL_UPDATE;

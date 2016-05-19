@@ -36,17 +36,15 @@ public class EditLevelOptionsMenu extends AbstractMakerMenu {
 
 	@Override
 	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
+		MenuClickResult result = super.onClick(mPlayer, slot);
+		if (!MenuClickResult.ALLOW.equals(result)) {
+			return result;
+		}
 		if (!mPlayer.isEditingLevel()) {
 			Bukkit.getLogger().warning(String.format("EditLevelOptionsMenu.onClick - This menu should be available to level editors only! - clicked by: [%s]", mPlayer.getName()));
 			return MenuClickResult.CANCEL_CLOSE;
 		}
-		if (slot >= items.length) {
-			return MenuClickResult.CANCEL_UPDATE;
-		}
 		ItemStack clickedItem = inventory.getItem(slot);
-		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return MenuClickResult.CANCEL_UPDATE;
-		}
 		if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.SAVE.getDisplayName())) {
 			mPlayer.getCurrentLevel().saveLevel();
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PLAY.getDisplayName())) {

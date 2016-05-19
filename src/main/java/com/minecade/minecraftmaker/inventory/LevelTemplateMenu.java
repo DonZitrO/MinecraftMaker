@@ -36,12 +36,9 @@ public class LevelTemplateMenu extends AbstractMakerMenu {
 
 	@Override
 	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
-		if (slot >= items.length) {
-			return MenuClickResult.CANCEL_UPDATE;
-		}
-		ItemStack clickedItem = inventory.getItem(slot);
-		if (clickedItem == null || !ItemUtils.hasDisplayName(clickedItem)) {
-			return MenuClickResult.CANCEL_UPDATE;
+		MenuClickResult result = super.onClick(mPlayer, slot);
+		if (!MenuClickResult.ALLOW.equals(result)) {
+			return result;
 		}
 		// TODO: enhance this to allow better templates for empty levels
 		if (slot < LevelTemplateItem.values().length) {
