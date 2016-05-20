@@ -270,7 +270,6 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 
 	public void fixClipboard() throws MinecraftMakerException {
 		removeCrystalFromBorders();
-		setupCliboardFloor();
 		clearBlocksAboveEndBeacon();
 	}
 
@@ -940,6 +939,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			if (firstTimeLoaded) {
 				fixClipboard();
 			}
+			setupCliboardFloor();
 		} catch (Exception e) {
 			disable(e.getMessage(), e);
 			return;
