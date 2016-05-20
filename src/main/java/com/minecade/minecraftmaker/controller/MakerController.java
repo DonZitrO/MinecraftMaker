@@ -1013,9 +1013,9 @@ public class MakerController implements Runnable, Tickable {
 			event.setRespawnLocation(mPlayer.getCurrentLevel().getStartLocation());
 			return;
 		}
-				event.setRespawnLocation(getDefaultSpawnLocation());
-				Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
-			}
+		event.setRespawnLocation(getDefaultSpawnLocation());
+		Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
+	}
 
 	public void onVehicleMove(VehicleMoveEvent event) {
 		Entity passenger = event.getVehicle().getPassenger();

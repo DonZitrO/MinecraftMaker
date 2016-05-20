@@ -20,6 +20,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
@@ -289,6 +290,12 @@ public class MakerListener implements Listener {
 		default:
 			break;
 		}
+	}
+
+	@EventHandler
+	public void onProjectileHit(final ProjectileHitEvent event) {
+		// remove projectiles 3 seconds after they hit
+		Bukkit.getScheduler().runTaskLater(plugin, () -> event.getEntity().remove(), 60);
 	}
 
 	@EventHandler
