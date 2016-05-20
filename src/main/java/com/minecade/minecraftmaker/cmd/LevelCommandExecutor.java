@@ -45,7 +45,13 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 				sender.sendMessage(plugin.getMessage("level.rename.error.too-long"));
 				return true;
 			}
-			plugin.getController().renameLevel((Player)sender, name);
+			if (!name.matches("\\w(\\w|'|\\ )*\\w")) {
+				sender.sendMessage(plugin.getMessage("level.rename.error.invalid"));
+				return true;
+			}
+			// capitalize
+			name = StringUtils.capitalize(name);
+			plugin.getController().renameLevel((Player) sender, name);
 			return true;
 		}
 		return true;
