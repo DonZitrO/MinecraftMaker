@@ -127,7 +127,7 @@ public class LevelUtils {
 		return new Vector(originX, originY, originZ);
 	}
 
-	public static Region getLevelRegion(short chunkZ, int levelWidth) {
+	public static CuboidRegion getLevelRegion(short chunkZ, int levelWidth) {
 		Vector origin = getLevelOrigin(chunkZ);
 		int width = levelWidth;
 		int height = 66;

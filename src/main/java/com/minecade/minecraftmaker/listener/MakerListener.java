@@ -2,6 +2,7 @@ package com.minecade.minecraftmaker.listener;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
@@ -34,6 +35,8 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -155,6 +158,10 @@ public class MakerListener implements Listener {
 	public void onEntityTeleport(EntityTeleportEvent event) {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityTeleport start - entity type: [%s] - from: [%s] - to: [%s] - cancelled: [%s]", event.getEntityType(), event.getFrom().toVector(), event.getTo().toVector(), event.isCancelled()));
+		}
+		// players have their own event handler
+		if (event.getEntityType().equals(EntityType.PLAYER)) {
+			return;
 		}
 		plugin.getController().onEntityTeleport(event);
 		if (plugin.isDebugMode()) {
@@ -286,6 +293,20 @@ public class MakerListener implements Listener {
 		if (event.getOffHandItem() != null && event.getOffHandItem().getType().equals(Material.ENDER_CHEST)) {
 			event.setCancelled(true);
 			return;
+		}
+	}
+
+	@EventHandler
+	public void onPlayerTeleport(PlayerTeleportEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerTeleport start - player: [%s] - from: [%s] - to: [%s] - cause: [%s] - cancelled: [%s]", event.getPlayer().getName(), event.getFrom().toVector(), event.getTo().toVector(), event.getCause(), event.isCancelled()));
+		}
+		if (event.getCause().equals(TeleportCause.PLUGIN)) {
+			return;
+		}
+		plugin.getController().onPlayerTeleport(event);
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerTeleport finish - player: [%s] - from: [%s] - to: [%s] - cause: [%s] - cancelled: [%s]", event.getPlayer().getName(), event.getFrom().toVector(), event.getTo().toVector(), event.getCause(), event.isCancelled()));
 		}
 	}
 

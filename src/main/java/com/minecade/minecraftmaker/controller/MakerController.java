@@ -49,6 +49,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.inventory.ItemStack;
@@ -1057,6 +1058,22 @@ public class MakerController implements Runnable, Tickable {
 		}
 		event.setRespawnLocation(getDefaultSpawnLocation());
 		Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
+	}
+
+	public void onPlayerTeleport(PlayerTeleportEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getFrom());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerTeleport - cancelled player teleporting from outside level - player: [%s] - cause: [%s] - from: [%s]", event.getPlayer().getName(), event.getCause(), event.getFrom().toVector()));
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onPlayerTeleport - cancelled  player teleporting from unregistered level slot - player: [%s] - cause: [%s] - location: [%s]", event.getPlayer().getName(), event.getCause(), event.getFrom().toVector()));
+			return;
+		}
+		level.onPlayerTeleport(event);
 	}
 
 	public void onVehicleMove(VehicleMoveEvent event) {

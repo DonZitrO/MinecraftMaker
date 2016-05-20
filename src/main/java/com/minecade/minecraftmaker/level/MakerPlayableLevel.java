@@ -28,6 +28,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -47,6 +48,7 @@ import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.world.BlockVector;
+import com.minecade.minecraftmaker.schematic.world.CuboidRegion;
 import com.minecade.minecraftmaker.schematic.world.Extent;
 import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.schematic.world.Vector;
@@ -330,7 +332,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		return entities;
 	}
 
-	public Region getLevelRegion() {
+	public CuboidRegion getLevelRegion() {
 		return LevelUtils.getLevelRegion(chunkZ, getLevelWidth());
 	}
 
@@ -531,11 +533,12 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			event.setCancelled(true);
 			return;
 		}
-		Region region = getLevelRegion();
+		CuboidRegion region = getLevelRegion();
 		if (region == null) {
 			event.setCancelled(true);
 			return;
 		}
+		region.contract(new Vector(3, 3, 3), new Vector(-3, -3, -3));
 		if (!region.contains(BukkitUtil.toVector(event.getFrom())) || !region.contains(BukkitUtil.toVector(event.getTo()))) {
 			event.setCancelled(true);
 			return;
@@ -570,6 +573,23 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			Bukkit.getLogger().info(String.format("MakerLevel.onPlayerQuit - Level will be disabled after player quit: [%s<%s>]", getLevelName(), getLevelId()));
 		}
 		status = LevelStatus.DISABLE_READY;
+	}
+
+	public void onPlayerTeleport(PlayerTeleportEvent event) {
+		if (isBusy()) {
+			event.setCancelled(true);
+			return;
+		}
+		CuboidRegion region = getLevelRegion();
+		if (region == null) {
+			event.setCancelled(true);
+			return;
+		}
+		region.contract(new Vector(3, 3, 3), new Vector(-3, -3, -3));
+		if (!region.contains(BukkitUtil.toVector(event.getFrom())) || !region.contains(BukkitUtil.toVector(event.getTo()))) {
+			event.setCancelled(true);
+			return;
+		}
 	}
 
 	private void openLevelOptionsAfterClear(UUID playerId) {
