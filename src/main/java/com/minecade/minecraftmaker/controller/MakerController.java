@@ -25,6 +25,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Horse;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
@@ -32,6 +33,7 @@ import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -86,7 +88,6 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.MakerWorldUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
-import com.minecade.nms.NMSUtils;
 
 public class MakerController implements Runnable, Tickable {
 
@@ -647,6 +648,23 @@ public class MakerController implements Runnable, Tickable {
 		level.onBlockRedstone(event);
 	}
 
+	public void onCreatureDamageByEntity(EntityDamageByEntityEvent event) {
+		if (!event.getCause().equals(DamageCause.ENTITY_ATTACK) && !(event.getDamager() instanceof Player)) {
+			return;
+		}
+		MakerPlayer mPlayer = getPlayer((Player) event.getDamager());
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onCreatureDamageByEntity - Untracked player damaging entities damager: [%s] - cause: [%s]", event.getDamager().getName(), event.getCause()));
+			event.setCancelled(true);
+			return;
+		}
+		if (mPlayer.isEditingLevel() && event.getEntity() instanceof LivingEntity) {
+			event.getEntity().remove();
+			event.setCancelled(true);
+			return;
+		}
+	}
+
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		short slot = LevelUtils.getLocationSlot(event.getLocation());
 		if (slot < 0) {
@@ -661,53 +679,6 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		level.onCreatureSpawn(event);
-	}
-
-	public void onEntityDamage(EntityDamageEvent event) {
-		if (!(event.getEntity() instanceof Player)) {
-			return;
-		}
-
-		Player damagedPlayer = (Player) event.getEntity();
-
-		final MakerPlayer mPlayer = getPlayer(damagedPlayer);
-		if (mPlayer == null) {
-			Bukkit.getLogger().warning(String.format("MakerController.onEntityDamage - Untracked player getting damage: [%s] - cause: [%s]", damagedPlayer.getName(), event.getCause()));
-			damagedPlayer.teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN);
-			event.setCancelled(true);
-			return;
-		}
-
-		// level creator back to spawn from void
-		if (mPlayer.isEditingLevel()) {
-			if (event.getCause() == DamageCause.VOID) {
-				mPlayer.teleportOnNextTick(mPlayer.getCurrentLevel().getStartLocation());
-			}
-			event.setCancelled(true);
-			return;
-		}
-		if (mPlayer.isPlayingLevel()) {
-			if (event.getCause() == DamageCause.VOID) {
-				mPlayer.getCurrentLevel().restartPlaying();
-				event.setCancelled(true);
-				return;
-			}
-			return;
-		}
-		if (mPlayer.hasClearedLevel()) {
-			if (event.getCause() == DamageCause.VOID) {
-				mPlayer.teleportOnNextTick(mPlayer.getCurrentLevel().getEndLocation().add(new Vector(0, 1, 0)));
-			}
-			event.setCancelled(true);
-			return;
-		}
-		if (mPlayer.isInLobby()) {
-			if (event.getCause() == DamageCause.VOID) {
-				mPlayer.teleportOnNextTick(getDefaultSpawnLocation());
-			}
-			event.setCancelled(true);
-			return;
-		}
 	}
 
 	public void onEntityExplode(EntityExplodeEvent event) {
@@ -837,6 +808,53 @@ public class MakerController implements Runnable, Tickable {
 			return true;
 		}
 		return false;
+	}
+
+	public void onPlayerDamage(EntityDamageEvent event) {
+		if (!(event.getEntity() instanceof Player)) {
+			return;
+		}
+
+		Player damagedPlayer = (Player) event.getEntity();
+
+		MakerPlayer mPlayer = getPlayer(damagedPlayer);
+		if (mPlayer == null) {
+			Bukkit.getLogger().warning(String.format("MakerController.onEntityDamage - Untracked player getting damaged: [%s] - cause: [%s]", damagedPlayer.getName(), event.getCause()));
+			damagedPlayer.teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN);
+			event.setCancelled(true);
+			return;
+		}
+
+		// level creator back to spawn from void
+		if (mPlayer.isEditingLevel()) {
+			if (event.getCause() == DamageCause.VOID) {
+				mPlayer.teleportOnNextTick(mPlayer.getCurrentLevel().getStartLocation());
+			}
+			event.setCancelled(true);
+			return;
+		}
+		if (mPlayer.isPlayingLevel()) {
+			if (event.getCause() == DamageCause.VOID) {
+				mPlayer.getCurrentLevel().restartPlaying();
+				event.setCancelled(true);
+				return;
+			}
+			return;
+		}
+		if (mPlayer.hasClearedLevel()) {
+			if (event.getCause() == DamageCause.VOID) {
+				mPlayer.teleportOnNextTick(mPlayer.getCurrentLevel().getEndLocation().add(new Vector(0, 1, 0)));
+			}
+			event.setCancelled(true);
+			return;
+		}
+		if (mPlayer.isInLobby()) {
+			if (event.getCause() == DamageCause.VOID) {
+				mPlayer.teleportOnNextTick(getDefaultSpawnLocation());
+			}
+			event.setCancelled(true);
+			return;
+		}
 	}
 
 	public void onPlayerDeath(PlayerDeathEvent event) {
@@ -1057,11 +1075,6 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
-		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
-		levelMap.remove(makerLevel.getChunkZ());
-	}
-
 //	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
 //		File schematicsFolder = new File(plugin.getDataFolder(), "test");
 //		// if the directory does not exist, create it
@@ -1091,6 +1104,11 @@ public class MakerController implements Runnable, Tickable {
 //		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
 //		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
 //	}
+
+	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
+		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
+		levelMap.remove(makerLevel.getChunkZ());
+	}
 
 	public void renameLevel(Player player, String newName) {
 		final MakerPlayer mPlayer = getPlayer(player);

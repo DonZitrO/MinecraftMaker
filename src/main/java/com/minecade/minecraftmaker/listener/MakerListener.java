@@ -15,6 +15,7 @@ import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityCombustEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
@@ -110,6 +111,17 @@ public class MakerListener implements Listener {
 	}
 
 	@EventHandler
+	public void onCreatureDamageByEntity(final EntityDamageByEntityEvent event) {
+		if (event.getEntity() instanceof Player) {
+			return;
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureDamageByEntity - Type: [%s] - Causer type: [%s] - Damage: [%s] - Cancelled: [%s]", event.getEntityType(), event.getDamager().getType(), event.getDamage(), event.isCancelled()));
+		}
+		plugin.getController().onCreatureDamageByEntity(event);
+	}
+
+	@EventHandler
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureSpawn - Entity type: [%s] - Reason: [%s] - Location: [%s] - Cancelled: [%s]", event.getEntityType(), event.getSpawnReason(), event.getLocation().toVector(), event.isCancelled()));
@@ -129,14 +141,6 @@ public class MakerListener implements Listener {
 		if (event.getDuration() == 8 && !(event.getEntity() instanceof Player)) {
 			event.setCancelled(true);
 		}
-	}
-
-	@EventHandler
-	public void onEntityDamage(final EntityDamageEvent event) {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onEntityDamage - Entity: [%s] - Cause: [%s] - Damage: [%s] - Cancelled: [%s]", event.getEntity().getName(), event.getCause(), event.getDamage(), event.isCancelled()));
-		}
-		plugin.getController().onEntityDamage(event);
 	}
 
 	@EventHandler
@@ -169,6 +173,17 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MainListener.onInventoryClick - Player: [%s] - Inventory: [%s] - Slot type: [%s] - Slot: [%s]", event.getWhoClicked().getName(), event.getInventory().getName(), event.getSlotType(), event.getSlot()));
 		}
 		plugin.getController().onInventoryClick(event);
+	}
+
+	@EventHandler
+	public void onPlayerDamage(final EntityDamageEvent event) {
+		if (!(event.getEntity() instanceof Player)) {
+			return;
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerDamage - Player: [%s] - Cause: [%s] - Damage: [%s] - Cancelled: [%s]", event.getEntity().getName(), event.getCause(), event.getDamage(), event.isCancelled()));
+		}
+		plugin.getController().onPlayerDamage(event);
 	}
 
 	@EventHandler (priority = EventPriority.LOW)
