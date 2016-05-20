@@ -498,6 +498,12 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 				return;
 			}
 			NMSUtils.disableMobAI(event.getEntity(), true);
+			// horse taming
+			if (org.bukkit.entity.EntityType.HORSE.equals(event.getEntityType())) {
+				if (((org.bukkit.entity.Horse) event.getEntity()).isAdult()) {
+					plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.horse.tame");
+				}
+			}
 			return;
 		}
 		Bukkit.getLogger().warning(String.format("MakerLevel.onCreatureSpawn - illegal creature spawn on level: [%s] with status: [%s]", getLevelName(), getStatus()));

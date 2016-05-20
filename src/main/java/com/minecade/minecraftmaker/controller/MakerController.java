@@ -23,6 +23,8 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Horse;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
@@ -84,6 +86,7 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.MakerWorldUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
+import com.minecade.nms.NMSUtils;
 
 public class MakerController implements Runnable, Tickable {
 
@@ -893,7 +896,28 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
-		// TODO: remove entity if left click and EDITING level mode
+		// TODO: enhance this code and move it to level when needed
+		if (mPlayer.isEditingLevel() && event.getRightClicked().getType().equals(EntityType.HORSE)) {
+			Horse horse = (Horse) event.getRightClicked();
+			if (!horse.isAdult()) {
+				return;
+			}
+			if (horse.getPassenger() != null) {
+				return;
+			}
+			if (horse.getInventory().getSaddle() != null) {
+				return;
+			}
+			horse.setTamed(!horse.isTamed());
+			if (horse.isTamed()) {
+				mPlayer.sendMessage(plugin, "level.create.horse.tamed");
+				return;
+			} else {
+				mPlayer.sendMessage(plugin, "level.create.horse.untamed");
+				event.setCancelled(true);
+			}
+			return;
+		}
 	}
 
 	public void onPlayerJoin(Player player) {
