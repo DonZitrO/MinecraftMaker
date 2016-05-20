@@ -1001,9 +1001,9 @@ public class MakerController implements Runnable, Tickable {
 		}
 		// TODO: notify rabbit that player left
 		// plugin.publishServerInfoAsync();
-		
 
-		
+
+
 //		// FIXME: experimental
 //		entriesToRemoveFromScoreboardTeamsOnNextTick.add(quitter.getName());
 //
@@ -1028,7 +1028,7 @@ public class MakerController implements Runnable, Tickable {
 //			gPlayer.removePersonalInventories();
 //
 //			// remove from the player map
-//			playerMap.remove(gPlayer.getPlayer().getUniqueId());	
+//			playerMap.remove(gPlayer.getPlayer().getUniqueId());
 //			// notify a player left
 //			plugin.publishServerInfoAsync();
 //		} else {

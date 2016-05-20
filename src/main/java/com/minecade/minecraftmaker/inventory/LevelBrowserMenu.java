@@ -43,8 +43,12 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	//private static ItemStack[] loadingPaneItems;
 
+	// TODO: https://bukkit.org/threads/class-anvilgui-use-the-anvil-gui-to-retrieve-strings.211849/
+	//private static Inventory searchInventory = Bukkit.createInventory(null, InventoryType.ANVIL, MinecraftMakerPlugin.getInstance().getMessage("menu.search-item.title"));
+
+	private static ItemStack glassPane;
 	private static long lastLoadRequest;
-	private static int records;
+	private static int recordsCount;
 
 	private static void addLevelItemToPages(Internationalizable plugin, MakerLevel level) {
 		levelItems.put(level.getLevelId(), getLevelItem(plugin, level));
@@ -95,6 +99,18 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			return diff;
 		}
 		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+	}
+
+	private static ItemStack getGlassPane(){
+		if(glassPane == null){
+			ItemStack itemStack = new ItemStack(Material.STAINED_GLASS_PANE);
+			ItemMeta itemMeta = itemStack.getItemMeta();
+			itemMeta.setDisplayName(StringUtils.EMPTY);
+			itemStack.setItemMeta(itemMeta);
+			glassPane = itemStack;
+		}
+
+		return glassPane;
 	}
 
 	public static LevelBrowserMenu getInstance(MinecraftMakerPlugin plugin, UUID viewerId) {
@@ -152,7 +168,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		LevelBrowserMenu.records = levelCount;
+		LevelBrowserMenu.recordsCount = levelCount;
 	}
 
 	public static void updateLevelLikes(Internationalizable plugin, UUID levelId, long totalLikes, long totalDislikes) {
@@ -170,12 +186,12 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	private static void updateLevelOwnerLikes(MakerLevel makerLevel){
 		MakerPlayer makerPlayer = MinecraftMakerPlugin.getInstance().getController().getPlayer(makerLevel.getAuthorId());
 		if(makerPlayer != null){
-			makerPlayer.setLevelsLikes(makerPlayer.getLevelsLikes() + 1);
+			makerPlayer.getData().setLevelsLikes(makerPlayer.getData().getLevelsLikes() + 1);
 		}
 	}
 
 	private int currentPage = 1;
-	private LevelSortBy sortBy = LevelSortBy.LEVEL_SERIAL;
+	private LevelSortBy sortBy = LevelSortBy.LIKES;
 	private final UUID viewerId;
 	private boolean nextRequest = false;
 
@@ -210,7 +226,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	private int getTotalPages() {
 		//return (levelItems.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
-		return (records + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
+		return (recordsCount + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
 	}
 
 	public UUID getViewerId() {
@@ -219,7 +235,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	private void init() {
 		for (int i = 0; i < inventory.getSize(); i++) {
-			items[i] = new ItemStack(Material.STAINED_GLASS_PANE, 1);
+			items[i] = getGlassPane();
 		}
 
 		items[2] = GeneralMenuItem.SEARCH.getItem();
@@ -284,6 +300,9 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
             }
             plugin.getController().loadLevelForPlayingBySerial(mPlayer, Long.valueOf(serial));
             return MenuClickResult.CANCEL_CLOSE;
+//		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SEARCH.getDisplayName())) {
+//		    mPlayer.getPlayer().openInventory(searchInventory);
+//			return MenuClickResult.CANCEL_UPDATE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
 			mPlayer.openLevelBrowserMenu(MinecraftMakerPlugin.getInstance(), mPlayer.getNextLevelSortBy(), false);
 			return MenuClickResult.CANCEL_UPDATE;
@@ -323,9 +342,12 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 		Collection<MakerLevel> allLevels = null;
 		switch (sortBy) {
-		case DATE_PUBLISHED:
-			allLevels = levelsByPublishDate;
+		case DATE_NEWEST:
+			allLevels = levelsByPublishDate.descendingSet();
 			break;
+		case DATE_OLDEST:
+			allLevels = levelsByPublishDate;
+		break;
 		case LEVEL_NAME:
 			allLevels = levelsByName;
 			break;
@@ -333,7 +355,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			allLevels = levelsByLikes;
 			break;
 		case RANK:
-			allLevels = levelsByRank;
+			allLevels = levelsByRank.descendingSet();
 			break;
 		default:
 			allLevels = levelsBySerial;
@@ -355,6 +377,11 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			}
 		}
 
+		if(currentPageLevels.size() == 0){
+			nextPage();
+			return;
+		}
+
 		MakerPlayer makerPlayer = MinecraftMakerPlugin.getInstance().getController().getPlayer(this.viewerId);
 		updateCurrentPageItem();
 		updatePreviousPageItem();
@@ -370,8 +397,8 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 							ItemStack item = levelItems.get(makerLevel.getLevelId());
 							if(item != null) items[i] = item;
 						}
-					} else if(currentPageLevels.size() > 0){
-						items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
+					} else {
+						items[i] = getGlassPane();
 					}
 				}
 			}
@@ -417,7 +444,8 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 				LevelSortBy.LEVEL_NAME.getDisplayName(levelSortBy),
 				LevelSortBy.LEVEL_SERIAL.getDisplayName(levelSortBy),
 				LevelSortBy.LIKES.getDisplayName(levelSortBy),
-				LevelSortBy.DATE_PUBLISHED.getDisplayName(levelSortBy),
+				LevelSortBy.DATE_NEWEST.getDisplayName(levelSortBy),
+				LevelSortBy.DATE_OLDEST.getDisplayName(levelSortBy),
 				LevelSortBy.RANK.getDisplayName(levelSortBy)));
 		items[6].setItemMeta(sortMeta);
 	}

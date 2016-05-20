@@ -7,7 +7,8 @@ public enum LevelSortBy {
 	LEVEL_NAME(" level_name "),
 	LEVEL_SERIAL(" level_serial "),
 	LIKES(" likes "),
-	DATE_PUBLISHED(" date_published "),
+	DATE_NEWEST(" date_published "),
+	DATE_OLDEST(" date_published "),
 	RANK(" if(youtuber = 0, 1, 0), if(admin = 0, 1, 0), if(`owner` = 0, 1, 0), " +
 			" if(vip = 0, 1, 0), if(pro = 0, 1, 0), if(legendary = 0, 1, 0), " +
 			" if(elite = 0, 1, 0), if(titan = 0, 1, 0), if(gm = 0, 1, 0), " +

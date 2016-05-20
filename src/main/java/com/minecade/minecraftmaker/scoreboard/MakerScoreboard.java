@@ -26,14 +26,14 @@ public class MakerScoreboard {
 	private static final String NAME = "Name";
 	private static final int SERVER_ID = MinecraftMakerPlugin.getInstance().getConfig().getInt("server.id");
 	private static final List<String> TITLE = Arrays.asList(
-			"§B§LMinecraftMaker", "§LM§B§LinecraftMaker", "§LMi§B§LnecraftMaker",
-			"§LMin§B§LecraftMaker", "§LMine§B§LcraftMaker", "§LMinec§B§LraftMaker",
-			"§LMinecr§B§LaftMaker", "§LMinecra§B§LftMaker", "§LMinecraf§B§LtMaker",
-			"§LMinecraft§B§LMaker", "§LMinecraftM§B§Laker", "§LMinecraftMa§B§Lker",
-			"§LMinecraftMak§B§Ler", "§LMinecraftMake§B§Lr", "§LMinecraftMaker",
+			"§3§LM§B§LinecraftMaker", "§LM§3§Li§B§LnecraftMaker", "§LMi§3§Ln§B§LecraftMaker",
+			"§LMin§3§Le§B§LcraftMaker", "§LMine§3§Lc§B§LraftMaker", "§LMinec§3§Lr§B§LaftMaker",
+			"§LMinecr§3§La§B§LftMaker", "§LMinecra§3§Lf§B§LtMaker", "§LMinecraf§3§Lt§B§LMaker",
+			"§LMinecraft§3§LM§B§Laker", "§LMinecraftM§3§La§B§Lker", "§LMinecraftMa§3§Lk§B§Ler",
+			"§LMinecraftMak§3§Le§B§Lr", "§LMinecraftMake§3§Lr", "§LMinecraftMaker",
 			"§B§LMinecraftMaker", "§B§LMinecraftMaker", "§B§LMinecraftMaker",
 			"§F§LMinecraftMaker", "§B§LMinecraftMaker", "§F§LMinecraftMaker",
-			"§B§LMinecraftMaker", "§F§LMinecraftMaker");
+			"§B§LMinecraftMaker", "§F§LMinecraftMaker", "§B§LMinecraftMaker");
 
 	private final MinecraftMakerPlugin plugin;
 	private final MakerPlayer makerPlayer;
@@ -173,8 +173,6 @@ public class MakerScoreboard {
 
 		if(this.makerPlayer.getCurrentTick() % 20 == 0) {
 			this.setScore(13, "§4");
-			this.setScore(12, plugin.getMessage("scoreboard.server.title"));
-			this.setScore(11, plugin.getMessage("scoreboard.server.name", SERVER_ID));
 			this.setScore(10, "§3");
 			this.setScore(7, "§2");
 			this.setScore(4, "§1");
@@ -182,13 +180,26 @@ public class MakerScoreboard {
 			this.setScore(0, plugin.getMessage("scoreboard.url"));
 
 			if(this.makerPlayer.getCurrentLevel() == null){
+				this.setScore(12, plugin.getMessage("scoreboard.server.title"));
+				this.setScore(11, plugin.getMessage("scoreboard.server.name", SERVER_ID));
 				this.setScore(9, plugin.getMessage("scoreboard.coins.title"));
 				this.setScore(8, plugin.getMessage("scoreboard.coins.name", this.makerPlayer.getData().getCoins()));
-				this.setScore(6, plugin.getMessage("scoreboard.clear-level.title"));
-				this.setScore(5, plugin.getMessage("scoreboard.clear-level.name", this.makerPlayer.getData().getLevelsClear().size()));
+				this.setScore(6, plugin.getMessage("scoreboard.level-clear.title"));
+				this.setScore(5, plugin.getMessage("scoreboard.level-clear.name", this.makerPlayer.getData().getLevelsClear().size()));
 				this.setScore(3, plugin.getMessage("scoreboard.likes.title"));
-				this.setScore(2, plugin.getMessage("scoreboard.likes.name", this.makerPlayer.getLevelsLikes()));
+				this.setScore(2, plugin.getMessage("scoreboard.likes.name", this.makerPlayer.getData().getLevelsLikes()));
+			} else if(this.makerPlayer.getSteveData() != null){
+				this.setScore(12, plugin.getMessage("scoreboard.level-name.title"));
+				this.setScore(11, plugin.getMessage("scoreboard.level-name.name", this.makerPlayer.getCurrentLevel().getLevelName()));
+				this.setScore(9, plugin.getMessage("scoreboard.level-author.title"));
+				this.setScore(8, plugin.getMessage("scoreboard.level-author.name", this.makerPlayer.getCurrentLevel().getAuthorName()));
+				this.setScore(6, plugin.getMessage("scoreboard.level-clear.title"));
+				this.setScore(5, plugin.getMessage("scoreboard.level-clear.name", this.makerPlayer.getSteveData().getLevelsClearedCount()));
+				this.setScore(3, plugin.getMessage("scoreboard.player-lives.title"));
+				this.setScore(2, plugin.getMessage("scoreboard.player-lives.name", this.makerPlayer.getSteveData().getLives()));
 			} else if(GameMode.CREATIVE.equals(makerPlayer.getPlayer().getGameMode()) || this.makerPlayer.getCurrentTick() % 240 < 120){
+				this.setScore(12, plugin.getMessage("scoreboard.server.title"));
+				this.setScore(11, plugin.getMessage("scoreboard.server.name", SERVER_ID));
 				this.setScore(9, plugin.getMessage("scoreboard.level-name.title"));
 				this.setScore(8, plugin.getMessage("scoreboard.level-name.name", StringUtils.isEmpty(this.makerPlayer.getCurrentLevel().getLevelName()) ?
 						MinecraftMakerPlugin.getInstance().getMessage("general.empty") : this.makerPlayer.getCurrentLevel().getLevelName()));
@@ -197,6 +208,8 @@ public class MakerScoreboard {
 				this.setScore(3, plugin.getMessage("scoreboard.level-likes.title"));
 				this.setScore(2, plugin.getMessage("scoreboard.level-likes.name", this.makerPlayer.getCurrentLevel().getLikes()));
 			} else {
+				this.setScore(12, plugin.getMessage("scoreboard.server.title"));
+				this.setScore(11, plugin.getMessage("scoreboard.server.name", SERVER_ID));
 				this.setScore(9, plugin.getMessage("scoreboard.level-player.title"));
 				this.setScore(8, plugin.getMessage("scoreboard.level-player.name", this.makerPlayer.getRecordUsername()));
 				this.setScore(6, plugin.getMessage("scoreboard.level-time.title"));

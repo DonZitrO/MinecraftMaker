@@ -370,6 +370,7 @@ public class MakerDatabaseAdapter {
 	 */
 	protected synchronized void loadAdditionalData(MakerPlayerData data) throws SQLException {
         this.loadPlayerLevelsCleared(data);
+		this.loadPlayerLevelsLikes(data);
 	}
 
     private synchronized void loadPlayerLevelsCleared(MakerPlayerData data){
@@ -385,7 +386,7 @@ public class MakerDatabaseAdapter {
             query.setString(1, uniqueId);
             ResultSet resultSet = query.executeQuery();
 
-            if (resultSet.next()) {
+            while (resultSet.next()) {
                 MakerLevelClearData levelClear = new MakerLevelClearData();
                 levelClear.setUniqueId(data.getUniqueId());
                 levelClear.setUsername(data.getUsername());
@@ -398,8 +399,30 @@ public class MakerDatabaseAdapter {
             e.printStackTrace();
             return;
         }
-
     }
+
+	private synchronized void loadPlayerLevelsLikes(MakerPlayerData data){
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should NOT be called from the main thread");
+		}
+
+		String uniqueId = data.getUniqueId().toString().replace("-", "");
+
+		// Cleared Levels
+		try (PreparedStatement query = getConnection().prepareStatement(String.format(
+				"SELECT COUNT(ll.level_id) likes FROM levels l INNER JOIN level_likes ll ON ll.level_id = l.level_id WHERE ll.dislike = 0 AND l.author_id = UNHEX(?)"))) {
+			query.setString(1, uniqueId);
+			ResultSet resultSet = query.executeQuery();
+
+			if (resultSet.next()) {
+				data.setLevelsLikes(resultSet.getInt("likes"));
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("loadPlayerLevelsLikes - error while getting player's levels likes: %s", e.getMessage()));
+			e.printStackTrace();
+			return;
+		}
+	}
 
 	private synchronized void loadLevelBySerialFull(MakerPlayableLevel level) {
 		if (Bukkit.isPrimaryThread()) {
@@ -572,7 +595,7 @@ public class MakerDatabaseAdapter {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadPublishedLevels - sortBy: [%s] - offset: [%s] - limit: [%s]", sortBy.name(), offset, limit));
 		}
-		int levelRecords = 0;
+		int levelRecordsCount = 0;
 		checkNotNull(sortBy);
 		List<MakerLevel> levels = new ArrayList<>(limit);
 		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format(
@@ -584,7 +607,7 @@ public class MakerDatabaseAdapter {
 				" FROM `mcmaker`.`levels` " +
 				" INNER JOIN %s.accounts a ON a.unique_id = `levels`.author_id " +
 				" LEFT JOIN `mcmaker`.`level_likes` on `levels`.`level_id` = `level_likes`.`level_id` " +
-				" WHERE `date_published` IS NOT NULL GROUP BY `level_id` ORDER BY ? DESC LIMIT ?, ?", networkSchema))) {
+				" WHERE `date_published` IS NOT NULL GROUP BY `level_id` ORDER BY ? ASC LIMIT ?, ?", networkSchema))) {
 			levelPageQuery.setString(1, sortBy.getDataCriteria());
 			levelPageQuery.setInt(2, offset);
 			levelPageQuery.setInt(3, limit);
@@ -592,7 +615,7 @@ public class MakerDatabaseAdapter {
 			while (resultSet.next()) {
 				MakerLevel level = new MakerLevel(plugin);
 				loadLevelFromResult(level, resultSet, true);
-				levelRecords = resultSet.getInt("records");
+				levelRecordsCount = resultSet.getInt("records");
 				loadLevelRecords(level);
 				levels.add(level);
 			}
@@ -604,8 +627,8 @@ public class MakerDatabaseAdapter {
 			e.printStackTrace();
 		}
 
-		final int records = levelRecords;
-		Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().loadPublishedLevelsCallback(levels, records));
+		final int recordsCount = levelRecordsCount;
+		Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().loadPublishedLevelsCallback(levels, recordsCount));
 	}
 
 	public void loadPublishedLevelsAsync(LevelSortBy sortBy, int offset, int limit) {
@@ -614,7 +637,7 @@ public class MakerDatabaseAdapter {
 
 	private MakerRelativeLocationData loadRelativeLocationById(byte[] locationId) throws SQLException, DataException {
 		ByteBuffer locationIdBytes = ByteBuffer.wrap(locationId);
-		UUID locationUUID = new UUID(locationIdBytes.getLong(), locationIdBytes.getLong()); 
+		UUID locationUUID = new UUID(locationIdBytes.getLong(), locationIdBytes.getLong());
 		try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`locations` where `location_id` = ?"))) {
 			testQuery.setBytes(1, locationId);
 			ResultSet resultSet = testQuery.executeQuery();

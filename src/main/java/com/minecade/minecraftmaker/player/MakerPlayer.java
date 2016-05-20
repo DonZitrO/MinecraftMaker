@@ -66,13 +66,10 @@ public class MakerPlayer implements Tickable {
 	private Location teleportDestination;
 
 	private LevelSortBy levelSortBy = LevelSortBy.LIKES;
-    private int levelsLikes;
 
 	public MakerPlayer(Player player, MakerPlayerData data) {
 		this.player = player;
 		this.data = data;
-
-		this.loadLevelsLikes();
 
 		// Score board setup
 		this.makerScoreboard = new MakerScoreboard(this);
@@ -166,10 +163,6 @@ public class MakerPlayer implements Tickable {
 		return this.levelSortBy;
 	}
 
-	public int getLevelsLikes(){
-		return levelsLikes;
-	}
-
 	public String getName() {
 		return player.getName();
 	}
@@ -222,6 +215,10 @@ public class MakerPlayer implements Tickable {
         return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
     }
 
+	public MakerSteveData getSteveData(){
+		return this.steveData;
+	}
+
 	public UUID getUniqueId() {
 		return this.player.getUniqueId();
 	}
@@ -258,16 +255,6 @@ public class MakerPlayer implements Tickable {
 	public boolean isPlayingLevel() {
 		return this.currentLevel != null && LevelStatus.PLAYING.equals(this.currentLevel.getStatus());
 	}
-
-    private void loadLevelsLikes() {
-        Collection<MakerLevel> levels = LevelBrowserMenu.getLevelsMap().values();
-
-        for(MakerLevel makerLevel : levels){
-            if(this.getUniqueId().equals(makerLevel.getAuthorId())){
-                this.levelsLikes += makerLevel.getLikes();
-            }
-        }
-    }
 
 //	public void openLevelSortbyMenu() {
 //		AbstractMakerMenu menu = personalMenus.get(LevelSortByMenu.getInstance().getName());
@@ -450,10 +437,6 @@ public class MakerPlayer implements Tickable {
 	public void setGameMode(GameMode mode) {
 		player.setGameMode(mode);
 	}
-
-	public void setLevelsLikes(int levelsLikes){
-        this.levelsLikes = levelsLikes;
-    }
 
 	public void setSteveData(MakerSteveData steveData) {
 		this.steveData = steveData;
