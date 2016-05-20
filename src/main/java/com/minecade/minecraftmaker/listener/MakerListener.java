@@ -238,6 +238,12 @@ public class MakerListener implements Listener {
 
 	@EventHandler
 	public void onPlayerMove(PlayerMoveEvent event) {
+		if (event.getPlayer().isDead()) {
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerMove - ignoring movement of dead player: [%s<%s>]", event.getPlayer().getName(), event.getPlayer().getUniqueId()));
+			}
+			return;
+		}
 		plugin.getController().onPlayerMove(event);
 	}
 
