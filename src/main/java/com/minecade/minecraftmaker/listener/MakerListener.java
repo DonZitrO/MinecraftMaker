@@ -31,6 +31,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -253,6 +254,17 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerRespawn - Player: [%s] - Respawn location: [%s]", event.getPlayer().getName(), event.getRespawnLocation().toVector()));
 		}
 		plugin.getController().onPlayerRespawn(event);
+	}
+
+	@EventHandler
+	public void onPlayerSwapHandItems(PlayerSwapHandItemsEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerSwapHandItems - Player: [%s<%s>] hand: [%s] - off hand: [%s]", event.getPlayer().getName(), event.getPlayer().getUniqueId(), event.getMainHandItem() != null ? event.getMainHandItem().getType() : "AIR", event.getOffHandItem() != null ? event.getOffHandItem().getType() : "AIR"));
+		}
+		if (event.getOffHandItem() != null && event.getOffHandItem().getType().equals(Material.ENDER_CHEST)) {
+			event.setCancelled(true);
+			return;
+		}
 	}
 
 	@EventHandler
