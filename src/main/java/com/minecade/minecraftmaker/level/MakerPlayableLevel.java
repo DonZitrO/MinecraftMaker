@@ -58,7 +58,7 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.nms.NMSUtils;
 
-public class MakerPlayableLevel extends MakerLevel implements Tickable {
+public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	public static final short MAX_LEVEL_WIDTH = 160;
 	public static final short HIGHEST_LEVEL_Y = 63;
@@ -400,7 +400,7 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		reset();
 		waitForBusyLevel(mPlayer, false);
 		setLevelSerial(steveData.getRandomLevel());
-		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(this);
+		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(this);
 	}
 
 	public void onBlockFromTo(BlockFromToEvent event) {
@@ -802,16 +802,17 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 	}
 
 	public void skipSteveLevel() {
-		skipSteveLevel(true);
-	}
-
-	public void skipSteveLevel(boolean loseLife) {
 		if (isBusy()) {
 			disable("attemped to skip a busy a level", null);
 			return;
 		}
+		skipSteveLevel(true);
+	}
+
+	private void skipSteveLevel(boolean loseLife) {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(currentPlayerId);
 		if (mPlayer == null) {
+			steveData = null;
 			disable("player is no longer on this level", null);
 			return;
 		}
@@ -1014,7 +1015,6 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 		status = LevelStatus.DISABLE_READY;
 		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
 		if (mPlayer != null) {
-			mPlayer.updatePublishedLevelOnPlayerLevelsMenu(plugin, this);
 			mPlayer.sendActionMessage(plugin, "level.publish.success");
 		}
 	}
@@ -1073,7 +1073,8 @@ public class MakerPlayableLevel extends MakerLevel implements Tickable {
 			mPlayer = plugin.getController().getPlayer(authorId);
 		}
 		if (mPlayer != null) {
-			mPlayer.updateSavedLevelOnPlayerLevelsMenu(plugin, this);
+			// FIXME:
+			//mPlayer.updateSavedLevelOnPlayerLevelsMenu(plugin, this);
 			mPlayer.sendActionMessage(plugin, "level.save.success");
 		}
 	}

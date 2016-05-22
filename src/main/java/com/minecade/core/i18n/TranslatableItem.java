@@ -12,7 +12,7 @@ public interface TranslatableItem extends Translatable {
 		String translationKey = String.format("%s.%s.display-name", getTranslationKeyBase().toLowerCase(), getName().toLowerCase().replace('_', '-'));
 		String displayName = plugin.getMessage(translationKey);
 		if (displayName != translationKey) {
-			getBuilder().withDisplayName(displayName);
+			setDisplayName(displayName);
 		}
 		translationKey = String.format("%s.%s.lore", getTranslationKeyBase().toLowerCase(), getName().toLowerCase().replace('_', '-'));
 		List<String> translatedLore = I18NUtils.translateAndSplitSingleLine(plugin, translationKey);

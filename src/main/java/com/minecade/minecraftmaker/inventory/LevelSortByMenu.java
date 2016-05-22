@@ -1,4 +1,6 @@
+/*
 package com.minecade.minecraftmaker.inventory;
+
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -48,9 +50,6 @@ public class LevelSortByMenu extends AbstractMakerMenu {
 		if (ItemUtils.itemNameEquals(clickedItem, LevelSortByItem.LIKES.getDisplayName())) {
 			mPlayer.openLevelBrowserMenu(plugin, LevelSortBy.LIKES, false);
 			return MenuClickResult.CANCEL_UPDATE;
-//		} else if (ItemUtils.itemNameEquals(clickedItem, LevelSortByItem.OWNED.getDisplayName())) {
-//			mPlayer.openLevelBrowserMenu(plugin, null, false);
-//			return true;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.EXIT_MENU.getDisplayName())) {
 			mPlayer.openLevelBrowserMenu(plugin, null, false);
 			return MenuClickResult.CANCEL_UPDATE;
@@ -69,3 +68,4 @@ public class LevelSortByMenu extends AbstractMakerMenu {
 	}
 
 }
+*/

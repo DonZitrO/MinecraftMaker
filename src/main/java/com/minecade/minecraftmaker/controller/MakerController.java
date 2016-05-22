@@ -68,11 +68,12 @@ import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
+import com.minecade.minecraftmaker.inventory.LevelPageUpdateCallback;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
-import com.minecade.minecraftmaker.level.MakerLevel;
+import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -238,6 +239,7 @@ public class MakerController implements Runnable, Tickable {
 		level.setLevelId(UUID.randomUUID());
 		level.setAuthorId(author.getUniqueId());
 		level.setAuthorName(author.getName());
+		level.setAuthorRank(author.getData().getHighestRank());
 		level.setupStartLocation();
 		level.waitForBusyLevel(author, true);
 		try {
@@ -357,8 +359,18 @@ public class MakerController implements Runnable, Tickable {
 		}
 		// update level browser
 		LevelBrowserMenu.updateLevelLikes(plugin, levelId, totalLikes, totalDislikes);
-		// notify user if online
-		plugin.getController().sendActionMessageToPlayerIfPresent(playerId, dislike ? "level.dislike.success" : "level.like.success");
+		// update current user level
+		MakerPlayer mPlayer = getPlayer(playerId);
+		if (mPlayer == null) {
+			return;
+		}
+		mPlayer.sendActionMessage(plugin, dislike ? "level.dislike.success" : "level.like.success");
+		MakerPlayableLevel level = mPlayer.getCurrentLevel();
+		if (level == null) {
+			return;
+		}
+		level.setLikes(totalDislikes);
+		level.setDislikes(totalDislikes);
 	}
 
 	public void loadLevel(UUID authorId, String levelName, short chunkZ) {
@@ -426,7 +438,7 @@ public class MakerController implements Runnable, Tickable {
 		level.setLevelSerial(levelSerial);
 		level.setupStartLocation();
 		level.waitForBusyLevel(mPlayer, true);
-		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
+		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(level);
 	}
 
 	public void loadLevelForPlayingBySerial(MakerPlayer mPlayer, Long levelSerial) {
@@ -443,30 +455,38 @@ public class MakerController implements Runnable, Tickable {
 		level.setupStartLocation();
 		level.waitForBusyLevel(mPlayer, true);
 		level.setCurrentPlayerId(mPlayer.getUniqueId());
-		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
+		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(level);
 	}
 
-	public void loadPublishedLevelsCallback(List<MakerLevel> levels) {
+	public void loadPublishedLevelCallback(MakerDisplayableLevel level, int levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		for (MakerLevel level : levels) {
-			steveLevelSerials.add(level.getLevelSerial());
-			LevelBrowserMenu.addOrUpdateLevel(plugin, level, false);
-		}
-		LevelBrowserMenu.updateAllMenues();
-	}
-
-	public void loadPublishedLevelsCallback(List<MakerLevel> levels, int levelCount) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		for (MakerLevel level : levels) {
-			steveLevelSerials.add(level.getLevelSerial());
-			LevelBrowserMenu.addOrUpdateLevel(plugin, level, false);
 		}
 		LevelBrowserMenu.updateLevelCount(levelCount);
-		LevelBrowserMenu.updateAllMenues();
+		steveLevelSerials.add(level.getLevelSerial());
+		LevelBrowserMenu.addOrUpdateLevel(plugin, level);
+	}
+
+	public void loadPublishedLevelsCallback(List<MakerDisplayableLevel> levels, int levelCount, UUID playerId) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		LevelBrowserMenu.updateLevelCount(levelCount);
+		for (MakerDisplayableLevel level : levels) {
+			steveLevelSerials.add(level.getLevelSerial());
+			LevelBrowserMenu.addOrUpdateLevel(plugin, level);
+		}
+		if (playerId!= null) {
+			LevelBrowserMenu.updatePlayerMenu(playerId);
+		}
+	}
+
+	public void loadPublishedLevelsCountCallback(int levelCount) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		LevelBrowserMenu.updateLevelCount(levelCount);
+		plugin.getAsyncLevelBrowserUpdater().resetCompleted();
 	}
 
 	public void onAsyncAccountDataLoad(MakerPlayerData data) {
@@ -519,14 +539,23 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 
-		// allow vips to join full servers
-		if (Result.KICK_FULL.equals(event.getLoginResult())) {
-			if (data.hasRank(Rank.VIP) && getPlayerCount() < Bukkit.getMaxPlayers() + 20) {
-				event.allow();
-			} else {
-				event.setKickMessage(plugin.getMessage("server.error.max-player-capacity"));
-				return;
-			}
+		// TODO: Beta - remove after beta
+		if (!data.hasRank(Rank.TITAN)) {
+			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.login.error.titan-only"));
+			return;
+		}
+		
+		// allow vips to join full servers TODO: Beta - uncomment after beta
+//		if (Result.KICK_FULL.equals(event.getLoginResult())) {
+//			if (data.hasRank(Rank.VIP) && getPlayerCount() < Bukkit.getMaxPlayers() + 20) {
+//				event.allow();
+//			} else {
+//				event.setKickMessage(plugin.getMessage("server.error.max-player-capacity"));
+//				return;
+//			}
+//		}
+		if (!Result.ALLOWED.equals(event.getLoginResult())) {
+			return;
 		}
 		accountDataMap.put(event.getUniqueId(), data);
 		Bukkit.getPluginManager().callEvent(new AsyncAccountDataLoadEvent(data));
@@ -650,7 +679,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void onCreatureDamageByEntity(EntityDamageByEntityEvent event) {
-		if (!event.getCause().equals(DamageCause.ENTITY_ATTACK) && !(event.getDamager() instanceof Player)) {
+		if (!event.getCause().equals(DamageCause.ENTITY_ATTACK) || !(event.getDamager() instanceof Player)) {
 			return;
 		}
 		MakerPlayer mPlayer = getPlayer((Player) event.getDamager());
@@ -771,7 +800,8 @@ public class MakerController implements Runnable, Tickable {
 			return false;
 		}
 		if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SERVER_BROWSER.getDisplayName())) {
-			mPlayer.openServerBrowserMenu();
+			//mPlayer.openServerBrowserMenu();
+			mPlayer.sendActionMessage(plugin, "general.coming-soon");
 			return true;
 		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.STEVE_CHALLENGE.getDisplayName())) {
 			startSteveChallenge(mPlayer);
@@ -1122,6 +1152,10 @@ public class MakerController implements Runnable, Tickable {
 //		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
 //	}
 
+	private void refreshPublishedLevelsCount() {
+		plugin.getDatabaseAdapter().loadPublishedLevelsCountAsync();
+	}
+
 	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
 		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
 		levelMap.remove(makerLevel.getChunkZ());
@@ -1181,7 +1215,7 @@ public class MakerController implements Runnable, Tickable {
 		level.setSteveData(steveData);
 		mPlayer.setSteveData(steveData);
 		level.setLevelSerial(steveData.getRandomLevel());
-		plugin.getDatabaseAdapter().loadLevelBySerialFullAsync(level);
+		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(level);
 		mPlayer.sendTitleAndSubtitle(plugin.getMessage("steve.start.title"), plugin.getMessage("steve.start.subtitle"));
 	}
 
@@ -1200,6 +1234,34 @@ public class MakerController implements Runnable, Tickable {
 				TickableUtils.tickSafely(mPlayer, currentTick);
 			}
 		}
+		if (this.currentTick % 1200 == 600) {
+			refreshPublishedLevelsCount();
+		}
+	}
+
+	public void levelPageUpdateCallback(LevelPageUpdateCallback callback) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.levelPageUpdateCallback - callback: [%s]", callback));
+		}
+		if (callback.getLevels() != null) {
+			for (MakerDisplayableLevel level: callback.getLevels()) {
+				steveLevelSerials.add(level.getLevelSerial());
+				LevelBrowserMenu.addOrUpdateLevel(plugin, level);
+			}
+		}
+		for (UUID playerId :callback.getPlayers()) {
+			LevelBrowserMenu.updatePlayerMenu(playerId);
+		}
+	}
+
+	public void requestLevelPageUpdate(LevelSortBy sortBy, boolean reverseSortBy, int currentPage, UUID playerId) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.requestLevelPageUpdate - sortBy: [%s] - reverse: [%s] - page: [%s] - playerId: [%s]", sortBy, reverseSortBy, currentPage, playerId));
+		}
+		plugin.getAsyncLevelBrowserUpdater().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, playerId);
 	}
 
 }

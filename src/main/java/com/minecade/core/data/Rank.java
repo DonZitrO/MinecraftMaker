@@ -56,7 +56,7 @@ public enum Rank implements Translatable {
 		String messageKey = String.format("%s.%s", getTranslationKeyBase(), getName().toLowerCase());
 		String displayName = plugin.getMessage(messageKey);
 		if (!messageKey.equals(displayName)) {
-			this.displayName = displayName;
+			setDisplayName(displayName);
 		}
 	}
 
@@ -68,6 +68,11 @@ public enum Rank implements Translatable {
 	@Override
 	public String getName() {
 		return name();
+	}
+
+	@Override
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
 	}
 
 }

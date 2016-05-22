@@ -53,4 +53,9 @@ public enum SteveLevelOptionItem implements TranslatableItem {
 		return builder;
 	}
 
+	@Override
+	public void setDisplayName(String displayName) {
+		getBuilder().withDisplayName(displayName);
+	}
+
 }

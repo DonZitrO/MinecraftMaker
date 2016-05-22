@@ -1,37 +1,50 @@
 package com.minecade.minecraftmaker.level;
 
-import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
+import com.minecade.core.i18n.Translatable;
 
-public enum LevelSortBy {
+public enum LevelSortBy implements Translatable {
 
-	LEVEL_NAME(" level_name "),
-	LEVEL_SERIAL(" level_serial "),
-	LIKES(" likes "),
-	DATE_NEWEST(" date_published "),
-	DATE_OLDEST(" date_published "),
-	RANK(" if(youtuber = 0, 1, 0), if(admin = 0, 1, 0), if(`owner` = 0, 1, 0), " +
-			" if(vip = 0, 1, 0), if(pro = 0, 1, 0), if(legendary = 0, 1, 0), " +
-			" if(elite = 0, 1, 0), if(titan = 0, 1, 0), if(gm = 0, 1, 0), " +
-			" if(mgm = 0, 1, 0), if(dev = 0, 1, 0) ");
+	LIKES(true),
+	LEVEL_NAME,
+	AUTHOR_NAME,
+	AUTHOR_RANK(true),
+	DATE_PUBLISHED(true),
+	LEVEL_SERIAL,
+	DISLIKES(true);
 
-	private String dataCriteria;
 	private String displayName;
+	private boolean reversedDefault = false;
 
-	private LevelSortBy(String dataCriteria){
-		this.dataCriteria = dataCriteria;
-		this.displayName = MinecraftMakerPlugin.getInstance().getMessage(
-				String.format("level.sort.%s", this.name().toLowerCase()));
+	private LevelSortBy() {
+		this.reversedDefault = false;
 	}
 
-	public String getDataCriteria(){
-		return dataCriteria;
+	private LevelSortBy(boolean reversedDefault) {
+		this.reversedDefault = reversedDefault;
 	}
 
-	public String getDisplayName(LevelSortBy levelSortBy){
-		if(levelSortBy == null || !this.equals(levelSortBy)){
-			return String.format("§F%s", this.displayName);
-		} else {
-			return String.format("§E%s", this.displayName);
-		}
+	@Override
+	public String getDisplayName() {
+		return displayName;
 	}
+
+	@Override
+	public String getName() {
+		return name();
+	}
+
+	@Override
+	public String getTranslationKeyBase() {
+		return "level.sort";
+	}
+
+	public boolean isReversedDefault() {
+		return reversedDefault;
+	}
+
+	@Override
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
 }

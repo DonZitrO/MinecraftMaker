@@ -1,4 +1,6 @@
+/*
 package com.minecade.minecraftmaker.items;
+
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -49,4 +51,10 @@ public enum LevelSortByItem implements TranslatableItem {
 		return builder;
 	}
 
+	@Override
+	public void setDisplayName(String displayName) {
+		getBuilder().withDisplayName(displayName);
+	}
+
 }
+*/

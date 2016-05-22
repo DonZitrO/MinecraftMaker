@@ -10,7 +10,7 @@ import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class MakerLevel {
+public class AbstractMakerLevel {
 
 	protected final MinecraftMakerPlugin plugin;
 
@@ -27,11 +27,10 @@ public class MakerLevel {
 	protected long likes;
 	protected MakerRelativeLocationData relativeEndLocation;
 
-	private List<MakerLevelClearData> levelsClear;
+	protected List<MakerLevelClearData> levelsClear = new ArrayList<MakerLevelClearData>();;
 
-	public MakerLevel(MinecraftMakerPlugin plugin) {
+	public AbstractMakerLevel(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
-		this.levelsClear = new ArrayList<MakerLevelClearData>();
 	}
 
 	public UUID getAuthorId() {
@@ -101,6 +100,7 @@ public class MakerLevel {
 	protected void reset() {
 		authorId = null;
 		authorName = null;
+		authorRank = null;
 		clearedByAuthorMillis = 0;
 		datePublished = null;
 		dislikes = 0;
@@ -110,6 +110,8 @@ public class MakerLevel {
 		levelSerial = 0;
 		likes = 0;
 		relativeEndLocation = null;
+		// FIXME
+		levelsClear.clear();
 	}
 
 	public void setAuthorId(UUID authorId) {
@@ -150,31 +152,6 @@ public class MakerLevel {
 
 	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
 		this.relativeEndLocation = relativeEndLocation;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		MakerLevel other = (MakerLevel) obj;
-		if (levelId == null) {
-			if (other.levelId != null)
-				return false;
-		} else if (!levelId.equals(other.levelId))
-			return false;
-		return true;
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((levelId == null) ? 0 : levelId.hashCode());
-		return result;
 	}
 
 }
