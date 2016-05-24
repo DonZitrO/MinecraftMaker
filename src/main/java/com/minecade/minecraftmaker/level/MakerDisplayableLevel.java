@@ -29,7 +29,7 @@ public class MakerDisplayableLevel extends AbstractMakerLevel implements Compara
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		AbstractMakerLevel other = (AbstractMakerLevel) obj;
+		MakerDisplayableLevel other = (MakerDisplayableLevel) obj;
 		if (levelSerial != other.levelSerial)
 			return false;
 		return true;

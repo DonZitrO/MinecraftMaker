@@ -540,8 +540,8 @@ public class MakerController implements Runnable, Tickable {
 		}
 
 		// TODO: Beta - remove after beta
-		if (!data.hasRank(Rank.TITAN)) {
-			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.login.error.titan-only"));
+		if (!data.hasRank(Rank.PRO)) {
+			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.login.error.pro-only"));
 			return;
 		}
 		
@@ -600,7 +600,7 @@ public class MakerController implements Runnable, Tickable {
 		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
 			event.setCancelled(true);
-			Bukkit.getLogger().warning(String.format("MakerController.onBlockFromTo - cancelled liquid block flowing on unregistered level slot - from: [%s] - to: [%s] - location: [%s]", event.getBlock().getType(), event.getToBlock().getType()));
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockFromTo - cancelled liquid block flowing on unregistered level slot - from: [%s] - to: [%s] - location: [%s]", event.getBlock().getType(), event.getToBlock().getType(), event.getToBlock().getLocation().toVector()));
 			return;
 		}
 		level.onBlockFromTo(event);

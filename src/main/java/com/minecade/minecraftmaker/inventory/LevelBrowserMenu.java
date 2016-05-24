@@ -40,7 +40,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	private static TreeSet<MakerDisplayableLevel> levelsByAuthorName = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> compareAuthorNameAndSerial(l1, l2));
 	private static TreeSet<MakerDisplayableLevel> levelsByDislikes = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> compareDislikesAndSerial(l1, l2));
 	private static TreeSet<MakerDisplayableLevel> levelsByLikes = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> compareLikesAndSerial(l1, l2));
-	private static TreeSet<MakerDisplayableLevel> levelsByName = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> l1.getLevelName().compareToIgnoreCase(l2.getLevelName()));
+	private static TreeSet<MakerDisplayableLevel> levelsByName = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> compareNamesAndSerial(l1, l2));
 	private static TreeSet<MakerDisplayableLevel> levelsByPublishDate = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> comparePublishDatesAndSerial(l1, l2));
 	private static TreeSet<MakerDisplayableLevel> levelsByRank = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> compareRanksAndSerial(l1, l2));
 	private static TreeSet<MakerDisplayableLevel> levelsBySerial = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
@@ -60,25 +60,45 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		addLevelItemToPages(plugin, level);
-		levelMap.put(level.getLevelId(), level);
-		levelsByAuthorName.remove(level);
+		MakerDisplayableLevel former = levelMap.put(level.getLevelId(), level);
+		if (former != null && former != level) {
+			levelsByAuthorName.remove(level);
+			levelsByName.remove(level);
+			levelsBySerial.remove(level);
+			levelsByLikes.remove(level);
+			levelsByDislikes.remove(level);
+			levelsByPublishDate.remove(level);
+			levelsByRank.remove(level);
+		}
 		levelsByAuthorName.add(level);
-		levelsByName.remove(level);
 		levelsByName.add(level);
-		levelsBySerial.remove(level);
 		levelsBySerial.add(level);
-		levelsByLikes.remove(level);
 		levelsByLikes.add(level);
-		levelsByDislikes.remove(level);
 		levelsByDislikes.add(level);
-		levelsByPublishDate.remove(level);
 		levelsByPublishDate.add(level);
-		levelsByRank.remove(level);
 		levelsByRank.add(level);
 	}
 
+	private static int compareNamesAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
+		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+		if (diff == 0) {
+			// avoid duplicated levels
+			return diff;
+		}
+		diff = String.valueOf(l1.getLevelName()).compareToIgnoreCase(String.valueOf(l2.getLevelName()));
+		if (diff != 0) {
+			return diff;
+		}
+		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+	}
+
 	private static int compareAuthorNameAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
-		int diff = String.valueOf(l1.getAuthorName()).compareTo(String.valueOf(l2.getAuthorName()));
+		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+		if (diff == 0) {
+			// avoid duplicated levels
+			return diff;
+		}
+		diff = String.valueOf(l1.getAuthorName()).compareToIgnoreCase(String.valueOf(l2.getAuthorName()));
 		if (diff != 0) {
 			return diff;
 		}
@@ -86,7 +106,12 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private static int compareDislikesAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
-		int diff = Long.valueOf(l1.getDislikes()).compareTo(Long.valueOf(l1.getDislikes()));
+		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+		if (diff == 0) {
+			// avoid duplicated levels
+			return diff;
+		}
+		diff = Long.valueOf(l1.getDislikes()).compareTo(Long.valueOf(l1.getDislikes()));
 		if (diff != 0) {
 			return diff;
 		}
@@ -94,7 +119,12 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private static int compareLikesAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
-		int diff = Long.valueOf(l1.getLikes()).compareTo(Long.valueOf(l2.getLikes()));
+		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+		if (diff == 0) {
+			// avoid duplicated levels
+			return diff;
+		}
+		diff = Long.valueOf(l1.getLikes()).compareTo(Long.valueOf(l2.getLikes()));
 		if (diff != 0) {
 			return diff;
 		}
@@ -102,7 +132,12 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private static int comparePublishDatesAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
-		int diff = l1.getDatePublished().compareTo(l2.getDatePublished());
+		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+		if (diff == 0) {
+			// avoid duplicated levels
+			return diff;
+		}
+		diff = l1.getDatePublished().compareTo(l2.getDatePublished());
 		if (diff != 0) {
 			return diff;
 		}
@@ -110,7 +145,12 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private static int compareRanksAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
-		int diff = l1.getAuthorRank().compareTo(l2.getAuthorRank());
+		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+		if (diff == 0) {
+			// avoid duplicated levels
+			return diff;
+		}
+		diff = l1.getAuthorRank().compareTo(l2.getAuthorRank());
 		if (diff != 0) {
 			return diff;
 		}
@@ -125,7 +165,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			itemStack.setItemMeta(itemMeta);
 			glassPane = itemStack;
 		}
-
 		return glassPane;
 	}
 
@@ -224,8 +263,12 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		if (level == null) {
 			return;
 		}
+		levelsByLikes.remove(level);
 		level.setLikes(totalLikes);
+		levelsByLikes.add(level);
+		levelsByDislikes.remove(level);
 		level.setDislikes(totalDislikes);
+		levelsByDislikes.add(level);
 		addLevelItemToPages(plugin, level);
 
 		updateLevelOwnerLikes(level);
