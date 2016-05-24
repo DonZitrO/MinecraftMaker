@@ -100,7 +100,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	@Override
 	public void onDisable() {
 		if (controller != null) {
-			controller.disable(null, null);
+			controller.disable();
 		}
 		this.getServer().getScheduler().cancelTasks(this);
 	}

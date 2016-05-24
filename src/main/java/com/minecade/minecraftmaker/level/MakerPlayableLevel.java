@@ -206,22 +206,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
-	@Override
-	public synchronized void disable(String reason, Exception exception) {
-		Bukkit.getLogger().warning(String.format("MakerLevel.disable - disable request for level: [%s(%s)<%s>] on slot: [%s]", getLevelName(), getLevelSerial(), getLevelId(), getChunkZ()));
-		if (reason != null) {
-			Bukkit.getLogger().warning(String.format("MakerLevel.disable - reason: %s", reason));
-		}
-		StackTraceElement[] stackTrace = exception != null ? exception.getStackTrace() : Thread.currentThread().getStackTrace();
-		for (StackTraceElement element : stackTrace) {
-			Bukkit.getLogger().warning(String.format("MakerLevel.disable - stack trace: %s", element));
-		}
-		if (isDisabled()) {
-			return;
-		}
-		status = LevelStatus.DISABLE_READY;
-	}
-
 	public synchronized void exitEditing() {
 		// TODO: maybe verify EDITING status
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(authorId);
@@ -1170,6 +1154,16 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (showMessage) {
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.busy.title"), plugin.getMessage("level.busy.subtitle"));
 		}
+	}
+
+	@Override
+	public void disable() {
+		status = LevelStatus.DISABLE_READY;
+	}
+
+	@Override
+	public String getDescription() {
+		return String.format("MakerPlayableLevel: [%s(%s)<%s>] on slot: [%s]", getLevelName(), getLevelSerial(), getLevelId(), getChunkZ());
 	}
 
 }

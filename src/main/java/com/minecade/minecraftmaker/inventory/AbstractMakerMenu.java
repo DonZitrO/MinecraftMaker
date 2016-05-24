@@ -98,7 +98,7 @@ public abstract class AbstractMakerMenu {
 		inventory.setContents(items);
 	}
 
-	public void destroy() {
+	public void disable() {
 		if (isShared()) {
 			return;
 		}

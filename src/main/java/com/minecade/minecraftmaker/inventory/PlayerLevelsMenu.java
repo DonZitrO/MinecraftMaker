@@ -101,8 +101,8 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public void destroy() {
-		super.destroy();
+	public void disable() {
+		super.disable();
 		userLevelBrowserMenuMap.remove(getViewerId());
 	}
 

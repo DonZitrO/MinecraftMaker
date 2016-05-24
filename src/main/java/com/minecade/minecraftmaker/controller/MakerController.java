@@ -61,7 +61,6 @@ import com.minecade.core.data.Rank;
 import com.minecade.core.event.AsyncAccountDataLoadEvent;
 import com.minecade.core.event.EventUtils;
 import com.minecade.core.item.ItemUtils;
-import com.minecade.core.player.PlayerUtils;
 import com.minecade.core.util.BungeeUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
@@ -122,6 +121,9 @@ public class MakerController implements Runnable, Tickable {
 	private int maxPlayers;
 	private short maxLevels;
 
+	private final Set<String> entriesToRemoveFromScoreboardTeams = new HashSet<>();
+	private final Set<UUID> entriesToAddToScoreboardTeams = new HashSet<>();
+
 	// keeps track of every player on the server
 	private Map<UUID, MakerPlayer> playerMap;
 	// keeps track of every arena on the server
@@ -160,27 +162,16 @@ public class MakerController implements Runnable, Tickable {
 	private void addMakerPlayer(Player player, MakerPlayerData data) {
 		final MakerPlayer mPlayer = new MakerPlayer(player, data);
 		// add the player to the player map
-
 		playerMap.put(mPlayer.getUniqueId(), mPlayer);
 		// TODO: notify player joined
 		//plugin.publishServerInfoAsync();
-
+		// setup scoreboard
+		mPlayer.initScoreboard(plugin);
+		entriesToAddToScoreboardTeams.add(mPlayer.getUniqueId());
 		// add the player to the lobby
 		addPlayerToMainLobby(mPlayer);
-
-		// TODO: welcome stuff if needed
-		mPlayer.getPlayer().sendMessage(new String[]{
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome1"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome2"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome3"),
-				this.plugin.getMessage("player.welcome4"), this.plugin.getMessage("player.welcome5"),
-				this.plugin.getMessage("player.welcome6"), this.plugin.getMessage("player.welcome7"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome8")});
+		// welcome message
+		sendBruteForceWelcomeMessage(mPlayer);
 	}
 
 	public void addPlayerToMainLobby(MakerPlayer mPlayer) {
@@ -201,12 +192,8 @@ public class MakerController implements Runnable, Tickable {
 		// reset display name
 		mPlayer.getPlayer().setDisplayName(mPlayer.getDisplayName());
 		mPlayer.getPlayer().setPlayerListName(mPlayer.getDisplayName());
-		// create player Lobby Scoreboard
-		// TODO: mPlayer.addLobbyScoreboard();
-		// we need this in order to display the rank tags over player heads
-		// TODO: entriesToAddToScoreboardTeamsOnNextTick.add(mPlayer);
-		// reset visibility
-		PlayerUtils.resetPlayerVisibility(mPlayer.getPlayer());
+		// reset visibility TODO: we don't need to reset player visibility until we have spectator mode
+		//PlayerUtils.resetPlayerVisibility(gPlayer.getPlayer());
 	}
 
 	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
@@ -262,7 +249,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	@Override
-	public void disable(String reason, Exception exception) {
+	public void disable() {
 		if (isDisabled()) {
 			return;
 		}
@@ -279,6 +266,11 @@ public class MakerController implements Runnable, Tickable {
 
 	public Location getDefaultSpawnLocation() {
 		return spawnVector.toLocation(getMainWorld(), spawnYaw, spawnPitch);
+	}
+
+	@Override
+	public String getDescription() {
+		return String.format("MakerController - currentTick: [%s]", getCurrentTick());
 	}
 
 	private MakerPlayableLevel getEmptyLevelIfAvailable() {
@@ -371,6 +363,24 @@ public class MakerController implements Runnable, Tickable {
 		}
 		level.setLikes(totalDislikes);
 		level.setDislikes(totalDislikes);
+	}
+
+	public void levelPageUpdateCallback(LevelPageUpdateCallback callback) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.levelPageUpdateCallback - callback: [%s]", callback));
+		}
+		if (callback.getLevels() != null) {
+			for (MakerDisplayableLevel level: callback.getLevels()) {
+				steveLevelSerials.add(level.getLevelSerial());
+				LevelBrowserMenu.addOrUpdateLevel(plugin, level);
+			}
+		}
+		for (UUID playerId :callback.getPlayers()) {
+			LevelBrowserMenu.updatePlayerMenu(playerId);
+		}
 	}
 
 	public void loadLevel(UUID authorId, String levelName, short chunkZ) {
@@ -1016,6 +1026,8 @@ public class MakerController implements Runnable, Tickable {
 	public void onPlayerQuit(Player player) {
 		// wait a bit before coming back
 		nextAllowedLogins.put(player.getUniqueId(), System.currentTimeMillis() + (FAST_RELOGIN_DELAY_SECONDS * 1000));
+		// we need to remove this player from every other scoreboard team
+		entriesToRemoveFromScoreboardTeams.add(player.getName());
 		// remove from map
 		MakerPlayer mPlayer = playerMap.remove(player.getUniqueId());
 		if (mPlayer != null) {
@@ -1024,47 +1036,11 @@ public class MakerController implements Runnable, Tickable {
 				level.onPlayerQuit();
 			}
 			mPlayer.onQuit();
-			// TODO: destroy player custom stuff
-			// TODO: cancel pending level loading tasks
-			mPlayer.cancelPendingOperation();
 		} else {
 			Bukkit.getLogger().warning(String.format("MakerController.onPlayerQuit - Player: [%s] was already removed", player.getName()));
 		}
 		// TODO: notify rabbit that player left
 		// plugin.publishServerInfoAsync();
-
-
-
-//		// FIXME: experimental
-//		entriesToRemoveFromScoreboardTeamsOnNextTick.add(quitter.getName());
-//
-//		final SCBPlayer gPlayer = getPlayer(quitter);
-//
-//		if (gPlayer != null) {
-//			// destroy stuff
-//			if (gPlayer.getCurrentGame() != null) {
-//				gPlayer.getCurrentGame().onPlayerQuit(gPlayer);
-//			}
-//			if (gPlayer.getSpectatingGame() != null) {
-//				gPlayer.getSpectatingGame().onSpectatorQuit(gPlayer);
-//			}
-//			if (quitter.getMaxHealth() != 20) {
-//				quitter.setMaxHealth(20);
-//			}
-//
-//			// remove customized scoreboard
-//			gPlayer.removeLobbyScoreboard();
-//
-//			// remove customized inventories
-//			gPlayer.removePersonalInventories();
-//
-//			// remove from the player map
-//			playerMap.remove(gPlayer.getPlayer().getUniqueId());
-//			// notify a player left
-//			plugin.publishServerInfoAsync();
-//		} else {
-//			Bukkit.getLogger().warning(String.format("SCBController.onPlayerQuit - Player: [%s] was already removed", quitter.getName()));
-//		}
 	}
 
 	public void onPlayerRespawn(PlayerRespawnEvent event) {
@@ -1181,6 +1157,13 @@ public class MakerController implements Runnable, Tickable {
 		mPlayer.getCurrentLevel().rename(newName);
 	}
 
+	public void requestLevelPageUpdate(LevelSortBy sortBy, boolean reverseSortBy, int currentPage, UUID playerId) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.requestLevelPageUpdate - sortBy: [%s] - reverse: [%s] - page: [%s] - playerId: [%s]", sortBy, reverseSortBy, currentPage, playerId));
+		}
+		plugin.getAsyncLevelBrowserUpdater().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, playerId);
+	}
+
 	@Override
 	public void run() {
 		tick(getCurrentTick() + 1);
@@ -1191,6 +1174,22 @@ public class MakerController implements Runnable, Tickable {
 		if (mPlayer != null) {
 			mPlayer.sendActionMessage(plugin, key, args);
 		}
+	}
+
+	@Deprecated // seriously?
+	private void sendBruteForceWelcomeMessage(final MakerPlayer mPlayer) {
+		mPlayer.getPlayer().sendMessage(new String[]{
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome1"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome2"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome3"),
+				this.plugin.getMessage("player.welcome4"), this.plugin.getMessage("player.welcome5"),
+				this.plugin.getMessage("player.welcome6"), this.plugin.getMessage("player.welcome7"),
+				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome8")});
 	}
 
 	public void startSteveChallenge(MakerPlayer mPlayer) {
@@ -1232,36 +1231,31 @@ public class MakerController implements Runnable, Tickable {
 		for (MakerPlayer mPlayer : new ArrayList<MakerPlayer>(playerMap.values())) {
 			if (mPlayer != null) {
 				TickableUtils.tickSafely(mPlayer, currentTick);
+				if (!mPlayer.isDisabled()) {
+					// outside tick while we found a way to integrate it in player tick
+					updatePlayerScoreboardTeamEntries(mPlayer);
+				}
 			}
 		}
+		entriesToAddToScoreboardTeams.clear();
+		entriesToRemoveFromScoreboardTeams.clear();
 		if (this.currentTick % 1200 == 600) {
 			refreshPublishedLevelsCount();
 		}
 	}
 
-	public void levelPageUpdateCallback(LevelPageUpdateCallback callback) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.levelPageUpdateCallback - callback: [%s]", callback));
-		}
-		if (callback.getLevels() != null) {
-			for (MakerDisplayableLevel level: callback.getLevels()) {
-				steveLevelSerials.add(level.getLevelSerial());
-				LevelBrowserMenu.addOrUpdateLevel(plugin, level);
+	private void updatePlayerScoreboardTeamEntries(MakerPlayer mPlayer) {
+		for (UUID otherId : entriesToAddToScoreboardTeams) {
+			MakerPlayer otherPlayer = getPlayer(otherId);
+			if (otherPlayer == null) {
+				continue;
 			}
+			mPlayer.updateScoreboardPlayerEntry(otherPlayer.getDisplayRank(), otherPlayer.getName());
+			otherPlayer.updateScoreboardPlayerEntry(mPlayer.getDisplayRank(), mPlayer.getName());
 		}
-		for (UUID playerId :callback.getPlayers()) {
-			LevelBrowserMenu.updatePlayerMenu(playerId);
+		for (String playerName : entriesToRemoveFromScoreboardTeams) {
+			mPlayer.removeTeamEntryFromScoreboard(playerName);
 		}
-	}
-
-	public void requestLevelPageUpdate(LevelSortBy sortBy, boolean reverseSortBy, int currentPage, UUID playerId) {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.requestLevelPageUpdate - sortBy: [%s] - reverse: [%s] - page: [%s] - playerId: [%s]", sortBy, reverseSortBy, currentPage, playerId));
-		}
-		plugin.getAsyncLevelBrowserUpdater().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, playerId);
 	}
 
 }

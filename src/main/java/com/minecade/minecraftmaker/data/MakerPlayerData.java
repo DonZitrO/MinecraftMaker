@@ -8,8 +8,8 @@ import com.minecade.core.data.MinecadeAccountData;
 
 public class MakerPlayerData extends MinecadeAccountData {
 
+	// FIXME: review this
 	private List<MakerLevelClearData> levelsClear;
-	private int levelsLikes;
 
 	public MakerPlayerData(UUID uniqueId, String username) {
 		super(uniqueId, username);
@@ -20,11 +20,4 @@ public class MakerPlayerData extends MinecadeAccountData {
 		return levelsClear;
 	}
 
-	public int getLevelsLikes(){
-		return levelsLikes;
-	}
-
-	public void setLevelsLikes(int levelsLikes){
-		this.levelsLikes = levelsLikes;
-	}
 }

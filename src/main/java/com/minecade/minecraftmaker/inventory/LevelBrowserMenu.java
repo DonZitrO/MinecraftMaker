@@ -270,21 +270,15 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		level.setDislikes(totalDislikes);
 		levelsByDislikes.add(level);
 		addLevelItemToPages(plugin, level);
+	}
 
-		updateLevelOwnerLikes(level);
-	}
-	private static void updateLevelOwnerLikes(MakerDisplayableLevel makerLevel){
-		MakerPlayer makerPlayer = MinecraftMakerPlugin.getInstance().getController().getPlayer(makerLevel.getAuthorId());
-		if(makerPlayer != null){
-			makerPlayer.getData().setLevelsLikes(makerPlayer.getData().getLevelsLikes() + 1);
-		}
-	}
 	public static void updatePlayerMenu(UUID playerId) {
 		LevelBrowserMenu menu = userLevelBrowserMenuMap.get(playerId);
 		if (menu != null) {
 			menu.update();
 		}
 	}
+
 	private final Iterator<LevelSortBy> cycleSortBy;
 
 	private int currentPage = 1;
@@ -306,8 +300,8 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public void destroy() {
-		super.destroy();
+	public void disable() {
+		super.disable();
 		userLevelBrowserMenuMap.remove(getViewerId());
 	}
 
@@ -483,7 +477,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		reverseSortBy = true;
 		update();
 	}
-	
+
 	@Override
 	public void update() {
 		if (!Bukkit.isPrimaryThread()) {
@@ -545,14 +539,14 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		items[47].setItemMeta(currentPageMeta);
 	}
 
-	private void updateNextPageItem(){
-		if (items[26] == null) {
-			items[26] = GeneralMenuItem.NEXT_PAGE.getItem();
-		}
-
-		int nextPage = currentPage < getTotalPages() ? currentPage + 1 : currentPage;
+	private void updateNextPageItem() {
+		if (currentPage == getTotalPages()) {
+			items[26] = getGlassPane();
+			return;
+		} 
+		items[26] = GeneralMenuItem.NEXT_PAGE.getItem();
 		ItemMeta nextPageMeta = items[26].getItemMeta();
-		nextPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F%s --->", nextPage)));
+		nextPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F%s --->", currentPage + 1)));
 		items[26].setItemMeta(nextPageMeta);
 	}
 
@@ -564,14 +558,14 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		updateSortDirectionItem();
 	}
 
-	private void updatePreviousPageItem(){
-		if (items[18] == null) {
-			items[18] = GeneralMenuItem.PREVIOUS_PAGE.getItem();
+	private void updatePreviousPageItem() {
+		if (currentPage == 1) {
+			items[18] = getGlassPane();
+			return;
 		}
-
-		int previousPage = currentPage > 1 ? currentPage - 1 : currentPage;
+		items[18] = GeneralMenuItem.PREVIOUS_PAGE.getItem();
 		ItemMeta previousPageMeta = items[18].getItemMeta();
-		previousPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F<--- %s", previousPage)));
+		previousPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F<--- %s", currentPage - 1)));
 		items[18].setItemMeta(previousPageMeta);
 	}
 

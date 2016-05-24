@@ -14,6 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.scoreboard.Scoreboard;
 
 import com.minecade.core.data.Rank;
 import com.minecade.core.i18n.Internationalizable;
@@ -39,6 +40,7 @@ import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.scoreboard.MakerScoreboard;
 import com.minecade.minecraftmaker.util.Tickable;
+import com.minecade.minecraftmaker.util.TickableUtils;
 import com.minecade.nms.NMSUtils;
 
 public class MakerPlayer implements Tickable {
@@ -69,16 +71,15 @@ public class MakerPlayer implements Tickable {
 	public MakerPlayer(Player player, MakerPlayerData data) {
 		this.player = player;
 		this.data = data;
-
-		// Score board setup
-		this.makerScoreboard = new MakerScoreboard(this);
-        this.makerScoreboard.setup();
-        this.makerScoreboard.addPlayer(this.data.getDisplayRank().getDisplayName());
 	}
 
-    public void cancelPendingOperation() {
-		// TODO keep track of all operations related to this player and cancel
-		// them.
+	public void initScoreboard(MinecraftMakerPlugin plugin) {
+		if (makerScoreboard != null) {
+			Bukkit.getLogger().warning(String.format("MakerPlayer.initScoreboard - scoreboard already initialized for player: %s", getDescription()));
+			return;
+		}
+		makerScoreboard = new MakerScoreboard(plugin, this);
+		makerScoreboard.init();
 	}
 
 	public void clearInventory() {
@@ -91,18 +92,7 @@ public class MakerPlayer implements Tickable {
 	}
 
 	@Override
-	public void disable(String reason, Exception exception) {
-		Bukkit.getLogger().warning(String.format("MakerPlayer.disable - disable request for player: [%s<%s>]", getName(), getUniqueId()));
-		if (reason != null) {
-			Bukkit.getLogger().warning(String.format("MakerPlayer.disable - reason: %s", reason));
-		}
-		StackTraceElement[] stackTrace = exception != null ? exception.getStackTrace() : Thread.currentThread().getStackTrace();
-		for (StackTraceElement element : stackTrace) {
-			Bukkit.getLogger().warning(String.format("MakerPlayer.disable - stack trace: %s", element));
-		}
-		if (isDisabled()) {
-			return;
-		}
+	public void disable() {
 		// TODO: player disable logic (kick, probably)
 		disabled = true;
 	}
@@ -227,6 +217,14 @@ public class MakerPlayer implements Tickable {
 		return this.currentLevel != null && LevelStatus.EDITING.equals(this.currentLevel.getStatus());
 	}
 
+	public boolean isOnUnpublishedLevel() {
+		return this.currentLevel != null && currentLevel.getDatePublished() == null;
+	}
+
+	public boolean isOnPublishedLevel() {
+		return this.currentLevel != null && currentLevel.getDatePublished() != null;
+	}
+
 	public boolean isInBusyLevel() {
 		return currentLevel != null && currentLevel.isBusy();
 	}
@@ -243,15 +241,6 @@ public class MakerPlayer implements Tickable {
 		return this.currentLevel != null && LevelStatus.PLAYING.equals(this.currentLevel.getStatus());
 	}
 
-//	public void openLevelSortbyMenu() {
-//		AbstractMakerMenu menu = personalMenus.get(LevelSortByMenu.getInstance().getName());
-//		if (menu == null) {
-//			menu = LevelSortByMenu.getInstance();
-//			personalMenus.put(menu.getName(), menu);
-//		}
-//		inventoryToOpen = menu;
-//	}
-
 	public MenuClickResult onInventoryClick(Inventory inventory, int slot) {
 		if (personalMenus.containsKey(inventory.getName())) {
 			return personalMenus.get(inventory.getName()).onClick(this, slot);
@@ -260,13 +249,12 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void onQuit() {
+		// disable custom menus
 		for (AbstractMakerMenu menu : personalMenus.values()) {
-			menu.destroy();
+			menu.disable();
 		}
-
-		// Remove player score board
-		this.makerScoreboard.removePlayer(this.data.getDisplayRank().getDisplayName());
-		this.makerScoreboard.destroy();
+		// disable scoreboard
+		this.makerScoreboard.disable();
 	}
 
 	public void openEditLevelOptionsMenu() {
@@ -450,7 +438,7 @@ public class MakerPlayer implements Tickable {
 		teleportIfRequested();
 		executeRequestedInventoryOperations();
 		sendPendingActionMessageIfAvailable();
-		this.makerScoreboard.update();
+		TickableUtils.tickSafely(makerScoreboard, currentTick);
 	}
 
 	public void updateInventory() {
@@ -469,6 +457,29 @@ public class MakerPlayer implements Tickable {
 		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
 		if (menu != null) {
 			menu.updateOwnedLevel(makerLevel);
+		}
+	}
+
+	public void updateScoreboardPlayerEntry(Rank rank, String playerName) {
+		//sb.addEntryToTeam(rank, playerName);
+	}
+
+	public void removeTeamEntryFromScoreboard(String playerName) {
+		//sb.removeEntryFromTeam(playerName);
+	}
+
+	public Rank getDisplayRank() {
+		return getData().getDisplayRank();
+	}
+
+	@Override
+	public String getDescription() {
+		return String.format("MakerPlayer: [%s<%s>] with rank: [%s]", getName(), getUniqueId(), getDisplayRank());
+	}
+
+	public void setScoreboard(Scoreboard scoreboard) {
+		if (player.isOnline()) {
+			player.setScoreboard(scoreboard);
 		}
 	}
 
