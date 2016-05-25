@@ -331,7 +331,7 @@ public class MakerListener implements Listener {
 	@EventHandler
 	public void onProjectileHit(final ProjectileHitEvent event) {
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onProjectileHit - type: [%s] - location: [%s]", event.getEntityType(), event.getEntity().getLocation().toVector()));
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onProjectileHit - type: [%s] - location: [%s] - bounce: [%s] - velocity: [%s]", event.getEntityType(), event.getEntity().getLocation().toVector(), event.getEntity().doesBounce(), event.getEntity().getVelocity()));
 		}
 		// remove projectiles 3 seconds after they hit
 		Bukkit.getScheduler().runTaskLater(plugin, () -> event.getEntity().remove(), 60);

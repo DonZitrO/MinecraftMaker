@@ -68,6 +68,7 @@ import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageUpdateCallback;
+import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
@@ -766,10 +767,18 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
-		// priority for quickbar menu items
-		if (event.getSlotType() == SlotType.QUICKBAR && onMenuItemClick(mPlayer, event.getCurrentItem())) {
+		// priority for custom menu items
+		switch (onMenuItemClick(mPlayer, event.getCurrentItem())) {
+		case CANCEL_CLOSE:
 			event.setCancelled(true);
+			mPlayer.closeInventory();
 			return;
+		case CANCEL_UPDATE:
+			event.setCancelled(true);
+			mPlayer.updateInventory();
+			return;
+		default:
+			break;
 		}
 		// specific options for editors
 		if (mPlayer.isEditingLevel()) {
@@ -783,11 +792,11 @@ public class MakerController implements Runnable, Tickable {
 			}
 		}
 		// cancel inventory right click entirely on the rest of scenarios
-		if (event.isRightClick()) {
-			event.setCancelled(true);
-			mPlayer.updateInventory();
-			return;
-		}
+//		if (event.isRightClick()) {
+//			event.setCancelled(true);
+//			mPlayer.updateInventory();
+//			return;
+//		}
 		// we are only interested on clicks on container type slots for custom menus and inventories
 		if (event.getSlotType() == SlotType.CONTAINER) {
 			final ItemStack clicked = event.getCurrentItem();
@@ -796,11 +805,11 @@ public class MakerController implements Runnable, Tickable {
 				case CANCEL_CLOSE:
 					event.setCancelled(true);
 					mPlayer.closeInventory();
-					break;
+					return;
 				case CANCEL_UPDATE:
 					event.setCancelled(true);
 					mPlayer.updateInventory();
-					break;
+					return;
 				default:
 					break;
 				}
@@ -809,50 +818,62 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	private boolean onMenuItemClick(MakerPlayer mPlayer, ItemStack item) {
+	private MenuClickResult onMenuItemClick(MakerPlayer mPlayer, ItemStack item) {
 		if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
-			return false;
+			return MenuClickResult.ALLOW;
 		}
-		if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SERVER_BROWSER.getDisplayName())) {
-			//mPlayer.openServerBrowserMenu();
-			mPlayer.sendActionMessage(plugin, "general.coming-soon");
-			return true;
-		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.STEVE_CHALLENGE.getDisplayName())) {
-			startSteveChallenge(mPlayer);
-			return true;
-		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
-			mPlayer.updateInventory();
-			mPlayer.openLevelTemplateMenu();
-			return true;
-		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.PLAYER_LEVELS.getDisplayName())) {
-			mPlayer.updateInventory();
-			mPlayer.openPlayerLevelsMenu(plugin, LevelSortBy.LIKES, true);
-			return true;
-		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
-			mPlayer.updateInventory();
-			mPlayer.openLevelBrowserMenu(plugin, LevelSortBy.LIKES, true);
-			return true;
-		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
-			mPlayer.updateInventory();
-			mPlayer.openEditLevelOptionsMenu();
-			return true;
-		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
-			mPlayer.updateInventory();
-			mPlayer.openPlayLevelOptionsMenu();
-			return true;
-		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
-			mPlayer.updateInventory();
-			mPlayer.openEditorPlayLevelOptionsMenu();
-			return true;
-		} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
-			mPlayer.updateInventory();
-			mPlayer.openSteveLevelOptionsMenu();
-			return true;
-		} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
-			BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
-			return true;
+		if (mPlayer.isInLobby()) {
+			if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SERVER_BROWSER.getDisplayName())) {
+				//mPlayer.openServerBrowserMenu();
+				mPlayer.sendActionMessage(plugin, "general.coming-soon");
+				return MenuClickResult.CANCEL_UPDATE;
+			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.STEVE_CHALLENGE.getDisplayName())) {
+				startSteveChallenge(mPlayer);
+				return MenuClickResult.CANCEL_UPDATE;
+			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
+				mPlayer.openLevelTemplateMenu();
+				return MenuClickResult.CANCEL_UPDATE;
+			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.PLAYER_LEVELS.getDisplayName())) {
+				mPlayer.openPlayerLevelsMenu(plugin, LevelSortBy.LIKES, true);
+				return MenuClickResult.CANCEL_UPDATE;
+			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
+				mPlayer.openLevelBrowserMenu(plugin, LevelSortBy.LIKES, true);
+				return MenuClickResult.CANCEL_UPDATE;
+			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
+				BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
+				return MenuClickResult.CANCEL_UPDATE;
+			}
+			return MenuClickResult.ALLOW;
 		}
-		return false;
+		if (mPlayer.isInSteve()) {
+			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
+				mPlayer.updateInventory();
+				mPlayer.openSteveLevelOptionsMenu();
+				return MenuClickResult.CANCEL_UPDATE;
+			}
+			return MenuClickResult.ALLOW;
+		}
+		if (mPlayer.isEditingLevel()) {
+			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
+				mPlayer.updateInventory();
+				mPlayer.openEditLevelOptionsMenu();
+				return MenuClickResult.CANCEL_UPDATE;
+			}
+			return MenuClickResult.ALLOW;
+		}
+		if (mPlayer.isPlayingLevel() || mPlayer.hasClearedLevel()) {
+			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
+				mPlayer.updateInventory();
+				mPlayer.openPlayLevelOptionsMenu();
+				return MenuClickResult.CANCEL_UPDATE;
+			} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
+				mPlayer.updateInventory();
+				mPlayer.openEditorPlayLevelOptionsMenu();
+				return MenuClickResult.CANCEL_UPDATE;
+			}
+			return MenuClickResult.ALLOW;
+		}
+		return MenuClickResult.ALLOW;
 	}
 
 	public void onPlayerDamage(EntityDamageEvent event) {
@@ -939,13 +960,22 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
-		// TODO: check if we should also allow left clicks
-		if (EventUtils.isItemRightClick(event)) {
-			if (onMenuItemClick(mPlayer, event.getItem())) {
+		if (EventUtils.isItemClick(event)) {
+			switch (onMenuItemClick(mPlayer, event.getItem())) {
+			case CANCEL_CLOSE:
 				event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
 				event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
 				event.setCancelled(true);
+				mPlayer.closeInventory();
 				return;
+			case CANCEL_UPDATE:
+				event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
+				event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
+				event.setCancelled(true);
+				mPlayer.updateInventory();
+				return;
+			default:
+				break;
 			}
 		}
 	}

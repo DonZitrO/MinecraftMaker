@@ -55,4 +55,16 @@ public class EventUtils {
 		return (Action.LEFT_CLICK_BLOCK.equals(event.getAction()) || Action.RIGHT_CLICK_BLOCK.equals(event.getAction())) && event.getClickedBlock().getType().equals(blockMaterial);
 	}
 
+	public static boolean isItemClick(PlayerInteractEvent event) {
+		switch (event.getAction()) {
+		case LEFT_CLICK_AIR:
+		case LEFT_CLICK_BLOCK:
+		case RIGHT_CLICK_AIR:
+		case RIGHT_CLICK_BLOCK:
+			return event.hasItem();
+		default:
+			return false;
+		}
+	}
+
 }
