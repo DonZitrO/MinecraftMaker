@@ -676,13 +676,17 @@ public class MakerController implements Runnable, Tickable {
 		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
 		if (slot < 0) {
 			event.setNewCurrent(event.getOldCurrent());
-			Bukkit.getLogger().warning(String.format("MakerController.onBlockRedstone - cancelled redstone change outside level - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("MakerController.onBlockRedstone - cancelled redstone change outside level - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			}
 			return;
 		}
 		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
 			event.setNewCurrent(event.getOldCurrent());
-			Bukkit.getLogger().warning(String.format("MakerController.onBlockRedstone - cancelled redstone change from unregistered level slot - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("MakerController.onBlockRedstone - cancelled redstone change from unregistered level slot - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			}
 			return;
 		}
 		level.onBlockRedstone(event);
@@ -938,6 +942,8 @@ public class MakerController implements Runnable, Tickable {
 		// TODO: check if we should also allow left clicks
 		if (EventUtils.isItemRightClick(event)) {
 			if (onMenuItemClick(mPlayer, event.getItem())) {
+				event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
+				event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
 				event.setCancelled(true);
 				return;
 			}
@@ -1009,6 +1015,9 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
+		if (mPlayer.isInLobby()) {
+			return;
+		}
 		if (mPlayer.isInBusyLevel()) {
 			// look but don't move
 			if (event.getTo().getX() != event.getFrom().getX() || event.getTo().getY() != event.getFrom().getY() || event.getTo().getZ() != event.getFrom().getZ()) {
@@ -1017,9 +1026,17 @@ public class MakerController implements Runnable, Tickable {
 			}
 			return;
 		}
+		if (mPlayer.isEditingLevel()) {
+			if (!mPlayer.getCurrentLevel().contains(event.getTo().toVector())) {
+				event.setTo(event.getFrom());
+				event.setCancelled(true);
+			}
+			return;
+		}
 		if (mPlayer.isPlayingLevel()) {
-			mPlayer.getCurrentLevel().checkLevelBorder(event.getTo());
+			mPlayer.getCurrentLevel().checkLevelVoidBorder(event.getTo());
 			mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
+			return;
 		}
 	}
 
@@ -1093,7 +1110,7 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		if (mPlayer.isPlayingLevel()) {
-			mPlayer.getCurrentLevel().checkLevelBorder(event.getTo());
+			mPlayer.getCurrentLevel().checkLevelVoidBorder(event.getTo());
 			mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
 		}
 	}

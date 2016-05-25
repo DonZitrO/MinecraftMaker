@@ -91,7 +91,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		this.status = LevelStatus.BLANK;
 	}
 
-	public void checkLevelBorder(Location to) {
+	public void checkLevelVoidBorder(Location to) {
 		if (to.getBlockY() < -1) {
 			restartPlaying();
 		}
@@ -1164,6 +1164,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	@Override
 	public String getDescription() {
 		return String.format("MakerPlayableLevel: [%s(%s)<%s>] on slot: [%s]", getLevelName(), getLevelSerial(), getLevelId(), getChunkZ());
+	}
+
+	public boolean contains(org.bukkit.util.Vector position) {
+		CuboidRegion region = getLevelRegion();
+		region.contract(new Vector(2, 0, 3), new Vector(-2, -2, -2));
+		return region.contains(BukkitUtil.toVector(position));
 	}
 
 }

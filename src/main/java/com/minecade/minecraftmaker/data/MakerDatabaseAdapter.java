@@ -592,26 +592,6 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-//	private synchronized void loadPlayerLevelsLikes(MakerPlayerData data){
-//		if (Bukkit.isPrimaryThread()) {
-//			throw new RuntimeException("This method should NOT be called from the main thread");
-//		}
-//		String uniqueId = data.getUniqueId().toString().replace("-", "");
-//		// Cleared Levels
-//		try (PreparedStatement query = getConnection().prepareStatement(String.format(
-//				"SELECT COUNT(ll.level_id) likes FROM levels l INNER JOIN level_likes ll ON ll.level_id = l.level_id WHERE ll.dislike = 0 AND l.author_id = UNHEX(?)"))) {
-//			query.setString(1, uniqueId);
-//			ResultSet resultSet = query.executeQuery();
-//
-//			if (resultSet.next()) {
-//				data.setLevelsLikes(resultSet.getInt("likes"));
-//			}
-//		} catch (Exception e) {
-//			Bukkit.getLogger().severe(String.format("loadPlayerLevelsLikes - error while getting player's levels likes: %s", e.getMessage()));
-//			e.printStackTrace();
-//		}
-//	}
-
 	private synchronized void loadPublishedLevelByLevelId(String levelId) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
