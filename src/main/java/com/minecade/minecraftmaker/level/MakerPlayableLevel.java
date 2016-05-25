@@ -475,7 +475,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			// mob count restriction
 			getEntities();
 			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onCreatureSpawn - current mob count: [%s]", lastMobCount));
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onCreatureSpawn - level: [%s] - current mob count: [%s]", getDescription(), lastMobCount));
 			}
 			if (lastMobCount >= MAX_LEVEL_MOBS) {
 				event.setCancelled(true);
@@ -489,6 +489,19 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 					plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.horse.tame");
 				}
 			}
+			return;
+		}
+		if (LevelStatus.PLAYING.equals(getStatus())) {
+			getEntities();
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onCreatureSpawn - level: [%s] - current mob count: [%s]", getDescription(), lastMobCount));
+			}
+			if (lastMobCount >= MAX_LEVEL_MOBS) {
+				event.setCancelled(true);
+				Bukkit.getLogger().warning(String.format("MakerLevel.onCreatureSpawn - cancelled creature spawn level: [%s] to comply with entity limit: [%s]", getLevelName(), lastMobCount));
+				return;
+			}
+			NMSUtils.disableMobAI(event.getEntity(), false);
 			return;
 		}
 		Bukkit.getLogger().warning(String.format("MakerLevel.onCreatureSpawn - illegal creature spawn on level: [%s] with status: [%s]", getLevelName(), getStatus()));
@@ -1163,7 +1176,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	@Override
 	public String getDescription() {
-		return String.format("MakerPlayableLevel: [%s(%s)<%s>] on slot: [%s]", getLevelName(), getLevelSerial(), getLevelId(), getChunkZ());
+		return String.format("MakerPlayableLevel: [%s(%s)<%s>] with status: [%s] on slot: [%s]", getLevelName(), getLevelSerial(), getLevelId(), getStatus(), getChunkZ());
 	}
 
 	public boolean contains(org.bukkit.util.Vector position) {
