@@ -22,7 +22,7 @@ public class MakerExtent implements Extent {
 		checkNotNull(world);
 		this.world = world;
 		Extent extent;
-		extent = new FastModeExtent(world, false);
+		extent = new FastModeExtent(world, true);
 		extent = new SurvivalModeExtent(extent, world);
 		extent = new BlockQuirkExtent(extent, world);
 		extent = new ChunkLoadingExtent(extent, world);

@@ -847,7 +847,6 @@ public class MakerController implements Runnable, Tickable {
 		}
 		if (mPlayer.isInSteve()) {
 			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
-				mPlayer.updateInventory();
 				mPlayer.openSteveLevelOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			}
@@ -855,7 +854,6 @@ public class MakerController implements Runnable, Tickable {
 		}
 		if (mPlayer.isEditingLevel()) {
 			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
-				mPlayer.updateInventory();
 				mPlayer.openEditLevelOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			}
@@ -863,11 +861,9 @@ public class MakerController implements Runnable, Tickable {
 		}
 		if (mPlayer.isPlayingLevel() || mPlayer.hasClearedLevel()) {
 			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
-				mPlayer.updateInventory();
 				mPlayer.openPlayLevelOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
-				mPlayer.updateInventory();
 				mPlayer.openEditorPlayLevelOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			}

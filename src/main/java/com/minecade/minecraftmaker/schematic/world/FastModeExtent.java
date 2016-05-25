@@ -82,6 +82,7 @@ public class FastModeExtent extends AbstractDelegateExtent {
 				if (!dirtyChunks.isEmpty()) {
 					world.fixAfterFastMode(dirtyChunks);
 				}
+				dirtyChunks.clear();
 				return null;
 			}
 

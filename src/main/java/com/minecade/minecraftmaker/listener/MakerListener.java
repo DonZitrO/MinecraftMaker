@@ -38,6 +38,7 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
+import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import com.minecade.core.event.AsyncAccountDataLoadEvent;
@@ -111,6 +112,13 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockRedstone - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
 		}
 		plugin.getController().onBlockRedstone(event);
+	}
+
+	@EventHandler
+	public void onChunkUnload(ChunkUnloadEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerListener.onChunkUnload - chunk: [%s,%s]", event.getChunk().getX(), event.getChunk().getZ()));
+		}
 	}
 
 	@EventHandler
