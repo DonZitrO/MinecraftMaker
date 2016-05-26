@@ -63,11 +63,6 @@ public abstract class BaseScoreboard implements Tickable {
 		}
 	}
 
-	public void assignTeam(Rank rank, String playerName) {
-		Team team = this.scoreboard.getTeam(rank.name());
-		team.addEntry(playerName);
-	}
-
 	public void createObjective(DisplaySlot slot, String name, String displayName, String criteria) {
 		name = name.length() > 16 ? name.substring(0, 16) : name;
 		Objective existing = scoreboard.getObjective(slot);

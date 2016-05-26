@@ -65,7 +65,18 @@ public class ResumableOperationQueue implements Operation {
 		checkNotNull(operation);
 		queue.offer(operation);
 	}
-	
+
+	/**
+	 * Add a new operation to the queue with top priority.
+	 *
+	 * @param operation
+	 *            the operation
+	 */
+	public void offerFirst(Operation operation) {
+		checkNotNull(operation);
+		queue.offerFirst(operation);
+	}
+
 	/**
 	 * Cancel the current operation of the queue.
 	 * 

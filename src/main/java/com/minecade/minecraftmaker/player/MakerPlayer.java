@@ -461,11 +461,15 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void updateScoreboardPlayerEntry(Rank rank, String playerName) {
-		//sb.addEntryToTeam(rank, playerName);
+		if (makerScoreboard != null && !makerScoreboard.isDisabled()) {
+			makerScoreboard.addEntryToTeam(rank.name(), playerName);
+		}
 	}
 
 	public void removeTeamEntryFromScoreboard(String playerName) {
-		//sb.removeEntryFromTeam(playerName);
+		if (makerScoreboard != null && !makerScoreboard.isDisabled()) {
+			makerScoreboard.removeEntryFromTeam(playerName);
+		}
 	}
 
 	public Rank getDisplayRank() {

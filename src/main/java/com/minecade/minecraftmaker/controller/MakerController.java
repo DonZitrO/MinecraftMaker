@@ -199,7 +199,7 @@ public class MakerController implements Runnable, Tickable {
 	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
 		if (playerMap.containsKey(event.getUniqueId())) {
 			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlDoubleLoginHack - possible double login detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
-			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.double-login"));
+			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.too-fast-relogin"));
 		}
 	}
 
@@ -1000,7 +1000,7 @@ public class MakerController implements Runnable, Tickable {
 				public void run() {
 					if (player.isOnline() && !playerMap.containsKey(player.getUniqueId())) {
 						Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.onPlayerJoin - possible double login for player: [%s<%s>]", player.getName(), player.getUniqueId()));
-						player.kickPlayer(plugin.getMessage("server.error.double-login"));
+						player.kickPlayer(plugin.getMessage("server.error.too-fast-relogin"));
 					}
 				}
 			}.runTaskLater(plugin, DOUBLE_LOGIN_DELAY_SECONDS * 20);

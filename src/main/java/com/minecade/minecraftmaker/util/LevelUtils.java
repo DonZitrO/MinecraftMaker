@@ -1,18 +1,19 @@
 package com.minecade.minecraftmaker.util;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
-import com.minecade.minecraftmaker.function.mask.ExistingBlockMask;
+import com.minecade.minecraftmaker.function.block.BlockReplace;
 import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
+import com.minecade.minecraftmaker.function.pattern.BlockPattern;
+import com.minecade.minecraftmaker.function.visitor.ResumableRegionVisitor;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
-import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.transform.Identity;
@@ -34,6 +35,12 @@ public class LevelUtils {
 		BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
 		clipboard.setOrigin(region.getMinimumPoint());
 		return clipboard;
+	}
+
+	public static Operation createRegionFacesOperation(Extent destination, CuboidRegion region, BaseBlock block) {
+		Region faces = region.getFaces();
+		BlockReplace replace = new BlockReplace(destination, new BlockPattern(block));
+		return new ResumableRegionVisitor(faces, replace);
 	}
 
 	public static Clipboard createEmptyLevelClipboard(short chunkZ, int floorBlockId) {
@@ -102,8 +109,8 @@ public class LevelUtils {
 		return clipboard;
 	}
 
-	public static Clipboard createLevelRemainingEmptyClipboard(short chunkZ, int regionWidth) throws MinecraftMakerException {
-		Region remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH);
+	public static Clipboard createLevelRemainingEmptyClipboard(short chunkZ, int regionWidth) {
+		CuboidRegion remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH);
 		remainingRegion.contract(new Vector(regionWidth, 0, 0));
 		return createEmptyClipboard(remainingRegion);
 	}
@@ -112,11 +119,7 @@ public class LevelUtils {
 		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
 		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), destination, clipboard.getOrigin());
 		copy.setTransform(IDENTITY_TRANSFORM);
-		// TODO: possible performance improvement
-		boolean ignoreAirBlocks = false;
-		if (ignoreAirBlocks) {
-			copy.setSourceMask(new ExistingBlockMask(clipboard));
-		}
+		//copy.setSourceMask(Masks.negate(new RegionBorderMask(clipboard.getRegion())));
 		return copy;
 	}
 

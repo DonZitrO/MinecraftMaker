@@ -26,6 +26,11 @@ public class LevelOperatorTask extends BukkitRunnable {
 		operationQueue.offer(operation);
 	}
 
+	public void offerFirst(Operation operation) {
+		checkNotNull(operation);
+		//operationQueue.(operation);
+	}
+
 	@Override
 	public void run() {
 		// FIXME: only enable this for specific operator tasks debugging

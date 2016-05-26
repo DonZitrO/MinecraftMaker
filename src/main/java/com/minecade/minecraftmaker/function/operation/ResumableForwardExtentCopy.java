@@ -210,9 +210,9 @@ public class ResumableForwardExtentCopy implements Operation {
 
 		if (runs == 0) {
 			runs++;
+			startNanoTime = System.nanoTime();
 			if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
 				Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - first run: [%s]", this));
-				startNanoTime = System.nanoTime();
 			}
 			if (currentTransform == null) {
 				currentTransform = transform;
@@ -237,9 +237,7 @@ public class ResumableForwardExtentCopy implements Operation {
 				return new DelegateOperation(this, entityVisitor);
 			}
 		} 
-		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
-		}
+		Bukkit.getLogger().info(String.format("ResumableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
 		return null;
 	}
 

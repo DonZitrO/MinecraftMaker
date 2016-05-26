@@ -81,16 +81,22 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 			return super.setBlock(location, block);
 		}
 
+		// clear all light emitting and redstone related blocks
+		if (BlockType.isRedstoneSource(lazyBlock.getType()) || BlockType.isRedstoneBlock(lazyBlock.getType())) {
+			super.setBlock(location, new BaseBlock(BlockID.AIR));
+		} else if (BlockType.emitsLight(lazyBlock.getType()) && !(lazyBlock.getType() == block.getType()) && !(lazyBlock.getData() == block.getData())) {
+			super.setBlock(location, new BaseBlock(BlockID.AIR));
+		}
+
 		if (BlockType.shouldPlaceLast(block.getType())) {
 			// Place torches, etc. last
 			stage2.put(location.toBlockVector(), block);
-			// FIXME: experimental - set air block where problematic blocks are going to be placed
-			return super.setBlock(location, new BaseBlock(BlockID.AIR));
+			return !(lazyBlock.getType() == block.getType() && lazyBlock.getData() == block.getData());
 		} else if (BlockType.shouldPlaceFinal(block.getType())) {
 			// Place signs, reed, etc even later
 			stage3.put(location.toBlockVector(), block);
 			return !(lazyBlock.getType() == block.getType() && lazyBlock.getData() == block.getData());
-		} else if (BlockType.shouldPlaceLast(lazyBlock.getType())) {
+		} else if (BlockType.shouldPlaceLast(lazyBlock.getType()) || BlockType.shouldPlaceFinal(lazyBlock.getType())) {
 			// Destroy torches, etc. first
 			super.setBlock(location, new BaseBlock(BlockID.AIR));
 			return super.setBlock(location, block);
@@ -167,7 +173,9 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 							Bukkit.getLogger().info(String.format("[DEBUG] | ResumableStage3Committer.resume - processing rail block - type: [%s] - location: [%s]", type, current));
 						}
 						BlockVector lowerBlock = current.add(0, -1, 0).toBlockVector();
-						Bukkit.getLogger().info(String.format("[DEBUG] | ResumableStage3Committer.resume - processing block below rail block - location: [%s] - blocks.contains: [%s] - walked.contains: [%s]", lowerBlock, blocks.contains(lowerBlock), walked.contains(lowerBlock)));
+						if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+							Bukkit.getLogger().info(String.format("[DEBUG] | ResumableStage3Committer.resume - processing block below rail block - location: [%s] - blocks.contains: [%s] - walked.contains: [%s]", lowerBlock, blocks.contains(lowerBlock), walked.contains(lowerBlock)));
+						}
 						if (blocks.contains(lowerBlock) && !walked.contains(lowerBlock)) {
 							walked.addFirst(lowerBlock);
 						}

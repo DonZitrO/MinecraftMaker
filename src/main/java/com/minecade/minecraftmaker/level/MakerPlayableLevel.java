@@ -32,6 +32,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
@@ -348,7 +349,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		return this.steveData;
 	}
 
-	private World getWorld() {
+	public World getWorld() {
 		return plugin.getController().getMainWorld();
 	}
 
@@ -955,9 +956,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		status = LevelStatus.CLIPBOARD_PASTE_READY;
 		if (firstTimeLoaded) {
 			firstTimeLoaded = false;
-			plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createEmptyLevelClipboard(getChunkZ(), 0), getMakerExtent(), getWorldData()));
+			// FIXME: brute force level clear
+			//plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createEmptyLevelClipboard(getChunkZ(), 0), getMakerExtent(), getWorldData()));
 		}
 		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
+		plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingEmptyClipboard(getChunkZ(), getLevelWidth()), getMakerExtent(), getWorldData()));
 	}
 
 	private void tickClipboardPasted() {

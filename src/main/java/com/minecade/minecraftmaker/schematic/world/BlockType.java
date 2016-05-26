@@ -419,13 +419,9 @@ public enum BlockType {
         shouldPlaceLast.add(BlockID.LEVER);
         shouldPlaceLast.add(BlockID.STONE_PRESSURE_PLATE);
         shouldPlaceLast.add(BlockID.WOODEN_PRESSURE_PLATE);
-        shouldPlaceLast.add(BlockID.REDSTONE_TORCH_OFF);
-        shouldPlaceLast.add(BlockID.REDSTONE_TORCH_ON);
         shouldPlaceLast.add(BlockID.STONE_BUTTON);
         shouldPlaceLast.add(BlockID.SNOW);
         shouldPlaceLast.add(BlockID.PORTAL);
-        shouldPlaceLast.add(BlockID.REDSTONE_REPEATER_OFF);
-        shouldPlaceLast.add(BlockID.REDSTONE_REPEATER_ON);
         shouldPlaceLast.add(BlockID.TRAP_DOOR);
         shouldPlaceLast.add(BlockID.VINE);
         shouldPlaceLast.add(BlockID.LILY_PAD);
@@ -444,17 +440,25 @@ public enum BlockType {
         shouldPlaceLast.add(BlockID.ANVIL); // becomes relevant with asynchronous placement
         shouldPlaceLast.add(BlockID.PRESSURE_PLATE_LIGHT);
         shouldPlaceLast.add(BlockID.PRESSURE_PLATE_HEAVY);
-        shouldPlaceLast.add(BlockID.COMPARATOR_OFF);
-        shouldPlaceLast.add(BlockID.COMPARATOR_ON);
         shouldPlaceLast.add(BlockID.IRON_TRAP_DOOR);
         shouldPlaceLast.add(BlockID.CARPET);
         shouldPlaceLast.add(BlockID.DOUBLE_PLANT);
         shouldPlaceLast.add(BlockID.DAYLIGHT_SENSOR_INVERTED);
+        // FIXME: experimental - light generating blocks
+        shouldPlaceLast.add(BlockID.LAVA);
+        shouldPlaceLast.add(BlockID.STATIONARY_LAVA);
         // FIXME: experimental - moved all track blocks to stage 3 (final).
         //shouldPlaceLast.add(BlockID.POWERED_RAIL);
         //shouldPlaceLast.add(BlockID.DETECTOR_RAIL);
         //shouldPlaceLast.add(BlockID.ACTIVATOR_RAIL);
         //shouldPlaceLast.add(BlockID.MINECART_TRACKS);
+        // FIXME: experimental - moved some redstone blocks to stage 3 (final).
+        //shouldPlaceLast.add(BlockID.REDSTONE_REPEATER_OFF);
+        //shouldPlaceLast.add(BlockID.REDSTONE_REPEATER_ON);
+        //shouldPlaceLast.add(BlockID.REDSTONE_TORCH_OFF);
+        //shouldPlaceLast.add(BlockID.REDSTONE_TORCH_ON);
+        //shouldPlaceLast.add(BlockID.COMPARATOR_OFF);
+        //shouldPlaceLast.add(BlockID.COMPARATOR_ON);
     }
 
     /**
@@ -504,6 +508,13 @@ public enum BlockType {
         shouldPlaceFinal.add(BlockID.DETECTOR_RAIL);
         shouldPlaceFinal.add(BlockID.ACTIVATOR_RAIL);
         shouldPlaceFinal.add(BlockID.MINECART_TRACKS);
+        // FIXME: experimental - moved some redstone blocks to stage 3 (final).
+        shouldPlaceFinal.add(BlockID.REDSTONE_REPEATER_OFF);
+        shouldPlaceFinal.add(BlockID.REDSTONE_REPEATER_ON);
+        shouldPlaceFinal.add(BlockID.REDSTONE_TORCH_OFF);
+        shouldPlaceFinal.add(BlockID.REDSTONE_TORCH_ON);
+        shouldPlaceFinal.add(BlockID.COMPARATOR_OFF);
+        shouldPlaceFinal.add(BlockID.COMPARATOR_ON);
     }
 
     /**
