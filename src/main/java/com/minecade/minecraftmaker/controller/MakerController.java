@@ -28,6 +28,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
@@ -593,6 +594,22 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		level.onBlockFromTo(event);
+	}
+
+	public void onBlockIgnite(BlockIgniteEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockIgnite - cancelled block igniting on outside levels - type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockIgnite - cancelled block igniting on unregistered level slot - type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			return;
+		}
+		level.onBlockIgnite(event);
 	}
 
 	public void onBlockPistonExtend(BlockPistonExtendEvent event) {

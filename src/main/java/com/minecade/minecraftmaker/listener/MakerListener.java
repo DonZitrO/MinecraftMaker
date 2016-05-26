@@ -10,6 +10,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
@@ -88,6 +89,14 @@ public class MakerListener implements Listener {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockFromTo - block type: [%s] - to block type: [%s] - location: [%s] - cancelled: [%s]", event.getBlock().getType(), event.getToBlock().getType(), event.getBlock().getLocation().toVector(), event.isCancelled()));
 		}
 		plugin.getController().onBlockFromTo(event);
+	}
+
+	@EventHandler
+	public void onBlockIgnite(BlockIgniteEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockIgnite - block type: [%s] - location: [%s] - cancelled: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.isCancelled()));
+		}
+		plugin.getController().onBlockIgnite(event);
 	}
 
 	@EventHandler

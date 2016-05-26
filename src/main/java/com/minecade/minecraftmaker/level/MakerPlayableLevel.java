@@ -22,6 +22,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -399,6 +400,16 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (relativeEndLocation != null && LevelUtils.isAboveLocation(event.getToBlock().getLocation().toVector(), getEndLocation().toVector())) {
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockFromTo - cancelled liquid block flowing on end beacon: [%s<%s>] with status: [%s]", getLevelName(), getLevelId(), getStatus()));
+			}
+			event.setCancelled(true);
+			return;
+		}
+	}
+
+	public void onBlockIgnite(BlockIgniteEvent event) {
+		if (isBusy()) {
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockIgnite - cancelled block ignite on busy level: [%s<%s>] with status: [%s]", getLevelName(), getLevelId(), getStatus()));
 			}
 			event.setCancelled(true);
 			return;
