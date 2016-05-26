@@ -461,6 +461,10 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (LevelStatus.EDITING.equals(getStatus())) {
 			// rules for specific entity types
 			switch (event.getEntityType()) {
+			// disabled wither for now
+			case WITHER:
+				event.setCancelled(true);
+				return;
 			case GUARDIAN:
 				Material blockType = event.getLocation().getBlock().getType();
 				if (!Material.WATER.equals(blockType) && !Material.STATIONARY_WATER.equals(blockType)) {
