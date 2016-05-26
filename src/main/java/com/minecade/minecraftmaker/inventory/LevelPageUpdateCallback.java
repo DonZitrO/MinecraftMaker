@@ -13,6 +13,7 @@ public class LevelPageUpdateCallback {
 	private Set<Long> toUpdate;
 	private Set<Long> toDelete;
 	private Set<MakerDisplayableLevel> levels;
+	private int levelCount;
 
 	public LevelPageUpdateCallback(UUID playerId) {
 		players = new HashSet<>();
@@ -43,6 +44,10 @@ public class LevelPageUpdateCallback {
 		this.toUpdate.addAll(toUpdate);
 	}
 
+	public int getLevelCount() {
+		return levelCount;
+	}
+
 	public Set<MakerDisplayableLevel> getLevels() {
 		return levels;
 	}
@@ -55,8 +60,16 @@ public class LevelPageUpdateCallback {
 		return Collections.unmodifiableSet(toDelete);
 	}
 
+	public int getToDeleteCount() {
+		return toDelete != null ? toDelete.size() : 0;
+	}
+
 	public synchronized Set<Long> getToUpdate() {
 		return Collections.unmodifiableSet(toUpdate);
+	}
+
+	public int getToUpdateCount() {
+		return toUpdate != null ? toUpdate.size() : 0;
 	}
 
 	public synchronized LevelPageUpdateCallback merge(LevelPageUpdateCallback other) {
@@ -72,16 +85,6 @@ public class LevelPageUpdateCallback {
 		return this;
 	}
 
-	public synchronized void removeToUpdate(Set<Long> toUpdate) {
-		if (toUpdate == null) {
-			return;
-		}
-		if (this.toUpdate == null) {
-			this.toUpdate = new HashSet<>();
-		}
-		this.toUpdate.removeAll(toUpdate);
-	}
-
 	public synchronized void removeToDelete(Set<Long> toDelete) {
 		if (toDelete == null) {
 			return;
@@ -92,21 +95,27 @@ public class LevelPageUpdateCallback {
 		this.toDelete.removeAll(toDelete);
 	}
 
+	public synchronized void removeToUpdate(Set<Long> toUpdate) {
+		if (toUpdate == null) {
+			return;
+		}
+		if (this.toUpdate == null) {
+			this.toUpdate = new HashSet<>();
+		}
+		this.toUpdate.removeAll(toUpdate);
+	}
+
+	public void setLevelCount(int levelCount) {
+		this.levelCount = levelCount;
+	}
+
 	public void setLevels(Set<MakerDisplayableLevel> levels) {
 		this.levels = levels;
 	}
 
 	@Override
 	public String toString() {
-		return "LevelPageUpdateCallback [players=" + players + ", toUpdate=" + toUpdate + ", toDelete=" + toDelete+ "]";
-	}
-
-	public int getToUpdateCount() {
-		return toUpdate != null ? toUpdate.size() : 0;
-	}
-
-	public int getToDeleteCount() {
-		return toDelete != null ? toDelete.size() : 0;
+		return "LevelPageUpdateCallback [players=" + players + ", toUpdate=" + toUpdate + ", toDelete=" + toDelete + ", levelCount=" + levelCount + "]";
 	}
 
 }

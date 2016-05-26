@@ -45,16 +45,16 @@ public class AsyncLevelBrowserUpdaterTask extends BukkitRunnable {
 			LevelPageUpdateRequest request = pendingRequests.firstKey();
 			LevelPageUpdateCallback callback = pendingRequests.remove(request);
 			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().severe(String.format("AsyncLevelBrowserMenuUpdaterTask.run - handling request: %s", request));
-				Bukkit.getLogger().severe(String.format("AsyncLevelBrowserMenuUpdaterTask.run - with callback: %s", callback));
+				Bukkit.getLogger().info(String.format("[DEBUG] | AsyncLevelBrowserMenuUpdaterTask.run - handling request: %s", request));
+				Bukkit.getLogger().info(String.format("[DEBUG] | AsyncLevelBrowserMenuUpdaterTask.run - with callback: %s", callback));
 			}
 			// load page from db
 			Set<Long> dbPage = plugin.getDatabaseAdapter().loadPublishedLevelSerialsPage(request.getLevelSortBy(), request.isReverseOrder(), LevelBrowserMenu.getPageOffset(request.getPage()), LevelBrowserMenu.getLevelsPerPage());
 			// load page from menu
 			Set<Long> menuPage = LevelBrowserMenu.getLevelPageSerials(request.getLevelSortBy(), request.isReverseOrder(), LevelBrowserMenu.getPageOffset(request.getPage()), LevelBrowserMenu.getLevelsPerPage());
 			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().severe(String.format("AsyncLevelBrowserMenuUpdaterTask.run - dbPage: %s", dbPage));
-				Bukkit.getLogger().severe(String.format("AsyncLevelBrowserMenuUpdaterTask.run - menuPage: %s", menuPage));
+				Bukkit.getLogger().info(String.format("[DEBUG] | AsyncLevelBrowserMenuUpdaterTask.run - dbPage: %s", dbPage));
+				Bukkit.getLogger().info(String.format("[DEBUG] | AsyncLevelBrowserMenuUpdaterTask.run - menuPage: %s", menuPage));
 			}
 			// the ones from the db less the ones from the menu
 			callback.addToUpdate(dbPage);
@@ -74,8 +74,9 @@ public class AsyncLevelBrowserUpdaterTask extends BukkitRunnable {
 				} else {
 					// TODO: verify that delete candidates are actually deleted
 				}
+				callback.setLevelCount(plugin.getDatabaseAdapter().loadPublishedLevelsCount());
 				// the callback is ready, send it
-				Bukkit.getScheduler().runTask(plugin, ()->plugin.getController().levelPageUpdateCallback(callback));
+				Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().levelPageUpdateCallback(callback));
 				completedRequests.add(request);
 				return;
 			}

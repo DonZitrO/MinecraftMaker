@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 
 public class I18NUtils {
@@ -21,10 +20,10 @@ public class I18NUtils {
 	public static List<String> translateAndSplitSingleLine(Internationalizable plugin, String lineKey, String lineSeparator, char alternateColorCode) {
 		if (StringUtils.isNotBlank(lineKey)) {
 			List<String> lore = new ArrayList<>();
-			for (String tranlatedLine : StringUtils.split(ChatColor.translateAlternateColorCodes(alternateColorCode, plugin.getMessage(lineKey)), lineSeparator)) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | I18NUtils.translateAndSplitSingleLine - line: [%s]", tranlatedLine));
-				if (tranlatedLine != null) {
-					lore.add(tranlatedLine);
+			for (String translatedLine : StringUtils.split(ChatColor.translateAlternateColorCodes(alternateColorCode, plugin.getMessage(lineKey)), lineSeparator)) {
+				// Bukkit.getLogger().info(String.format("[DEBUG] | I18NUtils.translateAndSplitSingleLine - line: [%s]", translatedLine));
+				if (translatedLine != null) {
+					lore.add(translatedLine);
 				}
 			}
 			return lore;
@@ -36,6 +35,8 @@ public class I18NUtils {
 		return WordUtils.capitalizeFully(e.name().replaceAll("_", " ").trim());
 	}
 
-	private I18NUtils() {}
+	private I18NUtils() {
+		super();
+	}
 
 }

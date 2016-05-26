@@ -18,7 +18,6 @@ import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.cmd.ReportCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
-import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.EditorPlayLevelOptionItem;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
@@ -122,13 +121,13 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		// instantiate and init main controller
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
 		controller.init();
+		// load the first page of the server browser
+		controller.requestLevelPageUpdate(LevelSortBy.LIKES, LevelSortBy.LIKES.isReversedDefault(), 1, null);
 		// start builder task
 		levelOperatorTask = new LevelOperatorTask(this);
 		levelOperatorTask.runTaskTimer(this, 0, 0);
 		// register listeners
 		getServer().getPluginManager().registerEvents(new MakerListener(this), this);
-		// init level browser
-		LevelBrowserMenu.loadDefaultPage(this);
 		// TODO: remove this after rabbit
 		if (getServerId() > 5) {
 			return;

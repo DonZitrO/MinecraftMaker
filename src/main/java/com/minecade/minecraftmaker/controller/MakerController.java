@@ -373,6 +373,7 @@ public class MakerController implements Runnable, Tickable {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.levelPageUpdateCallback - callback: [%s]", callback));
 		}
+		LevelBrowserMenu.updateLevelCount(callback.getLevelCount());
 		if (callback.getLevels() != null) {
 			for (MakerDisplayableLevel level: callback.getLevels()) {
 				steveLevelSerials.add(level.getLevelSerial());
@@ -476,28 +477,6 @@ public class MakerController implements Runnable, Tickable {
 		LevelBrowserMenu.updateLevelCount(levelCount);
 		steveLevelSerials.add(level.getLevelSerial());
 		LevelBrowserMenu.addOrUpdateLevel(plugin, level);
-	}
-
-	public void loadPublishedLevelsCallback(List<MakerDisplayableLevel> levels, int levelCount, UUID playerId) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		LevelBrowserMenu.updateLevelCount(levelCount);
-		for (MakerDisplayableLevel level : levels) {
-			steveLevelSerials.add(level.getLevelSerial());
-			LevelBrowserMenu.addOrUpdateLevel(plugin, level);
-		}
-		if (playerId!= null) {
-			LevelBrowserMenu.updatePlayerMenu(playerId);
-		}
-	}
-
-	public void loadPublishedLevelsCountCallback(int levelCount) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		LevelBrowserMenu.updateLevelCount(levelCount);
-		plugin.getAsyncLevelBrowserUpdater().resetCompleted();
 	}
 
 	public void onAsyncAccountDataLoad(MakerPlayerData data) {
@@ -1171,10 +1150,6 @@ public class MakerController implements Runnable, Tickable {
 //		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
 //	}
 
-	private void refreshPublishedLevelsCount() {
-		plugin.getDatabaseAdapter().loadPublishedLevelsCountAsync();
-	}
-
 	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
 		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
 		levelMap.remove(makerLevel.getChunkZ());
@@ -1282,8 +1257,9 @@ public class MakerController implements Runnable, Tickable {
 		}
 		entriesToAddToScoreboardTeams.clear();
 		entriesToRemoveFromScoreboardTeams.clear();
+		// TODO: this won't be needed after rabbit integration
 		if (this.currentTick % 1200 == 600) {
-			refreshPublishedLevelsCount();
+			plugin.getAsyncLevelBrowserUpdater().resetCompleted();
 		}
 	}
 

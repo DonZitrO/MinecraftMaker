@@ -44,9 +44,9 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 public class MakerDatabaseAdapter {
 
 	private static final String LOAD_LEVEL_WITH_DATA_QUERY_BASE =
-			"%s, " + // select place holder
-			"SUM(CASE WHEN `dislike` = 0 THEN 1 ELSE 0 END) as likes, " +
-			"SUM(CASE WHEN `dislike` = 1 THEN 1 ELSE 0 END) as dislikes " +
+			"%s, `levels`.`level_id`, " + // select placeholder
+			"SUM(CASE WHEN `level_likes`.`dislike` = 0 THEN 1 ELSE 0 END) as likes, " +
+			"SUM(CASE WHEN `level_likes`.`dislike` = 1 THEN 1 ELSE 0 END) as dislikes " +
 			"FROM `mcmaker`.`levels` " +
 			"LEFT JOIN `mcmaker`.`level_likes` on `levels`.`level_id` = `level_likes`.`level_id` " +
 			"%s " + // before grouping clauses placeholder
@@ -179,7 +179,7 @@ public class MakerDatabaseAdapter {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerDatabaseAdapter.insertLevelClear - inserting level clear time millis: [%s] for level: [%s] and player: [%s]", clearTimeMillis, levelId, playerId));
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.insertLevelClear - inserting level clear time millis: [%s] for level: [%s] and player: [%s]", clearTimeMillis, levelId, playerId));
 		}
 		String levelIdString = levelId.toString().replace("-", "");
 		String playerIdString = playerId.toString().replace("-", "");
@@ -544,23 +544,21 @@ public class MakerDatabaseAdapter {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
-		
 		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
 				"SELECT `levels`.`level_serial`",
 				"WHERE `levels`.`date_published` IS NOT NULL",
-				"ORDER BY ? %s, `levels`.`level_serial` %s " +
+				"ORDER BY `%s` %s, `levels`.`level_serial` %s " +
 				"LIMIT ?, ?");
 		Set<Long> serials = new LinkedHashSet<Long>();
-		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format(query, reverse ? "DESC" : "ASC", reverse ? "DESC" : "ASC"))) {
-			levelPageQuery.setString(1, sortBy.name());
-			levelPageQuery.setInt(2, offset);
-			levelPageQuery.setInt(3, limit);
+		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format(query, sortBy.name(), reverse ? "DESC" : "ASC", reverse ? "DESC" : "ASC"))) {
+			levelPageQuery.setInt(1, offset);
+			levelPageQuery.setInt(2, limit);
 			ResultSet resultSet = levelPageQuery.executeQuery();
 			while (resultSet.next()) {
-				serials.add(resultSet.getLong(1));
+				serials.add(resultSet.getLong("level_serial"));
 			}
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPublishedLevelSerialsPage - error while loading published level serials page - %s", e.getMessage()));
 			e.printStackTrace();
 		}
 		return serials;
@@ -586,8 +584,7 @@ public class MakerDatabaseAdapter {
 				data.getLevelsClear().add(levelClear);
 			}
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String
-					.format("loadLevelsCleared - error while getting player's cleared levels: %s", e.getMessage()));
+			Bukkit.getLogger().severe(String.format("loadLevelsCleared - error while getting player's cleared levels: %s", e.getMessage()));
 			e.printStackTrace();
 		}
 	}
@@ -598,7 +595,7 @@ public class MakerDatabaseAdapter {
 		}
 		checkNotNull(levelId);
 		try {
-			int levelCount = loadPublishedLevelsCount(false);
+			int levelCount = loadPublishedLevelsCount();
 			String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
 					SELECT_ALL_FROM_LEVELS,
 					"WHERE `levels`.`level_id` = UNHEX(?) AND `levels`.`date_published` IS NOT NULL", "");
@@ -618,51 +615,6 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	@Deprecated
-	private synchronized void loadPublishedLevelsPage(LevelSortBy sortBy, boolean reverse, int offset, int limit, final UUID playerId) {
-		if (Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method should NOT be called from the main thread");
-		}
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadPublishedLevels - sortBy: [%s] - offset: [%s] - limit: [%s]", sortBy.name(), offset, limit));
-		}
-		checkNotNull(sortBy);
-		int levelCount=0;
-		List<MakerDisplayableLevel> levels = new ArrayList<>(limit);
-		try {
-			levelCount = loadPublishedLevelsCount(false);
-			String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
-					SELECT_ALL_FROM_LEVELS,
-					"WHERE `date_published` IS NOT NULL ",
-					"ORDER BY ? %s, `levels`.`level_serial` %s " +
-					"LIMIT ?, ?");
-			try (PreparedStatement loadLevelPageSt = getConnection().prepareStatement(String.format(query, reverse ? "DESC" : "ASC", reverse ? "DESC" : "ASC"))) {
-				loadLevelPageSt.setString(1, sortBy.name());
-				loadLevelPageSt.setInt(2, offset);
-				loadLevelPageSt.setInt(3, limit);
-				ResultSet resultSet = loadLevelPageSt.executeQuery();
-				while (resultSet.next()) {
-					MakerDisplayableLevel level = new MakerDisplayableLevel(plugin);
-					loadLevelFromResult(level, resultSet);
-					loadLevelRecords(level);
-					levels.add(level);
-				}
-				if (plugin.isDebugMode()) {
-					Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadPublishedLevels - loaded levels: [%s]", levels.size()));
-				}
-			}
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
-			e.printStackTrace();
-		}
-		final int finalLevelCount = levelCount;
-		Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().loadPublishedLevelsCallback(levels, finalLevelCount, playerId));
-	}
-
-	public void loadPublishedLevelsPageAsync(LevelSortBy sortBy, boolean reverse, int offset, int limit, final UUID playerId) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadPublishedLevelsPage(sortBy, reverse, offset, limit, playerId));
-	}
-
 	public synchronized Set<MakerDisplayableLevel> loadPublishedLevelsBySerials(Set<Long> serials) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
@@ -675,7 +627,7 @@ public class MakerDatabaseAdapter {
 		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
 				SELECT_ALL_FROM_LEVELS,
 				"WHERE `levels`.`level_serial` IN (%s) AND `levels`.`date_published` IS NOT NULL", "");
-		try (PreparedStatement loadLevelById = getConnection().prepareStatement(String.format(query, StringUtils.chop(StringUtils.join(serials, ","))))) {
+		try (PreparedStatement loadLevelById = getConnection().prepareStatement(String.format(query, StringUtils.join(serials, ",")))) {
 			ResultSet resultSet = loadLevelById.executeQuery();
 			while (resultSet.next()) {
 				MakerDisplayableLevel level = new MakerDisplayableLevel(plugin);
@@ -690,7 +642,7 @@ public class MakerDatabaseAdapter {
 		return levels;
 	}
 
-	private int loadPublishedLevelsCount(boolean callback) {
+	public int loadPublishedLevelsCount() {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
@@ -699,10 +651,6 @@ public class MakerDatabaseAdapter {
 			ResultSet resultSet = levelPageQuery.executeQuery();
 			if (resultSet.next()) {
 				levelCount = resultSet.getInt(1);
-				if (callback) {
-					final int finalLevelCount = levelCount;
-					Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().loadPublishedLevelsCountCallback(finalLevelCount));
-				}
 			}
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadPublishedLevelCount - total level count: [%s]", levelCount));
@@ -712,10 +660,6 @@ public class MakerDatabaseAdapter {
 			e.printStackTrace();
 		}
 		return levelCount;
-	}
-
-	public void loadPublishedLevelsCountAsync() {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadPublishedLevelsCount(true));
 	}
 
 	private Rank loadRank(ResultSet result) {

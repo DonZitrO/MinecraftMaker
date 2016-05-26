@@ -245,10 +245,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		return "menu.level-browser.title";
 	}
 
-	public static void loadDefaultPage(MinecraftMakerPlugin plugin) {
-		plugin.getDatabaseAdapter().loadPublishedLevelsPageAsync(LevelSortBy.LIKES, false, 0, LEVELS_PER_PAGE, null);
-	}
-
 	public static void updateLevelCount(int levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
@@ -280,13 +276,9 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private final Iterator<LevelSortBy> cycleSortBy;
-
 	private int currentPage = 1;
-
 	private LevelSortBy sortBy;
-
 	private boolean reverseSortBy;
-
 	private final UUID viewerId;
 //	private boolean nextRequest = false;
 
@@ -338,7 +330,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private int getTotalPages() {
-		return (levelCount + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
+		return Math.max(1, (levelCount + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE);
 	}
 
 	public UUID getViewerId() {
@@ -358,7 +350,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		items[47] = GeneralMenuItem.CURRENT_PAGE.getItem();
 		items[51] = GeneralMenuItem.EXIT_MENU.getItem();
 
-		updatePaginationItems();
+		plugin.getController().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, getViewerId());
 	}
 
 	private boolean isLevelSlot(int index) {
