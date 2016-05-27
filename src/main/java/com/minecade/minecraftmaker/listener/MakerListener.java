@@ -37,7 +37,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -318,8 +317,13 @@ public class MakerListener implements Listener {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerTeleport start - player: [%s] - from: [%s] - to: [%s] - cause: [%s] - cancelled: [%s]", event.getPlayer().getName(), event.getFrom().toVector(), event.getTo().toVector(), event.getCause(), event.isCancelled()));
 		}
-		if (event.getCause().equals(TeleportCause.PLUGIN)) {
+		switch (event.getCause()) {
+		case PLUGIN:
+		case UNKNOWN:
+		case COMMAND:
 			return;
+		default:
+			break;
 		}
 		plugin.getController().onPlayerTeleport(event);
 		if (plugin.isDebugMode()) {

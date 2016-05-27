@@ -34,7 +34,8 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	private static final int LEVELS_PER_PAGE = 28;
 
 	private static Map<UUID, ItemStack> levelItems = new HashMap<>();
-	private static Map<UUID, MakerDisplayableLevel> levelMap = new HashMap<>();
+	private static Map<UUID, MakerDisplayableLevel> byIdMap = new HashMap<>();
+	private static Map<Long, MakerDisplayableLevel> bySerialMap = new HashMap<>();
 	private static Map<UUID, LevelBrowserMenu> userLevelBrowserMenuMap = new HashMap<>();
 
 	private static TreeSet<MakerDisplayableLevel> levelsByAuthorName = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> compareAuthorNameAndSerial(l1, l2));
@@ -60,16 +61,18 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		addLevelItemToPages(plugin, level);
-		MakerDisplayableLevel former = levelMap.put(level.getLevelId(), level);
-		if (former != null && former != level) {
-			levelsByAuthorName.remove(level);
-			levelsByName.remove(level);
-			levelsBySerial.remove(level);
-			levelsByLikes.remove(level);
-			levelsByDislikes.remove(level);
-			levelsByPublishDate.remove(level);
-			levelsByRank.remove(level);
+		MakerDisplayableLevel former = byIdMap.put(level.getLevelId(), level);
+		if (former != null) {
+			bySerialMap.remove(former.getLevelSerial());
+			levelsByAuthorName.remove(former);
+			levelsByName.remove(former);
+			levelsBySerial.remove(former);
+			levelsByLikes.remove(former);
+			levelsByDislikes.remove(former);
+			levelsByPublishDate.remove(former);
+			levelsByRank.remove(former);
 		}
+		bySerialMap.put(level.getLevelSerial(), level);
 		levelsByAuthorName.add(level);
 		levelsByName.add(level);
 		levelsBySerial.add(level);
@@ -77,19 +80,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		levelsByDislikes.add(level);
 		levelsByPublishDate.add(level);
 		levelsByRank.add(level);
-	}
-
-	private static int compareNamesAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
-		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
-		if (diff == 0) {
-			// avoid duplicated levels
-			return diff;
-		}
-		diff = String.valueOf(l1.getLevelName()).compareToIgnoreCase(String.valueOf(l2.getLevelName()));
-		if (diff != 0) {
-			return diff;
-		}
-		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
 	}
 
 	private static int compareAuthorNameAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
@@ -125,6 +115,19 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			return diff;
 		}
 		diff = Long.valueOf(l1.getLikes()).compareTo(Long.valueOf(l2.getLikes()));
+		if (diff != 0) {
+			return diff;
+		}
+		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+	}
+
+	private static int compareNamesAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
+		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+		if (diff == 0) {
+			// avoid duplicated levels
+			return diff;
+		}
+		diff = String.valueOf(l1.getLevelName()).compareToIgnoreCase(String.valueOf(l2.getLevelName()));
 		if (diff != 0) {
 			return diff;
 		}
@@ -229,10 +232,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		return allLevels.stream().skip(offset).limit(limit).map(level -> level.getLevelSerial()).collect(Collectors.toSet());
 	}
 
-	public static Map<UUID, MakerDisplayableLevel> getLevelsMap() {
-		return levelMap;
-	}
-
 	public static int getLevelsPerPage() {
 		return LEVELS_PER_PAGE;
 	}
@@ -245,6 +244,29 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		return "menu.level-browser.title";
 	}
 
+	public static void removeLevelBySerial(long levelSerial) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		MakerDisplayableLevel former = bySerialMap.remove(levelSerial);
+		if (former != null) {
+			byIdMap.remove(former.getLevelId());
+			levelsByAuthorName.remove(former);
+			levelsByName.remove(former);
+			levelsBySerial.remove(former);
+			levelsByLikes.remove(former);
+			levelsByDislikes.remove(former);
+			levelsByPublishDate.remove(former);
+			levelsByRank.remove(former);
+			removeLevelItemToPages(former.getLevelId());
+		}
+		// TODO: update all menus?
+	}
+
+	private static void removeLevelItemToPages(UUID levelId) {
+		levelItems.remove(levelId);
+	}
+
 	public static void updateLevelCount(int levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
@@ -255,7 +277,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	public static void updateLevelLikes(Internationalizable plugin, UUID levelId, long totalLikes, long totalDislikes) {
-		MakerDisplayableLevel level = levelMap.get(levelId);
+		MakerDisplayableLevel level = byIdMap.get(levelId);
 		if (level == null) {
 			return;
 		}
@@ -267,18 +289,18 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		levelsByDislikes.add(level);
 		addLevelItemToPages(plugin, level);
 	}
-
 	public static void updatePlayerMenu(UUID playerId) {
 		LevelBrowserMenu menu = userLevelBrowserMenuMap.get(playerId);
 		if (menu != null) {
 			menu.update();
 		}
 	}
-
 	private final Iterator<LevelSortBy> cycleSortBy;
 	private int currentPage = 1;
 	private LevelSortBy sortBy;
+
 	private boolean reverseSortBy;
+
 	private final UUID viewerId;
 //	private boolean nextRequest = false;
 

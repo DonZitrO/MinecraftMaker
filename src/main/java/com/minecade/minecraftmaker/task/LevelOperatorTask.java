@@ -2,6 +2,8 @@ package com.minecade.minecraftmaker.task;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.concurrent.TimeUnit;
+
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -12,11 +14,12 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class LevelOperatorTask extends BukkitRunnable {
 
-	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 5000000; // 5ms to build per tick
+	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 20000000; // 20ms to build per tick
 
 	private final MinecraftMakerPlugin plugin;
 	private final ResumableOperationQueue operationQueue = new ResumableOperationQueue();
 	private final ResumableOperationQueue priorityOperationQueue = new ResumableOperationQueue();
+	private long lastTickCompleteTime;
 
 	public LevelOperatorTask(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
@@ -44,7 +47,16 @@ public class LevelOperatorTask extends BukkitRunnable {
 
 	@Override
 	public void run() {
+		if (lastTickCompleteTime > 0) {
+			long timeBetweenRunsMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastTickCompleteTime);
+			if (timeBetweenRunsMillis < 5) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | LevelOperatorTask.run - server is too busy, let's give it a break - time between runs: [%s] milliseconds", timeBetweenRunsMillis));
+				lastTickCompleteTime = System.nanoTime();
+				return;
+			}
+		}
 		if (priorityOperationQueue.isEmpty() && operationQueue.isEmpty()) {
+			lastTickCompleteTime = System.nanoTime();
 			return;
 		}
 		long startNanoTime = 0;
@@ -78,6 +90,7 @@ public class LevelOperatorTask extends BukkitRunnable {
 				Bukkit.getLogger().info(String.format("[DEBUG] | MakerBuilderTask.run - operation took: [%s] nanoseconds", totalNanoTime));
 			}
 		}
+		lastTickCompleteTime = System.nanoTime();
 	}
 
 }

@@ -71,7 +71,6 @@ public class MakerRelativeLocationData {
 	}
 
 	public void setLocationId(UUID locationId) {;
-		checkNotNull(locationId);
 		this.locationId = locationId;
 	}
 

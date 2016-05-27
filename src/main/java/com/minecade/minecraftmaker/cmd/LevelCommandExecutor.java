@@ -2,6 +2,7 @@ package com.minecade.minecraftmaker.cmd;
 
 import java.util.Arrays;
 
+import org.apache.commons.lang.Validate;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -9,6 +10,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.google.common.base.Joiner;
+import com.minecade.core.data.Rank;
+import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class LevelCommandExecutor extends AbstractCommandExecutor {
@@ -21,11 +24,16 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 		// only players allowed
 		if (!(sender instanceof Player)) {
-			sender.sendMessage(command.getPermissionMessage());
+			sender.sendMessage(plugin.getMessage("command.error.player-only"));
+			return true;
+		}
+		MakerPlayer mPlayer = plugin.getController().getPlayer((Player) sender);
+		if (mPlayer == null) {
+			sender.sendMessage(plugin.getMessage("command.level.error.permissions"));
 			return true;
 		}
 		if (args.length < 1) {
-			sender.sendMessage(command.getUsage());
+			sender.sendMessage(plugin.getMessage("command.level.usage"));
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("rename")) {
@@ -51,10 +59,55 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 			}
 			// capitalize
 			name = StringUtils.capitalize(name);
-			plugin.getController().renameLevel((Player) sender, name);
+			plugin.getController().renameLevel(mPlayer, name);
+			return true;
+		}
+		// ADMIN only sub-commands below
+		if (!mPlayer.getData().hasRank(Rank.ADMIN)) {
+			sender.sendMessage(plugin.getMessage("command.level.error.permissions"));
+			return true;
+		}
+		if (args[0].equalsIgnoreCase("copy")) {
+			if (args.length < 2) {
+				sender.sendMessage(plugin.getMessage("command.level.error.empty-serial"));
+				return true;
+			}
+			long serial = validateLevelSerial(args, 1);
+			if (serial <= 0) {
+				sender.sendMessage(plugin.getMessage("command.level.error.invalid-serial"));
+				return true;
+			}
+			plugin.getController().copyLevel(mPlayer, serial);
+			return true;
+		}
+		if (args[0].equalsIgnoreCase("delete")) {
+			if (args.length < 2) {
+				sender.sendMessage(plugin.getMessage("command.level.error.empty-serial"));
+				return true;
+			}
+			long serial = validateLevelSerial(args, 1);
+			if (serial <= 0) {
+				sender.sendMessage(plugin.getMessage("command.level.error.invalid-serial"));
+				return true;
+			}
+			plugin.getController().deleteLevel(mPlayer, serial);
 			return true;
 		}
 		return true;
+	}
+
+	private static long validateLevelSerial(String[] args, int index) {
+		if (args.length > index) {
+			try {
+				long serial = Long.parseLong(args[index]);
+				Validate.isTrue(serial > 0);
+				return serial;
+			} catch (Exception e) {
+				Bukkit.getLogger().warning(String.format("LevelCommandExecutor.optionalBlockId - invalid level serial: [%s] - %s", args[index], e.getMessage()));
+				return 0;
+			}
+		}
+		return 0;
 	}
 
 }

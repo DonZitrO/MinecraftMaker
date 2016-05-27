@@ -66,20 +66,14 @@ public class MakerPlayer implements Tickable {
 
 	private Location teleportDestination;
 
+	private long levelToDeleteSerial;
+
+	@Deprecated
 	private LevelSortBy levelSortBy = LevelSortBy.LIKES;
 
 	public MakerPlayer(Player player, MakerPlayerData data) {
 		this.player = player;
 		this.data = data;
-	}
-
-	public void initScoreboard(MinecraftMakerPlugin plugin) {
-		if (makerScoreboard != null) {
-			Bukkit.getLogger().warning(String.format("MakerPlayer.initScoreboard - scoreboard already initialized for player: %s", getDescription()));
-			return;
-		}
-		makerScoreboard = new MakerScoreboard(plugin, this);
-		makerScoreboard.init();
 	}
 
 	public void clearInventory() {
@@ -97,7 +91,7 @@ public class MakerPlayer implements Tickable {
 		disabled = true;
 	}
 
-	public void executeRequestedInventoryOperations() {
+	private void executeRequestedInventoryOperations() {
 		if (inventoryToOpen != null) {
 			inventoryToOpen.open(player);
 			inventoryToOpen = null;
@@ -130,6 +124,11 @@ public class MakerPlayer implements Tickable {
 		return data;
 	}
 
+	@Override
+	public String getDescription() {
+		return String.format("MakerPlayer: [%s<%s>] with rank: [%s]", getName(), getUniqueId(), getDisplayRank());
+	}
+
 	public String getDisplayName() {
 		String name = this.player.getName();
 		StringBuilder displayName = new StringBuilder();
@@ -141,6 +140,10 @@ public class MakerPlayer implements Tickable {
 		return displayName.toString();
 	}
 
+	public Rank getDisplayRank() {
+		return getData().getDisplayRank();
+	}
+
 	private String getFormattedTime(long millis){
 		return String.format("%sm %ss %sms",
 				TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
@@ -150,6 +153,10 @@ public class MakerPlayer implements Tickable {
 
 	public LevelSortBy getLevelSortBy(){
 		return this.levelSortBy;
+	}
+
+	public long getLevelToDeleteSerial() {
+		return levelToDeleteSerial;
 	}
 
 	public String getName() {
@@ -172,16 +179,6 @@ public class MakerPlayer implements Tickable {
         return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
     }
 
-    public String getRecordUsername(){
-        if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
-                this.currentLevel.getLevelsClear().size() > 0){
-            MakerLevelClearData makerLevelClear = this.currentLevel.getLevelsClear().get(0);
-            return makerLevelClear.getUsername();
-        }
-
-        return MinecraftMakerPlugin.getInstance().getMessage("general.empty");
-    }
-
     public String getRecordTime(){
         if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
                 this.currentLevel.getLevelsClear().size() > 0){
@@ -190,6 +187,16 @@ public class MakerPlayer implements Tickable {
         }
 
         return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
+    }
+
+    public String getRecordUsername(){
+        if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
+                this.currentLevel.getLevelsClear().size() > 0){
+            MakerLevelClearData makerLevelClear = this.currentLevel.getLevelsClear().get(0);
+            return makerLevelClear.getUsername();
+        }
+
+        return MinecraftMakerPlugin.getInstance().getMessage("general.empty");
     }
 
 	public MakerSteveData getSteveData(){
@@ -208,6 +215,15 @@ public class MakerPlayer implements Tickable {
 		return inventoryToOpen != null;
 	}
 
+	public void initScoreboard(MinecraftMakerPlugin plugin) {
+		if (makerScoreboard != null) {
+			Bukkit.getLogger().warning(String.format("MakerPlayer.initScoreboard - scoreboard already initialized for player: %s", getDescription()));
+			return;
+		}
+		makerScoreboard = new MakerScoreboard(plugin, this);
+		makerScoreboard.init();
+	}
+
 	@Override
 	public boolean isDisabled() {
 		return disabled;
@@ -215,14 +231,6 @@ public class MakerPlayer implements Tickable {
 
 	public boolean isEditingLevel() {
 		return this.currentLevel != null && LevelStatus.EDITING.equals(this.currentLevel.getStatus());
-	}
-
-	public boolean isOnUnpublishedLevel() {
-		return this.currentLevel != null && currentLevel.getDatePublished() == null;
-	}
-
-	public boolean isOnPublishedLevel() {
-		return this.currentLevel != null && currentLevel.getDatePublished() != null;
 	}
 
 	public boolean isInBusyLevel() {
@@ -235,6 +243,14 @@ public class MakerPlayer implements Tickable {
 
 	public boolean isInSteve() {
 		return steveData != null;
+	}
+
+	public boolean isOnPublishedLevel() {
+		return this.currentLevel != null && currentLevel.getDatePublished() != null;
+	}
+
+	public boolean isOnUnpublishedLevel() {
+		return this.currentLevel != null && currentLevel.getDatePublished() == null;
 	}
 
 	public boolean isPlayingLevel() {
@@ -341,6 +357,12 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
+	public void removeTeamEntryFromScoreboard(String playerName) {
+		if (makerScoreboard != null && !makerScoreboard.isDisabled()) {
+			makerScoreboard.removeEntryFromTeam(playerName);
+		}
+	}
+
 	public void resetLobbyInventory() {
 		// clear inventory
 		player.getInventory().clear();
@@ -411,6 +433,16 @@ public class MakerPlayer implements Tickable {
 		player.setGameMode(mode);
 	}
 
+	public void setLevelToDeleteSerial(long levelToDeleteSerial) {
+		this.levelToDeleteSerial = levelToDeleteSerial;
+	}
+
+	public void setScoreboard(Scoreboard scoreboard) {
+		if (player.isOnline()) {
+			player.setScoreboard(scoreboard);
+		}
+	}
+
 	public void setSteveData(MakerSteveData steveData) {
 		this.steveData = steveData;
 	}
@@ -463,27 +495,6 @@ public class MakerPlayer implements Tickable {
 	public void updateScoreboardPlayerEntry(Rank rank, String playerName) {
 		if (makerScoreboard != null && !makerScoreboard.isDisabled()) {
 			makerScoreboard.addEntryToTeam(rank.name(), playerName);
-		}
-	}
-
-	public void removeTeamEntryFromScoreboard(String playerName) {
-		if (makerScoreboard != null && !makerScoreboard.isDisabled()) {
-			makerScoreboard.removeEntryFromTeam(playerName);
-		}
-	}
-
-	public Rank getDisplayRank() {
-		return getData().getDisplayRank();
-	}
-
-	@Override
-	public String getDescription() {
-		return String.format("MakerPlayer: [%s<%s>] with rank: [%s]", getName(), getUniqueId(), getDisplayRank());
-	}
-
-	public void setScoreboard(Scoreboard scoreboard) {
-		if (player.isOnline()) {
-			player.setScoreboard(scoreboard);
 		}
 	}
 

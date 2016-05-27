@@ -5,8 +5,8 @@ authors: [SethBling, tux2, DonZitrO]
 load: startup
 commands:
   level:
-    description: Used by level owners to manipulate levels
-    usage: 'Usage: /level <create|save|load|rename> <params>'
+    description: Used by players to manipulate levels
+    usage: 'Usage: /level <action> <params>'
     permission-message: '§4You are not allowed to use this command!'
   report:
     description: Used by players to report issues

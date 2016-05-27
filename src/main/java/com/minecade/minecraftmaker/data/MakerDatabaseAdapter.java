@@ -77,6 +77,63 @@ public class MakerDatabaseAdapter {
 		this.dbpassword = databaseConfig.getString("password");
 	}
 
+	private synchronized MakerRelativeLocationData copyEndLocationByLevelId(UUID copyFromLocationId) throws DataException, SQLException {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		MakerRelativeLocationData copy = loadRelativeLocationById(copyFromLocationId);
+		// it's a copy, will have a new id assigned when saved
+		copy.setLocationId(null);
+		return copy;
+	}
+
+	private synchronized void copyLevelBySerial(MakerPlayableLevel level, long copyFromSerial) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		try {
+			UUID[] result = loadLevelIdAndEndLocationIdBySerial(copyFromSerial);
+			UUID copyFromLevelId = result[0];
+			if (copyFromLevelId == null) {
+				level.disable("No data found to copy from");
+				return;
+			}
+			UUID copyFromLocationId = result[1];
+			if (copyFromLocationId != null) {
+				level.setRelativeEndLocation(copyEndLocationByLevelId(copyFromLocationId));
+			}
+			loadLevelClipboard(level, copyFromLevelId);
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.copyLevelBySerial - error while copying level from serial: [%s] and slot [%s] - %s", copyFromSerial, level.getChunkZ(), e.getMessage()));
+			e.printStackTrace();
+			level.disable(e.getMessage(), e);
+		}
+	}
+
+	public void copyLevelBySerialAsync(MakerPlayableLevel level, long copyFromSerial) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> copyLevelBySerial(level, copyFromSerial));
+	}
+
+	private synchronized void deleteLevelBySerial(long levelSerial, UUID playerId) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		String query = "UPDATE `mcmaker`.`levels` SET `levels`.`deleted` = 1 WHERE `levels`.`level_serial` = ? AND `levels`.`deleted` = 0";
+		try (PreparedStatement deleteLevelSt = getConnection().prepareStatement(String.format(query))) {
+			deleteLevelSt.setLong(1, levelSerial);
+			int affected = deleteLevelSt.executeUpdate();
+			final int finalLevelCount = loadPublishedLevelsCount();
+			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().deleteLevelBySerialCallback(levelSerial, affected > 0, finalLevelCount, playerId));
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.deleteLevelBySerial - error while deleting level: %s", e.getMessage()));
+			e.printStackTrace();
+		}
+	}
+
+	public void deleteLevelBySerialAsync(long levelSerial, UUID uniqueId) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> deleteLevelBySerial(levelSerial, uniqueId));
+	}
+
 	public synchronized void disconnect() {
 		if (null != connection) {
 			try {
@@ -390,41 +447,23 @@ public class MakerDatabaseAdapter {
 		//this.loadPlayerLevelsLikes(data);
 	}
 
-	private synchronized void loadPlayableLevelBySerial(MakerPlayableLevel level) {
+	private synchronized void loadLevelClipboard(MakerPlayableLevel level) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
-		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
-				SELECT_ALL_FROM_LEVELS, "WHERE `levels`.`level_serial` = ?","");
-		try (PreparedStatement loadLevelQuery = getConnection().prepareStatement(String.format(query))) {
-			loadLevelQuery.setLong(1, level.getLevelSerial());
-			ResultSet resultSet = loadLevelQuery.executeQuery();
-			if (resultSet.next()) {
-				loadLevelFromResult(level, resultSet);
-				loadLevelClipboard(level);
-				loadLevelRecords(level);
-			} else {
-				level.disable(String.format("Unable to find level with serial: [%s]", level.getLevelSerial()), null);
-			}
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("loadLevelBySerial.loadLevel - error while loading level: %s", e.getMessage()));
-			e.printStackTrace();
-			level.disable(e.getMessage(), e);
-			return;
-		}
+		checkNotNull(level);
+		loadLevelClipboard(level, level.getLevelId());
 	}
 
-	public void loadPlayableLevelBySerialAsync(MakerPlayableLevel level) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadPlayableLevelBySerial(level));
-	}
-
-	private void loadLevelClipboard(MakerPlayableLevel level) {
+	private synchronized void loadLevelClipboard(MakerPlayableLevel level, UUID copyFrom) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
+		checkNotNull(level);
+		checkNotNull(copyFrom);
 		try {
 			level.tryStatusTransition(LevelStatus.BLANK, LevelStatus.CLIPBOARD_LOADING);
-			String levelId = level.getLevelId().toString().replace("-", "");
+			String levelId = copyFrom.toString().replace("-", "");
 			try (PreparedStatement testQuery = getConnection().prepareStatement(
 			        String.format("SELECT * FROM `mcmaker`.`schematics` where `level_id` = UNHEX(?) order by `updated` desc limit 1"))) {
 				testQuery.setString(1, levelId);
@@ -476,7 +515,7 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	private void loadLevelFromResult(AbstractMakerLevel level, ResultSet result) throws SQLException, DataException {
+	private synchronized void loadLevelFromResult(AbstractMakerLevel level, ResultSet result) throws SQLException, DataException {
 		ByteBuffer levelIdBytes = ByteBuffer.wrap(result.getBytes("level_id"));
 		ByteBuffer authorIdBytes = ByteBuffer.wrap(result.getBytes("author_id"));
 		level.setLevelId(new UUID(levelIdBytes.getLong(), levelIdBytes.getLong()));
@@ -487,13 +526,39 @@ public class MakerDatabaseAdapter {
 		level.setAuthorRank(loadRank(result));
 		byte[] locationId = result.getBytes("end_location_id");
 		if (locationId != null) {
-			level.setRelativeEndLocation(loadRelativeLocationById(locationId));
+			ByteBuffer buffer = ByteBuffer.wrap(locationId);
+			level.setRelativeEndLocation(loadRelativeLocationById(new UUID(buffer.getLong(), buffer.getLong())));
 		}
 		level.setDatePublished(result.getDate("date_published"));
 		if (level.getDatePublished() != null) {
 			level.setLikes(result.getLong("likes"));
 			level.setDislikes(result.getLong("dislikes"));
 		}
+	}
+
+	private synchronized UUID[] loadLevelIdAndEndLocationIdBySerial(long levelSerial) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		UUID[] result = new UUID[2];
+		String query = "SELECT `levels`.`level_id`, `levels`.`end_location_id`  FROM `mcmaker`.`levels` WHERE `levels`.`level_serial` = ?";
+		try (PreparedStatement loadLevelQuery = getConnection().prepareStatement(String.format(query))) {
+			loadLevelQuery.setLong(1, levelSerial);
+			ResultSet resultSet = loadLevelQuery.executeQuery();
+			if (resultSet.next()) {
+				ByteBuffer levelIdBytes = ByteBuffer.wrap(resultSet.getBytes("level_id"));
+				result[0] = new UUID(levelIdBytes.getLong(), levelIdBytes.getLong());
+				byte[] endLocationIdBytes = resultSet.getBytes("end_location_id");
+				if (endLocationIdBytes != null) {
+					ByteBuffer endLocationIdBytesBuffer = ByteBuffer.wrap(endLocationIdBytes);
+					result[1] = new UUID(endLocationIdBytesBuffer.getLong(), endLocationIdBytesBuffer.getLong());
+				}
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevelIdAndEndLocationIdBySerial - error while loading: %s", e.getMessage()));
+			e.printStackTrace();
+		}
+		return result;
 	}
 
 	private synchronized long[] loadLevelLikesAndDislikes(UUID levelId) throws SQLException {
@@ -540,28 +605,32 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	public synchronized Set<Long> loadPublishedLevelSerialsPage(LevelSortBy sortBy, boolean reverse, int offset, int limit) {
+	private synchronized void loadPlayableLevelBySerial(MakerPlayableLevel level) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
 		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
-				"SELECT `levels`.`level_serial`",
-				"WHERE `levels`.`date_published` IS NOT NULL",
-				"ORDER BY `%s` %s, `levels`.`level_serial` %s " +
-				"LIMIT ?, ?");
-		Set<Long> serials = new LinkedHashSet<Long>();
-		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format(query, sortBy.name(), reverse ? "DESC" : "ASC", reverse ? "DESC" : "ASC"))) {
-			levelPageQuery.setInt(1, offset);
-			levelPageQuery.setInt(2, limit);
-			ResultSet resultSet = levelPageQuery.executeQuery();
-			while (resultSet.next()) {
-				serials.add(resultSet.getLong("level_serial"));
+				SELECT_ALL_FROM_LEVELS, "WHERE `levels`.`level_serial` = ? AND `levels`.`deleted` = 0","");
+		try (PreparedStatement loadLevelQuery = getConnection().prepareStatement(String.format(query))) {
+			loadLevelQuery.setLong(1, level.getLevelSerial());
+			ResultSet resultSet = loadLevelQuery.executeQuery();
+			if (resultSet.next()) {
+				loadLevelFromResult(level, resultSet);
+				loadLevelRecords(level);
+				loadLevelClipboard(level);
+			} else {
+				level.disable(String.format("Unable to find level with serial: [%s]", level.getLevelSerial()), null);
 			}
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPublishedLevelSerialsPage - error while loading published level serials page - %s", e.getMessage()));
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPlayableLevelBySerial - error while loading level: %s", e.getMessage()));
 			e.printStackTrace();
+			level.disable(e.getMessage(), e);
+			return;
 		}
-		return serials;
+	}
+
+	public void loadPlayableLevelBySerialAsync(MakerPlayableLevel level) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadPlayableLevelBySerial(level));
 	}
 
 	private synchronized void loadPlayerLevelsCleared(MakerPlayerData data) {
@@ -598,7 +667,7 @@ public class MakerDatabaseAdapter {
 			int levelCount = loadPublishedLevelsCount();
 			String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
 					SELECT_ALL_FROM_LEVELS,
-					"WHERE `levels`.`level_id` = UNHEX(?) AND `levels`.`date_published` IS NOT NULL", "");
+					"WHERE `levels`.`level_id` = UNHEX(?) AND `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0", "");
 			try (PreparedStatement loadLevelById = getConnection().prepareStatement(String.format(query))) {
 				loadLevelById.setString(1, levelId);
 				ResultSet resultSet = loadLevelById.executeQuery();
@@ -626,7 +695,7 @@ public class MakerDatabaseAdapter {
 		}
 		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
 				SELECT_ALL_FROM_LEVELS,
-				"WHERE `levels`.`level_serial` IN (%s) AND `levels`.`date_published` IS NOT NULL", "");
+				"WHERE `levels`.`level_serial` IN (%s) AND `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0", "");
 		try (PreparedStatement loadLevelById = getConnection().prepareStatement(String.format(query, StringUtils.join(serials, ",")))) {
 			ResultSet resultSet = loadLevelById.executeQuery();
 			while (resultSet.next()) {
@@ -647,7 +716,7 @@ public class MakerDatabaseAdapter {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
 		int levelCount = 0;
-		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format("SELECT count(1) FROM `mcmaker`.`levels` WHERE `date_published` IS NOT NULL"))) {
+		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format("SELECT count(1) FROM `mcmaker`.`levels` WHERE `date_published` IS NOT NULL AND `levels`.`deleted` = 0"))) {
 			ResultSet resultSet = levelPageQuery.executeQuery();
 			if (resultSet.next()) {
 				levelCount = resultSet.getInt(1);
@@ -662,6 +731,30 @@ public class MakerDatabaseAdapter {
 		return levelCount;
 	}
 
+	public synchronized Set<Long> loadPublishedLevelSerialsPage(LevelSortBy sortBy, boolean reverse, int offset, int limit) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should NOT be called from the main thread");
+		}
+		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
+				"SELECT `levels`.`level_serial` ",
+				"WHERE `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0 ",
+				"ORDER BY `%s` %s, `levels`.`level_serial` %s " +
+				"LIMIT ?, ?");
+		Set<Long> serials = new LinkedHashSet<Long>();
+		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format(query, sortBy.name(), reverse ? "DESC" : "ASC", reverse ? "DESC" : "ASC"))) {
+			levelPageQuery.setInt(1, offset);
+			levelPageQuery.setInt(2, limit);
+			ResultSet resultSet = levelPageQuery.executeQuery();
+			while (resultSet.next()) {
+				serials.add(resultSet.getLong("level_serial"));
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPublishedLevelSerialsPage - error while loading published level serials page - %s", e.getMessage()));
+			e.printStackTrace();
+		}
+		return serials;
+	}
+
 	private Rank loadRank(ResultSet result) {
 		Rank rank = Rank.GUEST;
 		try {
@@ -672,12 +765,12 @@ public class MakerDatabaseAdapter {
 		return rank;
 	}
 
-	private MakerRelativeLocationData loadRelativeLocationById(byte[] locationId) throws SQLException, DataException {
-		ByteBuffer locationIdBytes = ByteBuffer.wrap(locationId);
-		UUID locationUUID = new UUID(locationIdBytes.getLong(), locationIdBytes.getLong());
-		try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`locations` where `location_id` = ?"))) {
-			testQuery.setBytes(1, locationId);
-			ResultSet resultSet = testQuery.executeQuery();
+	private MakerRelativeLocationData loadRelativeLocationById(UUID locationUUID) throws SQLException, DataException {
+		checkNotNull(locationUUID);
+		String locationIdString = locationUUID.toString().replace("-", "");
+		try (PreparedStatement loadLocationByIdSt = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`locations` where `location_id` = UNHEX(?)"))) {
+			loadLocationByIdSt.setString(1, locationIdString);
+			ResultSet resultSet = loadLocationByIdSt.executeQuery();
 			if (!resultSet.next()) {
 				throw new DataException(String.format("Unable to find maker location with id: [%s]", locationUUID));
 			}
@@ -687,6 +780,7 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
+	@Deprecated // fix that hardcoded limit!
 	private synchronized void loadUnpublishedLevelsByAuthorId(PlayerLevelsMenu levelBrowserMenu) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
@@ -694,8 +788,8 @@ public class MakerDatabaseAdapter {
 		checkNotNull(levelBrowserMenu);
 		String authorIdString = levelBrowserMenu.getViewerId().toString().replace("-", "");
 		List<MakerDisplayableLevel> levels = new ArrayList<>();
-		// TODO: hardcoded limit
-		try (PreparedStatement levelsByAuthorQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` WHERE `author_id` = UNHEX(?) AND `date_published` IS NULL ORDER BY level_serial DESC LIMIT 5"))) {
+		// FIXME: hardcoded limit
+		try (PreparedStatement levelsByAuthorQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` WHERE `author_id` = UNHEX(?) AND `date_published` IS NULL AND `levels`.`deleted` = 0 ORDER BY level_serial DESC LIMIT 10"))) {
 			levelsByAuthorQuery.setString(1, authorIdString);
 			ResultSet resultSet = levelsByAuthorQuery.executeQuery();
 			while (resultSet.next()) {

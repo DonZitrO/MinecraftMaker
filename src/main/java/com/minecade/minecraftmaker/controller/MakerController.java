@@ -200,6 +200,25 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void copyLevel(MakerPlayer mPlayer, long copyFromSerial) {
+		if (!mPlayer.isInLobby()) {
+			mPlayer.sendActionMessage(plugin, "level.create.error.author-busy");
+			return;
+		}
+		MakerPlayableLevel level = getEmptyLevelIfAvailable();
+		if (level == null) {
+			mPlayer.sendActionMessage(plugin, "level.error.full");
+			return;
+		}
+		level.setLevelId(UUID.randomUUID());
+		level.setAuthorId(mPlayer.getUniqueId());
+		level.setAuthorName(mPlayer.getName());
+		level.setAuthorRank(mPlayer.getData().getHighestRank());
+		level.setupStartLocation();
+		level.waitForBusyLevel(mPlayer, true);
+		plugin.getDatabaseAdapter().copyLevelBySerialAsync(level, copyFromSerial);
+	}
+
 	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
 		if (!author.isInLobby()) {
 			author.sendActionMessage(plugin, "level.create.error.author-busy");
@@ -233,6 +252,34 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		createEmptyLevel(author, floorBlockId);
+	}
+
+	public void deleteLevel(MakerPlayer mPlayer, long serial) {
+		long confirmSerial = mPlayer.getLevelToDeleteSerial();
+		if (confirmSerial != serial) {
+			mPlayer.setLevelToDeleteSerial(serial);
+			mPlayer.sendMessage(plugin, "command.level.delete.confirm1", serial);
+			mPlayer.sendMessage(plugin, "command.level.delete.confirm2", serial);
+		} else {
+			plugin.getDatabaseAdapter().deleteLevelBySerialAsync(serial, mPlayer.getUniqueId());
+		}
+	}
+
+	public void deleteLevelBySerialCallback(long levelSerial, boolean deleted, int levelCount, UUID playerId) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		if (playerId != null) {
+			if (deleted) {
+				sendMessageToPlayerIfPresent(playerId, "command.level.delete.success", levelSerial);
+			} else {
+				sendMessageToPlayerIfPresent(playerId, "command.level.error.not-found", levelSerial);
+			}
+		}
+		LevelBrowserMenu.updateLevelCount(levelCount);
+		if (deleted) {
+			LevelBrowserMenu.removeLevelBySerial(levelSerial);
+		}
 	}
 
 	@Override
@@ -338,7 +385,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 		mPlayer.sendActionMessage(plugin, dislike ? "level.dislike.success" : "level.like.success");
 		MakerPlayableLevel level = mPlayer.getCurrentLevel();
-		if (level == null) {
+		if (level == null || !level.getLevelId().equals(levelId)) {
 			return;
 		}
 		level.setLikes(totalDislikes);
@@ -363,58 +410,6 @@ public class MakerController implements Runnable, Tickable {
 			LevelBrowserMenu.updatePlayerMenu(playerId);
 		}
 	}
-
-//	public void loadLevel(UUID authorId, String levelName, short chunkZ) {
-//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
-//		// if the directory does not exist, create it
-//		if (!schematicsFolder.exists()) {
-//			try {
-//				schematicsFolder.mkdir();
-//			} catch (Exception e) {
-//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
-//				e.printStackTrace();
-//				return;
-//			}
-//		}
-//
-//		File f;
-//		try {
-//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
-//		} catch (FilenameException e) {
-//			// TODO notify player/sender
-//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
-//			e.printStackTrace();
-//			return;
-//		}
-//
-//		if (!f.exists()) {
-//			// TODO notify player/sender
-//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
-//			return;
-//		}
-//
-//		ClipboardFormat format = ClipboardFormat.SCHEMATIC;
-//
-//		try (FileInputStream fis = new FileInputStream(f); BufferedInputStream bis = new BufferedInputStream(fis)) {
-//
-//			ClipboardReader reader = format.getReader(bis);
-//
-//			WorldData worldData = BukkitUtil.toWorld(getMainWorld()).getWorldData();
-//			Clipboard clipboard = reader.read(worldData);
-//			BlockTransformExtent extent = new BlockTransformExtent(clipboard, LevelUtils.IDENTITY_TRANSFORM, worldData.getBlockRegistry());
-//			ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), getMakerExtent(), LevelUtils.getLevelOrigin(chunkZ));
-//			copy.setTransform(LevelUtils.IDENTITY_TRANSFORM);
-//			boolean ignoreAirBlocks = false;
-//			if (ignoreAirBlocks) {
-//				copy.setSourceMask(new ExistingBlockMask(clipboard));
-//			}
-//			plugin.getLevelOperatorTask().offer(copy);
-//		} catch (IOException e) {
-//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to load level: %s", e.getMessage()));
-//			e.printStackTrace();
-//			return;
-//		}
-//	}
 
 	public void loadLevelForEditingBySerial(MakerPlayer mPlayer, Long levelSerial) {
 		if (!mPlayer.isInLobby()) {
@@ -1060,6 +1055,36 @@ public class MakerController implements Runnable, Tickable {
 		// plugin.publishServerInfoAsync();
 	}
 
+//	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
+//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
+//		// if the directory does not exist, create it
+//		if (!schematicsFolder.exists()) {
+//			try {
+//				schematicsFolder.mkdir();
+//			} catch (Exception e) {
+//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
+//				e.printStackTrace();
+//				return;
+//			}
+//		}
+//
+//		File f;
+//		try {
+//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
+//		} catch (FilenameException e) {
+//			// TODO notify player/sender
+//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+//			e.printStackTrace();
+//			return;
+//		}
+//
+//		Region levelRegion = LevelUtils.getDefaultLevelRegion(chunkZ);
+//		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
+//		clipboard.setOrigin(levelRegion.getMinimumPoint());
+//		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
+//		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
+//	}
+
 	public void onPlayerRespawn(PlayerRespawnEvent event) {
 		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
 		if (mPlayer == null) {
@@ -1115,48 +1140,12 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-//	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
-//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
-//		// if the directory does not exist, create it
-//		if (!schematicsFolder.exists()) {
-//			try {
-//				schematicsFolder.mkdir();
-//			} catch (Exception e) {
-//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
-//				e.printStackTrace();
-//				return;
-//			}
-//		}
-//
-//		File f;
-//		try {
-//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
-//		} catch (FilenameException e) {
-//			// TODO notify player/sender
-//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
-//			e.printStackTrace();
-//			return;
-//		}
-//
-//		Region levelRegion = LevelUtils.getDefaultLevelRegion(chunkZ);
-//		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
-//		clipboard.setOrigin(levelRegion.getMinimumPoint());
-//		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
-//		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
-//	}
-
 	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
 		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
 		levelMap.remove(makerLevel.getChunkZ());
 	}
 
-	public void renameLevel(Player player, String newName) {
-		final MakerPlayer mPlayer = getPlayer(player);
-		if (mPlayer == null) {
-			Bukkit.getLogger().warning(String.format("MakerController.renameLevel - untracked Player: [%s]", player.getName()));
-			player.sendMessage(plugin.getMessage("level.rename.error"));
-			return;
-		}
+	public void renameLevel(MakerPlayer mPlayer, String newName) {
 		// needs to be editing that level
 		if (!mPlayer.isEditingLevel()) {
 			mPlayer.sendActionMessage(plugin, "level.rename.error.no-editing");
@@ -1203,6 +1192,13 @@ public class MakerController implements Runnable, Tickable {
 				this.plugin.getMessage("player.welcome4"), this.plugin.getMessage("player.welcome5"),
 				this.plugin.getMessage("player.welcome6"), this.plugin.getMessage("player.welcome7"),
 				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome8")});
+	}
+
+	public void sendMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {
+		MakerPlayer mPlayer = getPlayer(playerId);
+		if (mPlayer != null) {
+			mPlayer.sendMessage(plugin, key, args);
+		}
 	}
 
 	public void startSteveChallenge(MakerPlayer mPlayer) {

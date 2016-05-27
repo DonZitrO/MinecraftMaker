@@ -446,14 +446,18 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 				if (newMaterial != null) {
 					LevelRedstoneInteraction cancelled = new LevelRedstoneInteraction(BukkitUtil.toVector(event.getBlock()), newMaterial, event.getBlock().getState().getData(), getCurrentTick(), event.getOldCurrent(), event.getNewCurrent());
 					cancelledRedstoneInteractions.put(cancelled.getLocation(), cancelled);
+					event.setNewCurrent(event.getOldCurrent());
 					if (plugin.isDebugMode()) {
 						Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - saved cancelled redstone interaction: %s", cancelled));
 					}
+				} else {
+					Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored redstone interaction in busy level - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
 				}
+			} else if (LevelStatus.COPYING_CLIPBOARD.equals(getStatus())) {
+				event.setNewCurrent(event.getOldCurrent());
 			} else {
-				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored cancelled interaction - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
+				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored redstone interaction in busy level - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
 			}
-			event.setNewCurrent(event.getOldCurrent());
 			return;
 		}
 	}
@@ -540,12 +544,9 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			return;
 		}
 		CuboidRegion region = getLevelRegion();
-		if (region == null) {
-			event.setCancelled(true);
-			return;
-		}
 		region.contract(new Vector(3, 3, 3), new Vector(-3, -3, -3));
 		if (!region.contains(BukkitUtil.toVector(event.getFrom())) || !region.contains(BukkitUtil.toVector(event.getTo()))) {
+			event.setTo(event.getFrom());
 			event.setCancelled(true);
 			return;
 		}
@@ -593,6 +594,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 		region.contract(new Vector(3, 3, 3), new Vector(-3, -3, -3));
 		if (!region.contains(BukkitUtil.toVector(event.getFrom())) || !region.contains(BukkitUtil.toVector(event.getTo()))) {
+			event.setTo(event.getFrom());
 			event.setCancelled(true);
 			return;
 		}
