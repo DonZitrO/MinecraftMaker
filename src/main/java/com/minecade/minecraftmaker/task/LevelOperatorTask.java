@@ -16,42 +16,67 @@ public class LevelOperatorTask extends BukkitRunnable {
 
 	private final MinecraftMakerPlugin plugin;
 	private final ResumableOperationQueue operationQueue = new ResumableOperationQueue();
+	private final ResumableOperationQueue priorityOperationQueue = new ResumableOperationQueue();
 
 	public LevelOperatorTask(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
 	}
 
-	public void offer(Operation operation) {
+	public void offerLowPriority(Operation operation) {
 		checkNotNull(operation);
 		operationQueue.offer(operation);
 	}
 
-	public void offerFirst(Operation operation) {
+	public void offer(Operation operation) {
 		checkNotNull(operation);
-		//operationQueue.(operation);
+		operationQueue.offerFirst(operation);
+	}
+
+	public void offerHighPriority(Operation operation) {
+		checkNotNull(operation);
+		priorityOperationQueue.offer(operation);
+	}
+
+	public void offerHighestPriority(Operation operation) {
+		checkNotNull(operation);
+		priorityOperationQueue.offerFirst(operation);
 	}
 
 	@Override
 	public void run() {
-		// FIXME: only enable this for specific operator tasks debugging
+		if (priorityOperationQueue.isEmpty() && operationQueue.isEmpty()) {
+			return;
+		}
 		long startNanoTime = 0;
 		if (plugin.isDebugMode()) {
 			startNanoTime = System.nanoTime();
 		}
+		long divisor = priorityOperationQueue.isEmpty() ^ operationQueue.isEmpty() ? 1 : 2;
+		LimitedTimeRunContext runContext = new LimitedTimeRunContext(MAX_TIME_PER_TICK_NANOSECONDS / divisor);
 		try {
-			operationQueue.resume(new LimitedTimeRunContext(MAX_TIME_PER_TICK_NANOSECONDS));
-			if (plugin.isDebugMode()) {
-				long totalNanoTime = System.nanoTime() - startNanoTime;
-				if (totalNanoTime > MAX_TIME_PER_TICK_NANOSECONDS) {
-					Bukkit.getLogger().info(String.format("[DEBUG] | MakerBuilderTask.run - operation took: [%s] nanoseconds", totalNanoTime));
-				}
+			if (!priorityOperationQueue.isEmpty()) {
+				priorityOperationQueue.resume(runContext);
+			}
+		} catch (Exception e) {
+			priorityOperationQueue.cancelCurrentOperation();
+			Bukkit.getLogger().severe(String.format("MakerBuilderTask.run - a severe exception occurred on the Builder Task: %s", e.getMessage()));
+			e.printStackTrace();
+		}
+		try {
+			runContext.addExtraTime(MAX_TIME_PER_TICK_NANOSECONDS/2);
+			if (!operationQueue.isEmpty()) {
+				operationQueue.resume(runContext);
 			}
 		} catch (Exception e) {
 			operationQueue.cancelCurrentOperation();
 			Bukkit.getLogger().severe(String.format("MakerBuilderTask.run - a severe exception occurred on the Builder Task: %s", e.getMessage()));
 			e.printStackTrace();
-			// TODO: remove this once the right exception handling is fully implemented.
-			// Bukkit.shutdown();
+		}
+		if (plugin.isDebugMode()) {
+			long totalNanoTime = System.nanoTime() - startNanoTime;
+			if (totalNanoTime > MAX_TIME_PER_TICK_NANOSECONDS) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerBuilderTask.run - operation took: [%s] nanoseconds", totalNanoTime));
+			}
 		}
 	}
 

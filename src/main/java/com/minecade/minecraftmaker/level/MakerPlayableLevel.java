@@ -33,7 +33,6 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
@@ -51,7 +50,7 @@ import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.world.BlockVector;
 import com.minecade.minecraftmaker.schematic.world.CuboidRegion;
-import com.minecade.minecraftmaker.schematic.world.Extent;
+import com.minecade.minecraftmaker.schematic.world.MakerExtent;
 import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.schematic.world.Vector;
 import com.minecade.minecraftmaker.schematic.world.Vector2D;
@@ -323,11 +322,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	public int getLevelWidth() {
 		return clipboard != null ? clipboard.getDimensions().getBlockX() : MAX_LEVEL_WIDTH;
-	}
-
-	// TODO: candidate for removal, use full level object when possible
-	public Extent getMakerExtent() {
-		return plugin.getController().getMakerExtent();
 	}
 
 	private MakerPlayer getPlayerIsInThisLevel(UUID playerId) {
@@ -969,9 +963,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			firstTimeLoaded = false;
 			// FIXME: brute force level clear
 			//plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createEmptyLevelClipboard(getChunkZ(), 0), getMakerExtent(), getWorldData()));
+			plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
+		} else {
+			plugin.getLevelOperatorTask().offerHighPriority(new LevelClipboardPasteOperation(this));
 		}
-		plugin.getLevelOperatorTask().offer(new LevelClipboardPasteOperation(this));
-		plugin.getLevelOperatorTask().offer(LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingEmptyClipboard(getChunkZ(), getLevelWidth()), getMakerExtent(), getWorldData()));
+		plugin.getLevelOperatorTask().offerLowPriority(LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingEmptyClipboard(getChunkZ(), getLevelWidth()), new MakerExtent(getWorld()), getWorldData()));
 	}
 
 	private void tickClipboardPasted() {
@@ -1015,7 +1011,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.tickEdited - level: [%s] - status: [%s] - tick: [%s]", getLevelName(), getStatus(), getCurrentTick()));
 		}
 		this.status = LevelStatus.CLIPBOARD_COPY_READY;
-		plugin.getLevelOperatorTask().offer(new LevelClipboardCopyOperation(plugin, this));
+		plugin.getLevelOperatorTask().offerHighestPriority(new LevelClipboardCopyOperation(this));
 	}
 
 	private void tickEditReady() {

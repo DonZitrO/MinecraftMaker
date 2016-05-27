@@ -8,6 +8,7 @@ import javax.annotation.Nullable;
 
 import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
+import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
@@ -18,9 +19,9 @@ public class MakerExtent implements Extent {
 	protected final World world;
 	private final Extent internalExtent;
 
-	public MakerExtent(World world) {
-		checkNotNull(world);
-		this.world = world;
+	public MakerExtent(org.bukkit.World bukkitWorld) {
+		checkNotNull(bukkitWorld);
+		world = BukkitUtil.toWorld(bukkitWorld);
 		Extent extent;
 		extent = new FastModeExtent(world, true);
 		extent = new SurvivalModeExtent(extent, world);

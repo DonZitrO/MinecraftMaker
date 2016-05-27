@@ -9,6 +9,14 @@ public class LimitedTimeRunContext {
 		this.endNanoTime = System.nanoTime() + nanoTimeLimit;
 	}
 
+	public long getRemainingTime() {
+		return Math.max(0, this.endNanoTime - System.nanoTime());
+	}
+
+	public void addExtraTime(long extraTime) {
+		this.endNanoTime += extraTime;
+	}
+
 	public boolean shouldContinue() {
 		long currentNanoTime = System.nanoTime();
 		if (currentNanoTime < this.endNanoTime) {

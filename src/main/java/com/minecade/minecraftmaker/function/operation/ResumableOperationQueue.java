@@ -129,4 +129,8 @@ public class ResumableOperationQueue implements Operation {
 		}
 	}
 
+	public boolean isEmpty() {
+		return current == null && queue.isEmpty();
+	}
+
 }
