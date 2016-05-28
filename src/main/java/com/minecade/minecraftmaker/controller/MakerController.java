@@ -510,9 +510,9 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		
-		// allow YTs to join full servers
+		// allows YTs and staff to join full servers
 		if (Result.KICK_FULL.equals(event.getLoginResult())) {
-			if (data.hasRank(Rank.YT)) {
+			if (data.hasRank(Rank.GM) || data.hasRank(Rank.YT)) {
 				event.allow();
 			} else {
 				event.setKickMessage(plugin.getMessage("server.error.max-player-capacity"));
