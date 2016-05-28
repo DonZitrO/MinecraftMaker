@@ -509,15 +509,15 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		
-		// allow vips to join full servers TODO: Beta - uncomment after beta
-//		if (Result.KICK_FULL.equals(event.getLoginResult())) {
-//			if (data.hasRank(Rank.VIP) && getPlayerCount() < Bukkit.getMaxPlayers() + 20) {
-//				event.allow();
-//			} else {
-//				event.setKickMessage(plugin.getMessage("server.error.max-player-capacity"));
-//				return;
-//			}
-//		}
+		// allow YTs to join full servers
+		if (Result.KICK_FULL.equals(event.getLoginResult())) {
+			if (data.hasRank(Rank.YT)) {
+				event.allow();
+			} else {
+				event.setKickMessage(plugin.getMessage("server.error.max-player-capacity"));
+				return;
+			}
+		}
 		if (!Result.ALLOWED.equals(event.getLoginResult())) {
 			return;
 		}
