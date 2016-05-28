@@ -10,6 +10,8 @@ import net.minecraft.server.v1_9_R1.EntityInsentient;
 import net.minecraft.server.v1_9_R1.EntityItem;
 import net.minecraft.server.v1_9_R1.EntitySpider;
 import net.minecraft.server.v1_9_R1.IChatBaseComponent;
+import net.minecraft.server.v1_9_R1.NBTTagCompound;
+import net.minecraft.server.v1_9_R1.NBTTagList;
 import net.minecraft.server.v1_9_R1.IChatBaseComponent.ChatSerializer;
 import net.minecraft.server.v1_9_R1.PacketPlayOutChat;
 import net.minecraft.server.v1_9_R1.PathfinderGoalMeleeAttack;
@@ -19,14 +21,17 @@ import net.minecraft.server.v1_9_R1.WorldServer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.craftbukkit.v1_9_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_9_R1.entity.CraftCaveSpider;
 import org.bukkit.craftbukkit.v1_9_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_9_R1.entity.CraftItem;
 import org.bukkit.craftbukkit.v1_9_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_9_R1.entity.CraftSpider;
+import org.bukkit.craftbukkit.v1_9_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -72,6 +77,33 @@ public class NMSUtils {
 		((CraftPlayer)p).getHandle().playerConnection.sendPacket(bar);
 	}
 
+	public static ItemStack createSkull(ItemStack item, String uniqueId, String value) {
+		if(!Material.SKULL_ITEM.equals(item.getType())) return null;
+
+		net.minecraft.server.v1_9_R1.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
+
+		// Set textures
+		NBTTagCompound texture = new NBTTagCompound();
+		texture.setString("Value", value);
+
+		NBTTagList textures = new NBTTagList();
+		textures.add(texture);
+
+		NBTTagCompound properties = new NBTTagCompound();
+		properties.set("textures", textures);
+
+		// Set unique id and textures
+		NBTTagCompound owner = new NBTTagCompound();
+		owner.setString("Id", uniqueId);
+		owner.set("Properties", properties);
+
+		NBTTagCompound tag = nmsItem.getTag();
+		if(tag == null) tag = new NBTTagCompound();
+		tag.set("SkullOwner", owner);
+		nmsItem.setTag(tag);
+
+		return CraftItemStack.asCraftMirror(nmsItem);
+	}
 
 	public static void sendPacket(Player player, Object packet) {
 		try {

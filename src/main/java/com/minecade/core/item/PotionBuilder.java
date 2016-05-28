@@ -3,32 +3,44 @@ package com.minecade.core.item;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.potion.Potion;
+import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionType;
 
-import com.minecade.minecraftmaker.nms.NMSPotionUtils;
+public class PotionBuilder implements ItemStackBuilder {
 
-public class PotionBuilder extends Potion implements ItemStackBuilder {
-
+	private PotionType type;
 	private int amount;
 	private List<PotionEffect> potionEffects;
-	private boolean linger;
+	private boolean lingering;
+	private boolean splash;
+	private boolean extended;
+	private boolean upgraded;
 
 	private String displayName;
 	private List<String> lore;
 
-	public PotionBuilder(PotionType type, int amount, int level) {
-		super(type, level);
+	public PotionBuilder(PotionType type, int amount) {
+		this.type = type;
 		this.amount = amount;
 	}
 
 	@Override
 	public ItemStack build() {
-		ItemStack is = NMSPotionUtils.toItemStack(this, amount);
-		PotionMeta meta = (PotionMeta)is.getItemMeta();
+		ItemStack item = null;
+		if (isSplash()) {
+			item = new ItemStack(Material.SPLASH_POTION, amount);
+		} else if (isLingering()) {
+			item = new ItemStack(Material.LINGERING_POTION, amount);
+		} else {
+			item = new ItemStack(Material.POTION, amount);
+		}
+		PotionData data = new PotionData(type, extended, upgraded);
+		PotionMeta meta = (PotionMeta)item.getItemMeta();
+		meta.setBasePotionData(data);
 		if (!StringUtils.isBlank(displayName)) {
 			meta.setDisplayName(displayName);
 		}
@@ -40,13 +52,13 @@ public class PotionBuilder extends Potion implements ItemStackBuilder {
 				meta.addCustomEffect(eff, true);
 			}
 		}
-		is.setItemMeta(meta);
-		return is;
+		item.setItemMeta(meta);
+		return item;
 	}
 
-	@Override
 	public PotionBuilder extend() {
-		return (PotionBuilder)super.extend();
+		extended = true;
+		return this;
 	}
 
 	@Override
@@ -54,18 +66,30 @@ public class PotionBuilder extends Potion implements ItemStackBuilder {
 		return displayName;
 	}
 
-	@Override
-	public PotionBuilder splash() {
-		return (PotionBuilder)super.splash();
+	public boolean isExtended() {
+		return extended;
+	}
+
+	public boolean isLingering() {
+		return lingering;
+	}
+
+	public boolean isSplash() {
+		return splash;
+	}
+
+	public boolean isUpgraded() {
+		return upgraded;
 	}
 
 	public PotionBuilder linger() {
-		this.linger = true;
+		lingering = true;
 		return this;
 	}
 
-	public boolean isLinger() {
-		return linger;
+	public PotionBuilder splash() {
+		splash = true;
+		return this;
 	}
 
 	@Override

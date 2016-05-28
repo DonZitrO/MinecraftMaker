@@ -419,7 +419,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 				continue;
 			}
 			if (!region.contains(BukkitUtil.toVector(entity.getLocation()))) {
-				Bukkit.getLogger().warning(String.format("MakerPlayableLevel.monitorProblematicEntities - removing entity that moved outside level - type:[%s] - location: [%s] - level: %s", entity.getType(), entity.getLocation().toVector(), getDescription()));
+				Bukkit.getLogger().warning(String.format("MakerPlayableLevel.monitorProblematicEntities - removing entity that moved outside level - type:[%s] - location: [%s] - level: {%s}", entity.getType(), entity.getLocation().toVector(), getDescription()));
 				entity.remove();
 				iter.remove();
 			}

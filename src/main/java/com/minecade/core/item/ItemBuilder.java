@@ -9,7 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.material.MaterialData;
 
-import com.minecade.minecraftmaker.nms.NMSSkullUtils;
+import com.minecade.nms.NMSUtils;
 
 public class ItemBuilder implements ItemStackBuilder, Cloneable {
 
@@ -77,7 +77,7 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 
 		// Skull
 		if (StringUtils.isNotBlank(this.uniqueId) && StringUtils.isNotBlank(this.texture)) {
-			return NMSSkullUtils.createSkull(item, this.uniqueId, this.texture);
+			return NMSUtils.createSkull(item, this.uniqueId, this.texture);
 		}
 
 		return item;

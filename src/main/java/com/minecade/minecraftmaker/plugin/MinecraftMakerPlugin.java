@@ -28,12 +28,12 @@ import com.minecade.minecraftmaker.items.SteveLevelOptionItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
-import com.minecade.minecraftmaker.nms.schematic.Spigot_v1_9_2_R1;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
 import com.minecade.minecraftmaker.task.AsyncLevelBrowserUpdaterTask;
 import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
 import com.minecade.minecraftmaker.task.AsyncPlayerCounterUpdaterTask;
 import com.minecade.minecraftmaker.task.LevelOperatorTask;
+import com.minecade.nms.Spigot_v1_9_2_R1;
 
 public class MinecraftMakerPlugin extends JavaPlugin implements Internationalizable {
 
