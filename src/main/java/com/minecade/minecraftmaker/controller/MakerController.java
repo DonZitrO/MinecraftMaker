@@ -733,13 +733,13 @@ public class MakerController implements Runnable, Tickable {
 	public void onEntityTeleport(EntityTeleportEvent event) {
 		short slot = LevelUtils.getLocationSlot(event.getFrom());
 		if (slot < 0) {
-			event.setCancelled(true);
+			event.setTo(event.getFrom());
 			Bukkit.getLogger().warning(String.format("MakerController.onEntityTeleport - cancelled creature teleporting from outside level - creature type: [%s] - from: [%s]", event.getEntityType(), event.getFrom().toVector()));
 			return;
 		}
 		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
-			event.setCancelled(true);
+			event.setTo(event.getFrom());
 			Bukkit.getLogger().warning(String.format("MakerController.onEntityTeleport - cancelled creature teleporting from unregistered level slot - creature type: [%s] - location: [%s]", event.getEntityType(), event.getFrom().toVector()));
 			return;
 		}
@@ -1136,13 +1136,13 @@ public class MakerController implements Runnable, Tickable {
 	public void onPlayerTeleport(PlayerTeleportEvent event) {
 		short slot = LevelUtils.getLocationSlot(event.getFrom());
 		if (slot < 0) {
-			event.setCancelled(true);
+			event.setTo(event.getFrom());
 			Bukkit.getLogger().warning(String.format("MakerController.onPlayerTeleport - cancelled player teleporting from outside level - player: [%s] - cause: [%s] - from: [%s]", event.getPlayer().getName(), event.getCause(), event.getFrom().toVector()));
 			return;
 		}
 		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
-			event.setCancelled(true);
+			event.setTo(event.getFrom());
 			Bukkit.getLogger().warning(String.format("MakerController.onPlayerTeleport - cancelled  player teleporting from unregistered level slot - player: [%s] - cause: [%s] - location: [%s]", event.getPlayer().getName(), event.getCause(), event.getFrom().toVector()));
 			return;
 		}

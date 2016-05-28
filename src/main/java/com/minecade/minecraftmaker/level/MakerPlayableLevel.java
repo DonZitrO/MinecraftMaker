@@ -4,10 +4,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -20,6 +23,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.block.BlockDispenseEvent;
@@ -73,6 +77,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	private static final short MAX_LEVEL_MOBS = 20;
 
 	private Map<BlockVector, LevelRedstoneInteraction> cancelledRedstoneInteractions = new LinkedHashMap<>();
+	private Set<Entity> problematicEntities = new LinkedHashSet<>();
 
 	private final Short chunkZ;
 
@@ -401,6 +406,26 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(this);
 	}
 
+	private void monitorProblematicEntities() {
+		if (problematicEntities.isEmpty()) {
+			return;
+		}
+		CuboidRegion region = getLevelRegion();
+		Iterator<Entity> iter = problematicEntities.iterator();
+		while (iter.hasNext()){
+			Entity entity = iter.next();
+			if (entity.isDead() || !entity.isValid()) {
+				iter.remove();
+				continue;
+			}
+			if (!region.contains(BukkitUtil.toVector(entity.getLocation()))) {
+				Bukkit.getLogger().warning(String.format("MakerPlayableLevel.monitorProblematicEntities - removing entity that moved outside level - type:[%s] - location: [%s] - level: %s", entity.getType(), entity.getLocation().toVector(), getDescription()));
+				entity.remove();
+				iter.remove();
+			}
+		}
+	}
+
 	public void onBlockDispense(BlockDispenseEvent event) {
 		if (LevelStatus.EDITING.equals(getStatus())) {
 			if (event.getItem().getType().equals(Material.LAVA_BUCKET)) {
@@ -514,6 +539,14 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		// loading level for edition, stop mobs from moving/attacking
 		if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus())) {
 			NMSUtils.disableMobAI(event.getEntity(), currentPlayerId == null);
+			switch (event.getEntityType()) {
+			case ENDERMAN:
+			case SHULKER:
+				problematicEntities.add(event.getEntity());
+				break;
+			default:
+				break;
+			}
 			return;
 		}
 		if (LevelStatus.EDITING.equals(getStatus())) {
@@ -588,14 +621,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	public void onEntityTeleport(EntityTeleportEvent event) {
 		if (isBusy()) {
-			event.setCancelled(true);
+			event.setTo(event.getFrom());
 			return;
 		}
-		CuboidRegion region = getLevelRegion();
-		region.contract(new Vector(3, 3, 3), new Vector(-3, -3, -3));
-		if (!region.contains(BukkitUtil.toVector(event.getFrom())) || !region.contains(BukkitUtil.toVector(event.getTo()))) {
+		if (!contains(event.getTo().toVector())) {
 			event.setTo(event.getFrom());
-			event.setCancelled(true);
 			return;
 		}
 	}
@@ -632,18 +662,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	public void onPlayerTeleport(PlayerTeleportEvent event) {
 		if (isBusy()) {
-			event.setCancelled(true);
-			return;
-		}
-		CuboidRegion region = getLevelRegion();
-		if (region == null) {
-			event.setCancelled(true);
-			return;
-		}
-		region.contract(new Vector(3, 3, 3), new Vector(-3, -3, -3));
-		if (!region.contains(BukkitUtil.toVector(event.getFrom())) || !region.contains(BukkitUtil.toVector(event.getTo()))) {
 			event.setTo(event.getFrom());
-			event.setCancelled(true);
+			return;
+		}
+		if (!contains(event.getTo().toVector())) {
+			event.setTo(event.getFrom());
 			return;
 		}
 	}
@@ -713,6 +736,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 				}
 				break;
 			}
+		}
+		Iterator<Entity> iter = problematicEntities.iterator();
+		while (iter.hasNext()) {
+			iter.next().remove();
+			iter.remove();
 		}
 	}
 
@@ -1090,6 +1118,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		startEditing();
 	}
 
+	private void tickPlaying() {
+		if (getCurrentTick() % 20 == 17) {
+			monitorProblematicEntities();
+		}
+	}
+
 	private void tickPlayReady() {
 		startPlaying(currentPlayerId);
 	}
@@ -1199,6 +1233,9 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			break;
 		case RESTART_PLAY_READY:
 			tickRestartPlayReady();
+			break;
+		case PLAYING:
+			tickPlaying();
 			break;
 		default:
 			break;

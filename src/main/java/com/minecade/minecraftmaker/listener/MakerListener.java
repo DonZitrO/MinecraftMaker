@@ -330,11 +330,12 @@ public class MakerListener implements Listener {
 		case PLUGIN:
 		case UNKNOWN:
 		case COMMAND:
-			return;
+		case SPECTATE:
+			break;
 		default:
+			plugin.getController().onPlayerTeleport(event);
 			break;
 		}
-		plugin.getController().onPlayerTeleport(event);
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerTeleport finish - player: [%s] - from: [%s] - to: [%s] - cause: [%s] - cancelled: [%s]", event.getPlayer().getName(), event.getFrom().toVector(), event.getTo().toVector(), event.getCause(), event.isCancelled()));
 		}
