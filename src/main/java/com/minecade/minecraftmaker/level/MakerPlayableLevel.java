@@ -19,6 +19,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.block.BlockFromToEvent;
@@ -92,12 +93,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		this.status = LevelStatus.BLANK;
 	}
 
-	public void checkLevelVoidBorder(Location to) {
-		if (to.getBlockY() < -1) {
-			restartPlaying();
-		}
-	}
-
 	public void checkLevelEnd(Location location) {
 		if (relativeEndLocation == null) {
 			throw new IllegalStateException("MakerLevel.endlocation cannot be null at this point");
@@ -105,6 +100,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		Location endLocation = getEndLocation();
 		if (location.getBlockX() == endLocation.getBlockX() && location.getBlockZ() == endLocation.getBlockZ() && location.getBlockY() >= endLocation.getBlockY()) {
 			clearLevel();
+		}
+	}
+
+	public void checkLevelVoidBorder(Location to) {
+		if (to.getBlockY() < -1) {
+			restartPlaying();
 		}
 	}
 
@@ -191,6 +192,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
+	public boolean contains(org.bukkit.util.Vector position) {
+		CuboidRegion region = getLevelRegion();
+		region.contract(new Vector(2, 0, 3), new Vector(-2, -2, -2));
+		return region.contains(BukkitUtil.toVector(position));
+	}
+
 	public void continueEditing() {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(authorId);
 		if (mPlayer == null) {
@@ -205,6 +212,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			disable(e.getMessage(), e);
 			return;
 		}
+	}
+
+	@Override
+	public void disable() {
+		status = LevelStatus.DISABLE_READY;
 	}
 
 	public synchronized void exitEditing() {
@@ -277,6 +289,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	@Override
 	public long getCurrentTick() {
 		return currentTick;
+	}
+
+	@Override
+	public String getDescription() {
+		return String.format("MakerPlayableLevel: [%s(%s)<%s>] with status: [%s] on slot: [%s]", getLevelName(), getLevelSerial(), getLevelId(), getStatus(), getChunkZ());
 	}
 
 	public Location getEndLocation() {
@@ -797,6 +814,27 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
+	private void setupLobbySign() {
+		Block signBlock = BukkitUtil.toLocation(getWorld(), getLevelRegion().getMinimumPoint().add(-4, FLOOR_LEVEL_Y + 2, 6)).getBlock();
+		signBlock.setType(Material.WALL_SIGN);
+		Sign sign = (Sign) signBlock.getState();
+		org.bukkit.material.Sign signMaterialData = new org.bukkit.material.Sign(sign.getType());
+		signMaterialData.setFacingDirection(BlockFace.WEST);
+		sign.setData(signMaterialData);
+		if (getLevelSerial() < 1) {
+			sign.setLine(0, plugin.getMessage("level.sign.building"));
+			sign.setLine(1, "");
+			sign.setLine(2, StringUtils.abbreviate(getAuthorRank().getDisplayName(), 16));
+			sign.setLine(3, StringUtils.abbreviate(getAuthorName(), 16));
+		} else {
+			sign.setLine(0, StringUtils.abbreviate(getLevelName(), 16));
+			sign.setLine(1, String.valueOf(getLevelSerial()));
+			sign.setLine(2, StringUtils.abbreviate(getAuthorRank().getDisplayName(), 16));
+			sign.setLine(3, StringUtils.abbreviate(getAuthorName(), 16));
+		}
+		sign.update(true, false);
+	}
+
 	public void setupStartLocation() {
 		Vector mp = getLevelRegion().getMinimumPoint();
 		Block startLocation = BukkitUtil.toLocation(getWorld(), mp.add(2, FLOOR_LEVEL_Y, 6)).getBlock();
@@ -950,6 +988,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 				fixClipboard();
 			}
 			setupCliboardFloor();
+			setupLobbySign();
 		} catch (Exception e) {
 			disable(e.getMessage(), e);
 			return;
@@ -1183,22 +1222,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (showMessage) {
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.busy.title"), plugin.getMessage("level.busy.subtitle"));
 		}
-	}
-
-	@Override
-	public void disable() {
-		status = LevelStatus.DISABLE_READY;
-	}
-
-	@Override
-	public String getDescription() {
-		return String.format("MakerPlayableLevel: [%s(%s)<%s>] with status: [%s] on slot: [%s]", getLevelName(), getLevelSerial(), getLevelId(), getStatus(), getChunkZ());
-	}
-
-	public boolean contains(org.bukkit.util.Vector position) {
-		CuboidRegion region = getLevelRegion();
-		region.contract(new Vector(2, 0, 3), new Vector(-2, -2, -2));
-		return region.contains(BukkitUtil.toVector(position));
 	}
 
 }
