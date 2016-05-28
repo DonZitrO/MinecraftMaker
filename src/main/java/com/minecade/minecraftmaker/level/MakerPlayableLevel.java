@@ -22,6 +22,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
+import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
@@ -400,7 +401,37 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(this);
 	}
 
+	public void onBlockDispense(BlockDispenseEvent event) {
+		if (LevelStatus.EDITING.equals(getStatus())) {
+			if (event.getItem().getType().equals(Material.LAVA_BUCKET)) {
+				event.setCancelled(true);
+				return;
+			}
+		}
+		if (isBusy()) {
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockDispense - cancelled block dispense on busy level: [%s<%s>] with status: [%s]", getLevelName(), getLevelId(), getStatus()));
+			}
+			event.setCancelled(true);
+			return;
+		}
+		org.bukkit.material.Dispenser dispenserData = (org.bukkit.material.Dispenser)event.getBlock().getState().getData();
+		if (relativeEndLocation != null && LevelUtils.isAboveLocation(event.getBlock().getRelative(dispenserData.getFacing()).getLocation().toVector(), getEndLocation().toVector())) {
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockDispense - cancelled block dispense over end beacon: [%s<%s>] with status: [%s]", getLevelName(), getLevelId(), getStatus()));
+			}
+			event.setCancelled(true);
+			return;
+		}
+	}
+
 	public void onBlockFromTo(BlockFromToEvent event) {
+		if (LevelStatus.EDITING.equals(getStatus())) {
+			if (event.getBlock().getType().equals(Material.LAVA) || event.getBlock().getType().equals(Material.STATIONARY_LAVA)) {
+				event.setCancelled(true);
+				return;
+			}
+		}
 		if (isBusy()) {
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockFromTo - cancelled liquid block flowing on busy level: [%s<%s>] with status: [%s]", getLevelName(), getLevelId(), getStatus()));
@@ -408,7 +439,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			event.setCancelled(true);
 			return;
 		}
-		if (relativeEndLocation != null && LevelUtils.isAboveLocation(event.getToBlock().getLocation().toVector(), getEndLocation().toVector())) {
+		if (relativeEndLocation != null && LevelUtils.isAboveLocation(event.getBlock().getLocation().toVector(), getEndLocation().toVector())) {
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockFromTo - cancelled liquid block flowing on end beacon: [%s<%s>] with status: [%s]", getLevelName(), getLevelId(), getStatus()));
 			}

@@ -23,6 +23,7 @@ import org.bukkit.entity.Horse;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
@@ -555,6 +556,22 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void onBlockDispense(BlockDispenseEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockDispense - cancelled block dispense - type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			Bukkit.getLogger().warning(String.format("MakerController.onBlockDispense - cancelled block dispense on unregistered level slot: [%s] - type: [%s] - location: [%s]", slot, event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			return;
+		}
+		level.onBlockDispense(event);
+	}
+
 	public void onBlockFromTo(BlockFromToEvent event) {
 		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
 		if (slot < 0) {
@@ -941,6 +958,14 @@ public class MakerController implements Runnable, Tickable {
 				return;
 			default:
 				break;
+			}
+		}
+		if (mPlayer.isEditingLevel()) {
+			if (EventUtils.isItemRightClick(event, Material.LAVA_BUCKET)) {
+				mPlayer.sendActionMessage(plugin, "level.create.error.disabled-block");
+				event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
+				event.setCancelled(true);
+				return;
 			}
 		}
 	}
