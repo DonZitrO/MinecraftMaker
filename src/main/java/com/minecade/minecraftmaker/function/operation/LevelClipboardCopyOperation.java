@@ -23,7 +23,7 @@ public class LevelClipboardCopyOperation implements Operation {
 	public Operation resume(LimitedTimeRunContext run) throws MinecraftMakerException {
 		if (firstRun) {
 			firstRun = false;
-			level.tryStatusTransition(LevelStatus.CLIPBOARD_COPY_READY, LevelStatus.COPYING_CLIPBOARD);
+			level.tryStatusTransition(LevelStatus.CLIPBOARD_COPY_READY, LevelStatus.CLIPBOARD_COPYING);
 			Region levelRegion = level.getLevelRegion();
 			// we need a fresh clipboard every time
 			BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
@@ -32,7 +32,7 @@ public class LevelClipboardCopyOperation implements Operation {
 			ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(new MakerExtent(level.getWorld()), levelRegion, level.getClipboard(), level.getClipboard().getOrigin());
 			return new DelegateOperation(this, copy);
 		}
-		level.tryStatusTransition(LevelStatus.COPYING_CLIPBOARD, LevelStatus.CLIPBOARD_COPIED);
+		level.tryStatusTransition(LevelStatus.CLIPBOARD_COPYING, LevelStatus.CLIPBOARD_COPIED);
 		return null;
 	}
 

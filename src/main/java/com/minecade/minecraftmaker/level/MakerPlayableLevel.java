@@ -69,6 +69,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	public static final short DEFAULT_LEVEL_WIDTH = 160;
 	public static final short DEFAULT_LEVEL_HEIGHT = 48;
+	public static final short MAX_LEVELS_PER_WORLD = 50;
 	public static final short MAX_LEVEL_WIDTH = 160;
 	public static final short MAX_LEVEL_HEIGHT = 80;
 	public static final short HIGHEST_LEVEL_Y = 63;
@@ -510,41 +511,35 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
 		}
-		if (isDisabled()) {
-			event.setNewCurrent(event.getOldCurrent());
+		if (LevelStatus.CLIPBOARD_PASTE_COMMITTING.equals(getStatus())) {
+			Material newMaterial = null;
+			if (event.getOldCurrent() == 15 && event.getNewCurrent() == 0 && StringUtils.endsWith(event.getBlock().getType().name(), "_ON")) {
+				newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "ON").concat("OFF"));
+			} else if (event.getOldCurrent() == 0 && event.getNewCurrent() == 15 && StringUtils.endsWith(event.getBlock().getType().name(), "_OFF")) {
+				newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "OFF").concat("ON"));
+			}
+			if (newMaterial != null) {
+				LevelRedstoneInteraction cancelled = new LevelRedstoneInteraction(BukkitUtil.toVector(event.getBlock()), newMaterial, event.getBlock().getState().getData(), getCurrentTick(), event.getOldCurrent(), event.getNewCurrent());
+				cancelledRedstoneInteractions.put(cancelled.getLocation(), cancelled);
+				event.setNewCurrent(event.getOldCurrent());
+				if (plugin.isDebugMode()) {
+					Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - saved cancelled redstone interaction: %s", cancelled));
+				}
+			} else {
+				event.setNewCurrent(event.getOldCurrent());
+				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored cancelled redstone interaction - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
+			}
 			return;
 		}
 		if (isBusy()) {
-			Material newMaterial = null;
-			// TODO: replace for stage 3 pasting when implemented
-			if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus())) {
-				if (event.getOldCurrent() == 15 && event.getNewCurrent() == 0 && StringUtils.endsWith(event.getBlock().getType().name(), "_ON")) {
-					newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "ON").concat("OFF"));
-				} else if (event.getOldCurrent() == 0 && event.getNewCurrent() == 15 && StringUtils.endsWith(event.getBlock().getType().name(), "_OFF")) {
-					newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "OFF").concat("ON"));
-				}
-				if (newMaterial != null) {
-					LevelRedstoneInteraction cancelled = new LevelRedstoneInteraction(BukkitUtil.toVector(event.getBlock()), newMaterial, event.getBlock().getState().getData(), getCurrentTick(), event.getOldCurrent(), event.getNewCurrent());
-					cancelledRedstoneInteractions.put(cancelled.getLocation(), cancelled);
-					event.setNewCurrent(event.getOldCurrent());
-					if (plugin.isDebugMode()) {
-						Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - saved cancelled redstone interaction: %s", cancelled));
-					}
-				} else {
-					Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored redstone interaction in busy level - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
-				}
-			} else if (LevelStatus.COPYING_CLIPBOARD.equals(getStatus())) {
-				event.setNewCurrent(event.getOldCurrent());
-			} else {
-				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored redstone interaction in busy level - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
-			}
+			event.setNewCurrent(event.getOldCurrent());
 			return;
 		}
 	}
 
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		// loading level for edition, stop mobs from moving/attacking
-		if (LevelStatus.PASTING_CLIPBOARD.equals(getStatus())) {
+		if (LevelStatus.CLIPBOARD_PASTE_COMMITTING.equals(getStatus())) {
 			NMSUtils.disableMobAI(event.getEntity(), currentPlayerId == null);
 			switch (event.getEntityType()) {
 			case ENDERMAN:
@@ -1302,6 +1297,10 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (showMessage) {
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.busy.title"), plugin.getMessage("level.busy.subtitle"));
 		}
+	}
+
+	public void clearCancelledRedstoneInteractions() {
+		cancelledRedstoneInteractions.clear();
 	}
 
 }

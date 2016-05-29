@@ -45,6 +45,6 @@ public interface OutputExtent {
      *
      * @return an operation or null if there is none to execute
      */
-    @Nullable Operation commit();
+    @Nullable Operation commit() throws MinecraftMakerException;
 
 }

@@ -97,7 +97,7 @@ public abstract class AbstractDelegateExtent implements Extent {
 	}
 
 	@Override
-	public final @Nullable Operation commit() {
+	public final @Nullable Operation commit() throws MinecraftMakerException {
 		Operation ours = commitBefore();
 		Operation other = extent.commit();
 		if (ours != null && other != null) {

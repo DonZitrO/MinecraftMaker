@@ -29,7 +29,6 @@ import com.minecade.minecraftmaker.schematic.world.WorldData;
 public class LevelUtils {
 
 	public static final Transform IDENTITY_TRANSFORM = new Identity();
-	private static final short MAX_LEVELS_PER_WORLD = 10;
 
 	private static Clipboard createEmptyClipboard(Region region) {
 		checkNotNull(region);
@@ -156,10 +155,14 @@ public class LevelUtils {
 		if (location.getBlockX() < 0 || location.getBlockX() > MakerPlayableLevel.MAX_LEVEL_WIDTH - 1) {
 			return -1;
 		}
-		if (location.getBlockZ() < 0 || location.getBlockZ() > MAX_LEVELS_PER_WORLD * 16) {
+		if (location.getBlockZ() < 0 || location.getBlockZ() > MakerPlayableLevel.MAX_LEVELS_PER_WORLD * 16 * 3) {
 			return -1;
 		}
-		return (short) (location.getBlockZ() / 16);
+		int slot = (location.getBlockZ() / 16);
+		if (slot % 3 != 0) {
+			return -1;
+		}
+		return (short) slot;
 	}
 
 	public static boolean isBeaconPowerBlock(Block block) {

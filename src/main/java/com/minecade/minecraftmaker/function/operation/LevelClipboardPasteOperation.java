@@ -30,19 +30,17 @@ public class LevelClipboardPasteOperation implements Operation {
 		if (firstRun) {
 			firstRun = false;
 			startNanoTime = System.nanoTime();
-			level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTE_READY, LevelStatus.PASTING_CLIPBOARD);
-			// black box
-			//return new DelegateOperation(this, new ResumableOperationQueue(LevelUtils.createRegionFacesOperation(BukkitUtil.toWorld(level.getWorld()), level.getLevelRegion(), new BaseBlock(BlockID.OBSIDIAN)), LevelUtils.createPasteOperation(level.getClipboard(), level.getMakerExtent(), level.getWorldData())));
-			return new DelegateOperation(this, LevelUtils.createPasteOperation(level.getClipboard(), new MakerExtent(level.getWorld()), level.getWorldData()));
+			level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTE_READY, LevelStatus.CLIPBOARD_PASTING);
+			return new DelegateOperation(this, LevelUtils.createPasteOperation(level.getClipboard(), new MakerExtent(level.getWorld(), level), level.getWorldData()));
 		}
-		level.tryStatusTransition(LevelStatus.PASTING_CLIPBOARD, LevelStatus.CLIPBOARD_PASTED);
+		level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTE_COMMITTING, LevelStatus.CLIPBOARD_PASTED);
 		Bukkit.getLogger().info(String.format("LevelClipboardPasteOperation.resume - finished on: [%s] nanoseconds - level: [%s]", System.nanoTime() - startNanoTime, level.getDescription()));
 		return null;
 	}
 
 	@Override
 	public void cancel() {
-		level.disable(String.format("Level operation cancelled: [%s]", this), null);
+		level.disable(String.format("LevelClipboardPasteOperation.cancel - Level: {%s}", level.getDescription()));
 	}
 
 	@Override

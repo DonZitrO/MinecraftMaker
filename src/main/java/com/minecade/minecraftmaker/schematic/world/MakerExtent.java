@@ -7,21 +7,31 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import com.minecade.minecraftmaker.function.operation.Operation;
+import com.minecade.minecraftmaker.level.LevelStatus;
+import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
+import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.util.Location;
 
 public class MakerExtent implements Extent {
 
-	protected final World world;
+	private final World world;
 	private final Extent internalExtent;
 
+	private @Nullable MakerPlayableLevel level;
+
 	public MakerExtent(org.bukkit.World bukkitWorld) {
+		this(bukkitWorld, null);
+	}
+
+	public MakerExtent(org.bukkit.World bukkitWorld, MakerPlayableLevel level) {
 		checkNotNull(bukkitWorld);
 		world = BukkitUtil.toWorld(bukkitWorld);
+		this.level = level;
 		Extent extent;
 		extent = new FastModeExtent(world, true);
 		extent = new SurvivalModeExtent(extent, world);
@@ -61,7 +71,18 @@ public class MakerExtent implements Extent {
 	}
 
 	@Override
-	public @Nullable Operation commit() {
+	public @Nullable Operation commit() throws MinecraftMakerException {
+		if (level != null) {
+			try {
+				level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTING, LevelStatus.CLIPBOARD_PASTE_COMMITTING);
+				level.clearCancelledRedstoneInteractions();
+			} catch (DataException e) {
+				level.disable(e.getMessage(), e);
+				throw e;
+			} finally {
+				level = null;
+			}
+		}
 		return internalExtent.commit();
 	}
 

@@ -115,6 +115,7 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 
 		private final Set<BlockVector> blocks = new HashSet<BlockVector>();
 		private final Map<BlockVector, BaseBlock> blockTypes = new HashMap<BlockVector, BaseBlock>();
+		private final Deque<BlockVector> problematicBlocks = new LinkedList<BlockVector>();
 
 		public ResumableStage3Committer() {
 			for (Map.Entry<BlockVector, BaseBlock> entry : stage3) {
@@ -149,12 +150,17 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 					switch (type) {
 					case BlockID.WOODEN_DOOR:
 					case BlockID.IRON_DOOR:
+					case (BlockID.ACACIA_DOOR):
+					case (BlockID.BIRCH_DOOR):
+					case (BlockID.JUNGLE_DOOR):
+					case (BlockID.DARK_OAK_DOOR):
+					case (BlockID.SPRUCE_DOOR):
 						if ((data & 0x8) == 0) {
 							// Deal with lower door halves being attached to the
 							// floor AND the upper half
 							BlockVector upperBlock = current.add(0, 1, 0).toBlockVector();
 							if (blocks.contains(upperBlock) && !walked.contains(upperBlock)) {
-								walked.addFirst(upperBlock);
+								walked.addLast(upperBlock);
 							}
 						}
 						break;
@@ -163,19 +169,12 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 					case BlockID.POWERED_RAIL:
 					case BlockID.DETECTOR_RAIL:
 					case BlockID.ACTIVATOR_RAIL:
-						// FIXME: experimental - set rail blocks twice (second time forces the update of direction and attachment)
-						extent.setBlock(current, blockTypes.get(current));
-						// Here, rails are hardcoded to be attached to the block
-						// below them.
+						// problematic blocks need to be placed again on reverse order
+						problematicBlocks.addFirst(current);
+						// Here, rails are hardcoded to be attached to the block below them.
 						// They're also attached to the block they're ascending
 						// towards via BlockType.getAttachment.
-						if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
-							Bukkit.getLogger().info(String.format("[DEBUG] | ResumableStage3Committer.resume - processing rail block - type: [%s] - location: [%s]", type, current));
-						}
 						BlockVector lowerBlock = current.add(0, -1, 0).toBlockVector();
-						if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
-							Bukkit.getLogger().info(String.format("[DEBUG] | ResumableStage3Committer.resume - processing block below rail block - location: [%s] - blocks.contains: [%s] - walked.contains: [%s]", lowerBlock, blocks.contains(lowerBlock), walked.contains(lowerBlock)));
-						}
 						if (blocks.contains(lowerBlock) && !walked.contains(lowerBlock)) {
 							walked.addFirst(lowerBlock);
 						}
@@ -213,13 +212,32 @@ public class MultiStageReorder extends AbstractDelegateExtent implements Reorder
 				}
 
 				for (BlockVector pt : walked) {
-					extent.setBlock(pt, blockTypes.get(pt));
+					BaseBlock toPlace = blockTypes.get(pt);
+					extent.setBlock(pt, toPlace);
+					BaseBlock placed = extent.getLazyBlock(pt);
+					if (placed.getId() != toPlace.getId() || placed.getData() != toPlace.getData()) {
+						Bukkit.getLogger().warning(String.format("ResumableStage3Committer.resume - block place inconsistency - location: [%s] - expected: [%s,%s] - result: [%s,%s]", pt, toPlace.getId(), toPlace.getData(), placed.getId(), placed.getData()));
+					}
 					blocks.remove(pt);
 				}
 			}
 
 			// allow it to resume later
 			if (!blocks.isEmpty()) {
+				return this;
+			}
+
+			while (!problematicBlocks.isEmpty() && run.shouldContinue()) {
+				BlockVector pt = problematicBlocks.pop();
+				BaseBlock toPlace = blockTypes.get(pt);
+				BaseBlock placed = extent.getLazyBlock(pt);
+				if (placed.getId() != toPlace.getId() || placed.getData() != toPlace.getData()) {
+					extent.setBlock(pt, toPlace);
+					Bukkit.getLogger().warning(String.format("ResumableStage3Committer.resume - consistent block place inconsistency - location: [%s] - expected: [%s,%s] - result: [%s,%s]", pt, toPlace.getId(), toPlace.getData(), placed.getId(), placed.getData()));
+				}
+			}
+
+			if (!problematicBlocks.isEmpty()) {
 				return this;
 			}
 
