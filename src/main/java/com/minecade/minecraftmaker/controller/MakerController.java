@@ -506,8 +506,8 @@ public class MakerController implements Runnable, Tickable {
 		}
 
 		// TODO: Beta - remove after beta
-		if (!data.hasRank(Rank.PRO)) {
-			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.login.error.pro-only"));
+		if (!data.hasRank(Rank.VIP)) {
+			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.login.error.vip-only"));
 			return;
 		}
 		
