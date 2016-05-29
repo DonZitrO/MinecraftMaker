@@ -84,7 +84,7 @@ public class MakerController implements Runnable, Tickable {
 	private static final int FAST_RELOGIN_DELAY_SECONDS = 5;
 	private static final int DOUBLE_LOGIN_DELAY_SECONDS = 2;
 	private static final int DEFAULT_MAX_PLAYERS = 40;
-	private static final int DEFAULT_MAX_LEVELS = 10;
+	private static final int DEFAULT_MAX_LEVELS = 50;
 	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
 	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
 	private static final int MIN_STEVE_LEVELS = 16;
@@ -309,7 +309,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	private MakerPlayableLevel getEmptyLevelIfAvailable() {
-		for (short i = 0; i < maxLevels; i++) {
+		for (short i = 0; i < maxLevels * 3; i += 3) {
 			if (!levelMap.containsKey(i)) {
 				MakerPlayableLevel level = new MakerPlayableLevel(plugin, i);
 				levelMap.put(i, level);

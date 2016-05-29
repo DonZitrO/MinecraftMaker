@@ -67,7 +67,10 @@ import com.minecade.nms.NMSUtils;
 
 public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
+	public static final short DEFAULT_LEVEL_WIDTH = 160;
+	public static final short DEFAULT_LEVEL_HEIGHT = 48;
 	public static final short MAX_LEVEL_WIDTH = 160;
+	public static final short MAX_LEVEL_HEIGHT = 80;
 	public static final short HIGHEST_LEVEL_Y = 63;
 	public static final short FLOOR_LEVEL_Y = 16;
 
@@ -340,7 +343,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	public CuboidRegion getLevelRegion() {
-		return LevelUtils.getLevelRegion(chunkZ, getLevelWidth());
+		return LevelUtils.getLevelRegion(chunkZ, getLevelWidth(), getLevelHeight());
+	}
+
+	private int getLevelHeight() {
+		return clipboard != null ? clipboard.getDimensions().getBlockY() : MAX_LEVEL_HEIGHT;
 	}
 
 	public int getLevelWidth() {
@@ -1067,7 +1074,8 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		} else {
 			plugin.getLevelOperatorTask().offerHighPriority(new LevelClipboardPasteOperation(this));
 		}
-		plugin.getLevelOperatorTask().offerLowPriority(LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingEmptyClipboard(getChunkZ(), getLevelWidth()), new MakerExtent(getWorld()), getWorldData()));
+		plugin.getLevelOperatorTask().offerLowPriority(LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingWidthEmptyClipboard(getChunkZ(), getLevelWidth()), new MakerExtent(getWorld()), getWorldData()));
+		plugin.getLevelOperatorTask().offerLowPriority(LevelUtils.createPasteOperation(LevelUtils.createLevelRemainingHeightEmptyClipboard(getChunkZ(), getLevelHeight()), new MakerExtent(getWorld()), getWorldData()));
 	}
 
 	private void tickClipboardPasted() {

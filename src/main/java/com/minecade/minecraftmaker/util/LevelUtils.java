@@ -2,6 +2,7 @@ package com.minecade.minecraftmaker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -44,7 +45,7 @@ public class LevelUtils {
 	}
 
 	public static Clipboard createEmptyLevelClipboard(short chunkZ, int floorBlockId) {
-		Region region = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH);
+		Region region = getLevelRegion(chunkZ, MakerPlayableLevel.DEFAULT_LEVEL_WIDTH, MakerPlayableLevel.DEFAULT_LEVEL_HEIGHT);
 
 		Vector minimumPoint = region.getMinimumPoint();
 		Vector maximumPoint = region.getMaximumPoint();
@@ -84,6 +85,8 @@ public class LevelUtils {
 		for (int x = minimumPoint.getBlockX() + 1; x < maximumPoint.getBlockX(); x++) {
 			for (int z = minimumPoint.getBlockZ() + 3; z <= maximumPoint.getBlockZ() - 3; z++) {
 				clipboard.setBlock(new Vector(x, maximumPoint.getBlockY(), z), barrier);
+				clipboard.setBlock(new Vector(x, maximumPoint.getBlockY() - 1, z), barrier);
+				clipboard.setBlock(new Vector(x, maximumPoint.getBlockY() - 2, z), barrier);
 			}
 		}
 		// construct the bottom
@@ -109,9 +112,17 @@ public class LevelUtils {
 		return clipboard;
 	}
 
-	public static Clipboard createLevelRemainingEmptyClipboard(short chunkZ, int regionWidth) {
-		CuboidRegion remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH);
+	public static Clipboard createLevelRemainingWidthEmptyClipboard(short chunkZ, int regionWidth) {
+		CuboidRegion remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH, MakerPlayableLevel.MAX_LEVEL_HEIGHT);
 		remainingRegion.contract(new Vector(regionWidth, 0, 0));
+		Bukkit.getLogger().severe(String.format("createLevelRemainingHeightEmptyClipboard - 1: [%s] - 2: [%s]", remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
+		return createEmptyClipboard(remainingRegion);
+	}
+
+	public static Clipboard createLevelRemainingHeightEmptyClipboard(short chunkZ, int regionHeight) {
+		CuboidRegion remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH, MakerPlayableLevel.MAX_LEVEL_HEIGHT);
+		remainingRegion.contract(new Vector(0, regionHeight, 0));
+		Bukkit.getLogger().severe(String.format("createLevelRemainingHeightEmptyClipboard - 1: [%s] - 2: [%s]", remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
 		return createEmptyClipboard(remainingRegion);
 	}
 
@@ -130,10 +141,10 @@ public class LevelUtils {
 		return new Vector(originX, originY, originZ);
 	}
 
-	public static CuboidRegion getLevelRegion(short chunkZ, int levelWidth) {
+	public static CuboidRegion getLevelRegion(short chunkZ, int levelWidth, int levelHeight) {
 		Vector origin = getLevelOrigin(chunkZ);
 		int width = levelWidth;
-		int height = 66;
+		int height = levelHeight;
 		int length = 13;
 		return new CuboidRegion(origin, origin.add(width, height, length).subtract(Vector.ONE));
 	}
