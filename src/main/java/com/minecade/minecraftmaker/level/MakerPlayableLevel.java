@@ -916,7 +916,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	public void skipSteveLevel() {
 		if (isBusy()) {
-			disable("attemped to skip a busy a level", null);
+			disable("attemped to skip a busy a level");
 			return;
 		}
 		skipSteveLevel(true);
@@ -926,7 +926,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(currentPlayerId);
 		if (mPlayer == null) {
 			steveData = null;
-			disable("player is no longer on this level", null);
+			disable("player is no longer on this level");
+			return;
+		}
+		if (loseLife && steveData.getLives() <= 0) {
+			mPlayer.sendActionMessage(plugin, "steve.error.no-lives-left");
 			return;
 		}
 		steveData.skipLevel(getLevelSerial(), loseLife);
@@ -937,11 +941,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	public void startEditing() {
 		MakerPlayer mPlayer = plugin.getController().getPlayer(authorId);
 		if (mPlayer == null) {
-			disable(String.format("MakerLevel.startEditing - editor is offline"), null);
+			disable(String.format("MakerLevel.startEditing - editor is offline"));
 			return;
 		}
 		if (!playerIsInThisLevel(mPlayer)) {
-			disable(String.format("MakerLevel.startEditing - editor with id: [%s] is busy on another level", authorId), null);
+			disable(String.format("MakerLevel.startEditing - editor with id: [%s] is busy on another level", authorId));
 			return;
 		}
 		try {
