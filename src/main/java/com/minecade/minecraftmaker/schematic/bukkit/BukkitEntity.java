@@ -11,8 +11,8 @@ import org.bukkit.entity.Player;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.util.Location;
-import com.minecade.minecraftmaker.schematic.world.Extent;
 import com.minecade.minecraftmaker.schematic.world.NullWorld;
 
 /**

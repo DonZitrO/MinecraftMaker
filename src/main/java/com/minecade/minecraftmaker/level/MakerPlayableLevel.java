@@ -5,11 +5,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -24,11 +22,13 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -53,10 +53,9 @@ import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.extent.MakerExtent;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
-import com.minecade.minecraftmaker.schematic.world.BlockVector;
 import com.minecade.minecraftmaker.schematic.world.CuboidRegion;
-import com.minecade.minecraftmaker.schematic.world.MakerExtent;
 import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.schematic.world.Vector;
 import com.minecade.minecraftmaker.schematic.world.Vector2D;
@@ -80,7 +79,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	private static final short MAX_LEVEL_ITEMS = 20;
 	private static final short MAX_LEVEL_MOBS = 20;
 
-	private Map<BlockVector, LevelRedstoneInteraction> cancelledRedstoneInteractions = new LinkedHashMap<>();
+	//private Map<BlockVector, LevelRedstoneInteraction> cancelledRedstoneInteractions = new LinkedHashMap<>();
 	private Set<Entity> problematicEntities = new LinkedHashSet<>();
 
 	private final Short chunkZ;
@@ -135,6 +134,10 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			}
 		}
 	}
+
+//	public void clearCancelledRedstoneInteractions() {
+//		cancelledRedstoneInteractions.clear();
+//	}
 
 	// TODO: this method is too complex: clean and simplify
 	private void clearLevel() {
@@ -343,12 +346,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		return entities;
 	}
 
-	public CuboidRegion getLevelRegion() {
-		return LevelUtils.getLevelRegion(chunkZ, getLevelWidth(), getLevelHeight());
-	}
-
 	private int getLevelHeight() {
 		return clipboard != null ? clipboard.getDimensions().getBlockY() : MAX_LEVEL_HEIGHT;
+	}
+
+	public CuboidRegion getLevelRegion() {
+		return LevelUtils.getLevelRegion(chunkZ, getLevelWidth(), getLevelHeight());
 	}
 
 	public int getLevelWidth() {
@@ -397,6 +400,21 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	@Override
 	public synchronized boolean isDisabled() {
 		return LevelStatus.DISABLED.equals(getStatus());
+	}
+
+	private boolean isPhysicsAllowed() {
+		switch (getStatus()) {
+		case CLIPBOARD_PASTE_COMMITTING:
+		case CLIPBOARD_PASTED:
+		case EDIT_READY:
+		case EDITING:
+		case PLAY_READY:
+		case PLAYING:
+		case CLEARED:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	private boolean isSteve() {
@@ -491,6 +509,16 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
+	public void onBlockPhysics(BlockPhysicsEvent event) {
+		if (!isPhysicsAllowed()) {
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("MakerLevel.onBlockPhysics - cancelled physics interaction - block type: [%s] - location: [%s] on level: {%s}", event.getBlock().getType(), event.getBlock().getLocation().toVector(), getDescription()));
+			}
+			event.setCancelled(true);
+			return;
+		}
+	}
+
 	public void onBlockPistonExtend(BlockPistonExtendEvent event) {
 		if (isBusy()) {
 			event.setCancelled(true);
@@ -508,30 +536,33 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	public void onBlockRedstone(BlockRedstoneEvent event) {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
-		}
-		if (LevelStatus.CLIPBOARD_PASTE_COMMITTING.equals(getStatus())) {
-			Material newMaterial = null;
-			if (event.getOldCurrent() == 15 && event.getNewCurrent() == 0 && StringUtils.endsWith(event.getBlock().getType().name(), "_ON")) {
-				newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "ON").concat("OFF"));
-			} else if (event.getOldCurrent() == 0 && event.getNewCurrent() == 15 && StringUtils.endsWith(event.getBlock().getType().name(), "_OFF")) {
-				newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "OFF").concat("ON"));
+//		if (plugin.isDebugMode()) {
+//			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
+//		}
+//		if (LevelStatus.CLIPBOARD_PASTE_COMMITTING.equals(getStatus())) {
+//			Material newMaterial = null;
+//			if (event.getOldCurrent() == 15 && event.getNewCurrent() == 0 && StringUtils.endsWith(event.getBlock().getType().name(), "_ON")) {
+//				newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "ON").concat("OFF"));
+//			} else if (event.getOldCurrent() == 0 && event.getNewCurrent() == 15 && StringUtils.endsWith(event.getBlock().getType().name(), "_OFF")) {
+//				newMaterial = Material.valueOf(StringUtils.removeEnd(event.getBlock().getType().name(), "OFF").concat("ON"));
+//			}
+//			if (newMaterial != null) {
+//				LevelRedstoneInteraction cancelled = new LevelRedstoneInteraction(BukkitUtil.toVector(event.getBlock()), newMaterial, event.getBlock().getState().getData(), getCurrentTick(), event.getOldCurrent(), event.getNewCurrent());
+//				cancelledRedstoneInteractions.put(cancelled.getLocation(), cancelled);
+//				event.setNewCurrent(event.getOldCurrent());
+//				if (plugin.isDebugMode()) {
+//					Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - saved cancelled redstone interaction: %s", cancelled));
+//				}
+//			} else {
+//				event.setNewCurrent(event.getOldCurrent());
+//				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored cancelled redstone interaction - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
+//			}
+//			return;
+//		}
+		if (!isPhysicsAllowed()) {
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("MakerLevel.onBlockRedstone - cancelled redstone interaction: interaction - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s] on level: {%s}", event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent(), getDescription()));
 			}
-			if (newMaterial != null) {
-				LevelRedstoneInteraction cancelled = new LevelRedstoneInteraction(BukkitUtil.toVector(event.getBlock()), newMaterial, event.getBlock().getState().getData(), getCurrentTick(), event.getOldCurrent(), event.getNewCurrent());
-				cancelledRedstoneInteractions.put(cancelled.getLocation(), cancelled);
-				event.setNewCurrent(event.getOldCurrent());
-				if (plugin.isDebugMode()) {
-					Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onBlockRedstone - saved cancelled redstone interaction: %s", cancelled));
-				}
-			} else {
-				event.setNewCurrent(event.getOldCurrent());
-				Bukkit.getLogger().warning(String.format("[DEBUG] | MakerLevel.onBlockRedstone - ignored cancelled redstone interaction - level: [%s] - status: [%s] - tick: [%s] - block type: [%s] - location: [%s] - old current: [%s] - new current: [%s]", getLevelName(), getStatus(), getCurrentTick(), event.getBlock().getType(), event.getBlock().getLocation().toVector(), event.getOldCurrent(), event.getNewCurrent()));
-			}
-			return;
-		}
-		if (isBusy()) {
 			event.setNewCurrent(event.getOldCurrent());
 			return;
 		}
@@ -718,7 +749,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	private void removeEntities() {
 		removeEntities(true);
 	}
-
+	
 	private void removeEntities(boolean all) {
 
 		for (org.bukkit.entity.Entity entity : getEntities()) {
@@ -727,7 +758,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 				break;
 			default:
 				if (all || entity instanceof LivingEntity || entity instanceof Projectile) {
-					entity.remove();
+					removeEntity(entity);
 					if (plugin.isDebugMode()) {
 						Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.removeEntities - removed entity type: [%s]  from level: [%s]", entity.getType(), getLevelName()));
 					}
@@ -741,9 +772,16 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 		Iterator<Entity> iter = problematicEntities.iterator();
 		while (iter.hasNext()) {
-			iter.next().remove();
+			removeEntity(iter.next());
 			iter.remove();
 		}
+	}
+
+	private void removeEntity(Entity entity) {
+		if (entity instanceof ItemFrame) {
+			((ItemFrame)entity).setItem(null);
+		}
+		entity.remove();
 	}
 
 	public void rename(String newName) {
@@ -771,31 +809,31 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
-	public void restoreRedstoneInteraction(LevelRedstoneInteraction cancelled) {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.restoreRedstoneInteraction - tick: [%s] - interaction: [%s]", getCurrentTick(), cancelled));
-		}
-		@SuppressWarnings("deprecation")
-		boolean changed = BukkitUtil.toLocation(getWorld(), cancelled.getLocation()).getBlock().setTypeIdAndData(cancelled.getMaterial().getId(), cancelled.getMaterialData().getData(), true);
-		if (!changed) {
-			Bukkit.getLogger().warning(String.format("MakerLevel.restoreRedstoneInteraction - unchanged redstone interaction - tick: [%s] - interaction: [%s]", getCurrentTick(), cancelled));
-		}
-	}
-
-	private void restoreRedstoneInteractions() {
-		long firstTick = 0;
-		for (LevelRedstoneInteraction cancelled : cancelledRedstoneInteractions.values()) {
-			if (firstTick == 0) {
-				firstTick = cancelled.getTick();
-			}
-			if (cancelled.getTick() == firstTick) {
-				restoreRedstoneInteraction(cancelled);
-			} else {
-				Bukkit.getScheduler().runTaskLater(plugin, () -> restoreRedstoneInteraction(cancelled), cancelled.getTick() - firstTick);
-			}
-		}
-		cancelledRedstoneInteractions.clear();
-	}
+//	public void restoreRedstoneInteraction(LevelRedstoneInteraction cancelled) {
+//		if (plugin.isDebugMode()) {
+//			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.restoreRedstoneInteraction - tick: [%s] - interaction: [%s]", getCurrentTick(), cancelled));
+//		}
+//		@SuppressWarnings("deprecation")
+//		boolean changed = BukkitUtil.toLocation(getWorld(), cancelled.getLocation()).getBlock().setTypeIdAndData(cancelled.getMaterial().getId(), cancelled.getMaterialData().getData(), true);
+//		if (!changed) {
+//			Bukkit.getLogger().warning(String.format("MakerLevel.restoreRedstoneInteraction - unchanged redstone interaction - tick: [%s] - interaction: [%s]", getCurrentTick(), cancelled));
+//		}
+//	}
+//
+//	private void restoreRedstoneInteractions() {
+//		long firstTick = 0;
+//		for (LevelRedstoneInteraction cancelled : cancelledRedstoneInteractions.values()) {
+//			if (firstTick == 0) {
+//				firstTick = cancelled.getTick();
+//			}
+//			if (cancelled.getTick() == firstTick) {
+//				restoreRedstoneInteraction(cancelled);
+//			} else {
+//				Bukkit.getScheduler().runTaskLater(plugin, () -> restoreRedstoneInteraction(cancelled), cancelled.getTick() - firstTick);
+//			}
+//		}
+//		cancelledRedstoneInteractions.clear();
+//	}
 
 	public synchronized void saveAndPlay() {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(authorId);
@@ -1078,7 +1116,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	private void tickClipboardPasted() {
-		restoreRedstoneInteractions();
+//		restoreRedstoneInteractions();
 		if (currentPlayerId != null) {
 			status = LevelStatus.PLAY_READY;
 		} else {
@@ -1092,8 +1130,8 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			return;
 		}
 		this.status = LevelStatus.DISABLED;
-		this.cancelledRedstoneInteractions.clear();
-		this.cancelledRedstoneInteractions = null;
+//		this.cancelledRedstoneInteractions.clear();
+//		this.cancelledRedstoneInteractions = null;
 		this.clipboard = null;
 		this.steveData = null;
 		MakerPlayer author = getPlayerIsInThisLevel(authorId);
@@ -1297,10 +1335,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (showMessage) {
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.busy.title"), plugin.getMessage("level.busy.subtitle"));
 		}
-	}
-
-	public void clearCancelledRedstoneInteractions() {
-		cancelledRedstoneInteractions.clear();
 	}
 
 }

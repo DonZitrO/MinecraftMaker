@@ -2,7 +2,7 @@ package com.minecade.minecraftmaker.function.mask;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.minecade.minecraftmaker.schematic.world.Extent;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 
 /**
  * An abstract implementation of {@link Mask} that takes uses an {@link Extent}.

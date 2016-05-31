@@ -2,6 +2,7 @@ package com.minecade.minecraftmaker.function.visitor;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
 
@@ -51,10 +52,10 @@ public class ResumableRegionVisitor implements Operation {
 		}
 		if (regionIterator.hasNext()) {
 			return this;
-		} else {
-			Bukkit.getLogger().info(String.format("ResumableRegionVisitor.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
-			return null;
 		}
+
+		Bukkit.getLogger().info(String.format("ResumableRegionVisitor.resume - finished on: [%s] ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanoTime)));
+		return null;
 	}
 
 	@Override

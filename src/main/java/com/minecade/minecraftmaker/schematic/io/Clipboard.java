@@ -1,6 +1,6 @@
 package com.minecade.minecraftmaker.schematic.io;
 
-import com.minecade.minecraftmaker.schematic.world.Extent;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.schematic.world.Vector;
 

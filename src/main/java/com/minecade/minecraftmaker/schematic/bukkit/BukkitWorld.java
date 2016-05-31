@@ -223,6 +223,7 @@ public class BukkitWorld extends AbstractWorld {
 	}
 
 	@Override
+	@SuppressWarnings("deprecation")
 	public void fixAfterFastMode(Iterable<BlockVector2D> chunks) {
 		World world = getWorld();
 		for (BlockVector2D chunkPos : chunks) {

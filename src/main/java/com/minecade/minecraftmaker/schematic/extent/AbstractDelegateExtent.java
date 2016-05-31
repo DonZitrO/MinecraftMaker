@@ -1,4 +1,4 @@
-package com.minecade.minecraftmaker.schematic.world;
+package com.minecade.minecraftmaker.schematic.extent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -13,6 +13,10 @@ import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.util.Location;
+import com.minecade.minecraftmaker.schematic.world.BaseBiome;
+import com.minecade.minecraftmaker.schematic.world.Region;
+import com.minecade.minecraftmaker.schematic.world.Vector;
+import com.minecade.minecraftmaker.schematic.world.Vector2D;
 
 /**
  * A base class for {@link Extent}s that merely passes extents onto another.

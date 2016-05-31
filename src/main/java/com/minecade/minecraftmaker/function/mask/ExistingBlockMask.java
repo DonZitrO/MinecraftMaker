@@ -3,7 +3,7 @@ package com.minecade.minecraftmaker.function.mask;
 import javax.annotation.Nullable;
 
 import com.minecade.minecraftmaker.schematic.block.BlockID;
-import com.minecade.minecraftmaker.schematic.world.Extent;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.world.Vector;
 
 /**

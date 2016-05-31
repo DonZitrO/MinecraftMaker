@@ -5,6 +5,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.extent.AbstractDelegateExtent;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 
 /**
  * Makes changes to the world as if a player had done so during survival mode.

@@ -406,47 +406,36 @@ public enum BlockType {
         shouldPlaceLast.add(BlockID.BED);
         shouldPlaceLast.add(BlockID.LONG_GRASS);
         shouldPlaceLast.add(BlockID.DEAD_BUSH);
-        shouldPlaceLast.add(BlockID.PISTON_EXTENSION);
         shouldPlaceLast.add(BlockID.YELLOW_FLOWER);
         shouldPlaceLast.add(BlockID.RED_FLOWER);
         shouldPlaceLast.add(BlockID.BROWN_MUSHROOM);
         shouldPlaceLast.add(BlockID.RED_MUSHROOM);
         shouldPlaceLast.add(BlockID.TORCH);
         shouldPlaceLast.add(BlockID.FIRE);
-        shouldPlaceLast.add(BlockID.REDSTONE_WIRE);
         shouldPlaceLast.add(BlockID.CROPS);
         shouldPlaceLast.add(BlockID.LADDER);
-        shouldPlaceLast.add(BlockID.LEVER);
-        shouldPlaceLast.add(BlockID.STONE_PRESSURE_PLATE);
-        shouldPlaceLast.add(BlockID.WOODEN_PRESSURE_PLATE);
-        shouldPlaceLast.add(BlockID.STONE_BUTTON);
         shouldPlaceLast.add(BlockID.SNOW);
         shouldPlaceLast.add(BlockID.PORTAL);
         shouldPlaceLast.add(BlockID.TRAP_DOOR);
         shouldPlaceLast.add(BlockID.VINE);
         shouldPlaceLast.add(BlockID.LILY_PAD);
         shouldPlaceLast.add(BlockID.NETHER_WART);
-        shouldPlaceLast.add(BlockID.PISTON_BASE);
-        shouldPlaceLast.add(BlockID.PISTON_STICKY_BASE);
-        shouldPlaceLast.add(BlockID.PISTON_EXTENSION);
-        shouldPlaceLast.add(BlockID.PISTON_MOVING_PIECE);
         shouldPlaceLast.add(BlockID.COCOA_PLANT);
         shouldPlaceLast.add(BlockID.TRIPWIRE_HOOK);
         shouldPlaceLast.add(BlockID.TRIPWIRE);
         shouldPlaceLast.add(BlockID.FLOWER_POT);
         shouldPlaceLast.add(BlockID.CARROTS);
         shouldPlaceLast.add(BlockID.POTATOES);
-        shouldPlaceLast.add(BlockID.WOODEN_BUTTON);
-        shouldPlaceLast.add(BlockID.ANVIL); // becomes relevant with asynchronous placement
-        shouldPlaceLast.add(BlockID.PRESSURE_PLATE_LIGHT);
-        shouldPlaceLast.add(BlockID.PRESSURE_PLATE_HEAVY);
-        shouldPlaceLast.add(BlockID.IRON_TRAP_DOOR);
         shouldPlaceLast.add(BlockID.CARPET);
         shouldPlaceLast.add(BlockID.DOUBLE_PLANT);
-        shouldPlaceLast.add(BlockID.DAYLIGHT_SENSOR_INVERTED);
         // FIXME: experimental - light generating blocks
         shouldPlaceLast.add(BlockID.LAVA);
         shouldPlaceLast.add(BlockID.STATIONARY_LAVA);
+        // FIXME experimental - moved some general blocks stage 3 (final).
+        //shouldPlaceLast.add(BlockID.PISTON_BASE);
+        //shouldPlaceLast.add(BlockID.PISTON_STICKY_BASE);
+        //shouldPlaceLast.add(BlockID.PISTON_EXTENSION);
+        //shouldPlaceLast.add(BlockID.PISTON_MOVING_PIECE);
         // FIXME: experimental - moved all track blocks to stage 3 (final).
         //shouldPlaceLast.add(BlockID.POWERED_RAIL);
         //shouldPlaceLast.add(BlockID.DETECTOR_RAIL);
@@ -459,6 +448,16 @@ public enum BlockType {
         //shouldPlaceLast.add(BlockID.REDSTONE_TORCH_ON);
         //shouldPlaceLast.add(BlockID.COMPARATOR_OFF);
         //shouldPlaceLast.add(BlockID.COMPARATOR_ON);
+        //shouldPlaceLast.add(BlockID.DAYLIGHT_SENSOR_INVERTED);
+        //shouldPlaceLast.add(BlockID.LEVER);
+        //shouldPlaceLast.add(BlockID.REDSTONE_WIRE);
+        //shouldPlaceLast.add(BlockID.STONE_PRESSURE_PLATE);
+        //shouldPlaceLast.add(BlockID.WOODEN_PRESSURE_PLATE);
+        //shouldPlaceLast.add(BlockID.STONE_BUTTON);
+        //shouldPlaceLast.add(BlockID.WOODEN_BUTTON);
+        //shouldPlaceLast.add(BlockID.PRESSURE_PLATE_LIGHT);
+        //shouldPlaceLast.add(BlockID.PRESSURE_PLATE_HEAVY);
+        //shouldPlaceLast.add(BlockID.IRON_TRAP_DOOR);
     }
 
     /**
@@ -499,10 +498,12 @@ public enum BlockType {
         shouldPlaceFinal.add(BlockID.CACTUS);
         shouldPlaceFinal.add(BlockID.REED);
         shouldPlaceFinal.add(BlockID.CAKE_BLOCK);
-        shouldPlaceFinal.add(BlockID.PISTON_EXTENSION);
-        shouldPlaceFinal.add(BlockID.PISTON_MOVING_PIECE);
         shouldPlaceFinal.add(BlockID.STANDING_BANNER);
         shouldPlaceFinal.add(BlockID.WALL_BANNER);
+        shouldPlaceFinal.add(BlockID.PISTON_BASE);
+        shouldPlaceFinal.add(BlockID.PISTON_STICKY_BASE);
+        shouldPlaceFinal.add(BlockID.PISTON_EXTENSION);
+        shouldPlaceFinal.add(BlockID.PISTON_MOVING_PIECE);
         // FIXME: experimental - moved all track blocks to stage 3 (final).
         shouldPlaceFinal.add(BlockID.POWERED_RAIL);
         shouldPlaceFinal.add(BlockID.DETECTOR_RAIL);
@@ -515,6 +516,26 @@ public enum BlockType {
         shouldPlaceFinal.add(BlockID.REDSTONE_TORCH_ON);
         shouldPlaceFinal.add(BlockID.COMPARATOR_OFF);
         shouldPlaceFinal.add(BlockID.COMPARATOR_ON);
+        shouldPlaceFinal.add(BlockID.REDSTONE_LAMP_OFF);
+        shouldPlaceFinal.add(BlockID.REDSTONE_LAMP_ON);
+        shouldPlaceFinal.add(BlockID.REDSTONE_WIRE);
+        shouldPlaceFinal.add(BlockID.HOPPER);
+        shouldPlaceFinal.add(BlockID.DISPENSER);
+        shouldPlaceFinal.add(BlockID.LEVER);
+        shouldPlaceFinal.add(BlockID.DAYLIGHT_SENSOR_INVERTED);
+        shouldPlaceFinal.add(BlockID.STONE_PRESSURE_PLATE);
+        shouldPlaceFinal.add(BlockID.WOODEN_PRESSURE_PLATE);
+        shouldPlaceFinal.add(BlockID.STONE_BUTTON);
+        shouldPlaceFinal.add(BlockID.WOODEN_BUTTON);
+        shouldPlaceFinal.add(BlockID.PRESSURE_PLATE_LIGHT);
+        shouldPlaceFinal.add(BlockID.PRESSURE_PLATE_HEAVY);
+        shouldPlaceFinal.add(BlockID.IRON_TRAP_DOOR);
+        shouldPlaceFinal.add(BlockID.ANVIL);
+        shouldPlaceFinal.add(BlockID.TRIPWIRE);
+        shouldPlaceFinal.add(BlockID.TRIPWIRE_HOOK);
+        // FIXME: experimental - gravity affected blocks to stage 3 (final).
+        shouldPlaceFinal.add(BlockID.SAND);
+        shouldPlaceFinal.add(BlockID.GRAVEL);
     }
 
     /**
@@ -904,6 +925,34 @@ public enum BlockType {
     }
 
     /**
+     * Returns true if the block is affected by gravity
+     *
+     * @return true if the block is affected by gravity
+     */
+    public boolean isAffectedByGravity() {
+        return isAffectedByGravity.contains(id);
+    }
+
+    /**
+     * HashSet for isAffectedByGravity.
+     */
+    private static final Set<Integer> isAffectedByGravity = new HashSet<Integer>();
+    static {
+    	isAffectedByGravity.add(BlockID.SAND);
+    	isAffectedByGravity.add(BlockID.GRAVEL);
+    }
+
+    /**
+     * Returns true if the block is affected by gravity
+     *
+     * @param id the block ID
+     * @return true if the block is affected by gravity
+     */
+    public static boolean isAffectedByGravity(int id) {
+        return isContainerBlock.contains(id);
+    }
+
+    /**
      * Returns true if the block is a container block.
      *
      * @return true if the block is a container block
@@ -953,6 +1002,9 @@ public enum BlockType {
         isRedstoneBlock.add(BlockID.HOPPER);
         isRedstoneBlock.add(BlockID.ACTIVATOR_RAIL);
         isRedstoneBlock.add(BlockID.DROPPER);
+        isRedstoneBlock.add(BlockID.DAYLIGHT_SENSOR_INVERTED);
+        isRedstoneBlock.add(BlockID.REDSTONE_LAMP_ON);
+        isRedstoneBlock.add(BlockID.REDSTONE_LAMP_OFF);
         isRedstoneBlock.add(BlockID.DAYLIGHT_SENSOR_INVERTED);
     }
 

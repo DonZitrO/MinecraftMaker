@@ -4,8 +4,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.util.Location;
-import com.minecade.minecraftmaker.schematic.world.Extent;
 
 
 /**

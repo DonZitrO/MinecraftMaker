@@ -8,6 +8,8 @@ import javax.annotation.Nullable;
 
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.extent.AbstractDelegateExtent;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.transform.Transform;
 
 /**

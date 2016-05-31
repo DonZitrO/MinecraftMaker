@@ -1,10 +1,13 @@
-package com.minecade.minecraftmaker.schematic.world;
+package com.minecade.minecraftmaker.schematic.extent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.world.BlockType;
+import com.minecade.minecraftmaker.schematic.world.Vector;
+import com.minecade.minecraftmaker.schematic.world.World;
 
 /**
  * Handles various quirks when setting blocks, such as ice turning into water or

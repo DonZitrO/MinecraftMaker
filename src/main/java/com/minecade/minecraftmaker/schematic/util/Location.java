@@ -2,7 +2,7 @@ package com.minecade.minecraftmaker.schematic.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.minecade.minecraftmaker.schematic.world.Extent;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.world.Vector;
 
 /**

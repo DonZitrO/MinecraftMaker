@@ -2,8 +2,8 @@ package com.minecade.minecraftmaker.schematic.jnbt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.util.Location;
-import com.minecade.minecraftmaker.schematic.world.Extent;
 
 /**
  * Utility methods for working with NBT data used in Minecraft.

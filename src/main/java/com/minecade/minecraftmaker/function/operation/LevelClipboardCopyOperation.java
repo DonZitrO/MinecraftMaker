@@ -5,8 +5,8 @@ import java.util.List;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.extent.MakerExtent;
 import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
-import com.minecade.minecraftmaker.schematic.world.MakerExtent;
 import com.minecade.minecraftmaker.schematic.world.Region;
 
 public class LevelClipboardCopyOperation implements Operation {

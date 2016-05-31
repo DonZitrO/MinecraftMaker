@@ -13,7 +13,7 @@ import com.minecade.minecraftmaker.schematic.world.World;
 /**
  * Adapts between Bukkit and WorldEdit equivalent objects.
  */
-final class BukkitAdapter {
+public final class BukkitAdapter {
 
     /**
      * Convert any WorldEdit world into an equivalent wrapped Bukkit world.

@@ -14,31 +14,11 @@ import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.server.v1_9_R1.BiomeBase;
-import net.minecraft.server.v1_9_R1.BlockPosition;
-import net.minecraft.server.v1_9_R1.Entity;
-import net.minecraft.server.v1_9_R1.EntityTypes;
-import net.minecraft.server.v1_9_R1.NBTBase;
-import net.minecraft.server.v1_9_R1.NBTTagByte;
-import net.minecraft.server.v1_9_R1.NBTTagByteArray;
-import net.minecraft.server.v1_9_R1.NBTTagCompound;
-import net.minecraft.server.v1_9_R1.NBTTagDouble;
-import net.minecraft.server.v1_9_R1.NBTTagEnd;
-import net.minecraft.server.v1_9_R1.NBTTagFloat;
-import net.minecraft.server.v1_9_R1.NBTTagInt;
-import net.minecraft.server.v1_9_R1.NBTTagIntArray;
-import net.minecraft.server.v1_9_R1.NBTTagList;
-import net.minecraft.server.v1_9_R1.NBTTagLong;
-import net.minecraft.server.v1_9_R1.NBTTagShort;
-import net.minecraft.server.v1_9_R1.NBTTagString;
-import net.minecraft.server.v1_9_R1.TileEntity;
-import net.minecraft.server.v1_9_R1.World;
-import net.minecraft.server.v1_9_R1.WorldServer;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
+import org.bukkit.block.BlockState;
 import org.bukkit.craftbukkit.v1_9_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_9_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_9_R1.block.CraftBlock;
@@ -63,6 +43,27 @@ import com.minecade.minecraftmaker.schematic.jnbt.NBTConstants;
 import com.minecade.minecraftmaker.schematic.jnbt.ShortTag;
 import com.minecade.minecraftmaker.schematic.jnbt.StringTag;
 import com.minecade.minecraftmaker.schematic.jnbt.Tag;
+
+import net.minecraft.server.v1_9_R1.BiomeBase;
+import net.minecraft.server.v1_9_R1.BlockPosition;
+import net.minecraft.server.v1_9_R1.Entity;
+import net.minecraft.server.v1_9_R1.EntityTypes;
+import net.minecraft.server.v1_9_R1.NBTBase;
+import net.minecraft.server.v1_9_R1.NBTTagByte;
+import net.minecraft.server.v1_9_R1.NBTTagByteArray;
+import net.minecraft.server.v1_9_R1.NBTTagCompound;
+import net.minecraft.server.v1_9_R1.NBTTagDouble;
+import net.minecraft.server.v1_9_R1.NBTTagEnd;
+import net.minecraft.server.v1_9_R1.NBTTagFloat;
+import net.minecraft.server.v1_9_R1.NBTTagInt;
+import net.minecraft.server.v1_9_R1.NBTTagIntArray;
+import net.minecraft.server.v1_9_R1.NBTTagList;
+import net.minecraft.server.v1_9_R1.NBTTagLong;
+import net.minecraft.server.v1_9_R1.NBTTagShort;
+import net.minecraft.server.v1_9_R1.NBTTagString;
+import net.minecraft.server.v1_9_R1.TileEntity;
+import net.minecraft.server.v1_9_R1.World;
+import net.minecraft.server.v1_9_R1.WorldServer;
 
 public final class Spigot_v1_9_2_R1 implements BukkitImplAdapter {
 
@@ -203,7 +204,8 @@ public final class Spigot_v1_9_2_R1 implements BukkitImplAdapter {
         return block;
     }
 
-    @Override
+	@Override
+    @SuppressWarnings("deprecation")
     public boolean setBlock(Location location, BaseBlock block, boolean notifyAndLight) {
         checkNotNull(location);
         checkNotNull(block);
@@ -213,11 +215,10 @@ public final class Spigot_v1_9_2_R1 implements BukkitImplAdapter {
         int y = location.getBlockY();
         int z = location.getBlockZ();
 
-        // Two pass update:
-        // Note, this will notify blocks BEFORE the tile entity is set
-
-        @SuppressWarnings("deprecation")
-        boolean changed = location.getBlock().setTypeIdAndData(block.getId(), (byte) block.getData(), notifyAndLight);
+        BlockState blockState = location.getBlock().getState();
+        blockState.setTypeId(block.getId());
+        blockState.setRawData((byte)block.getData());
+        boolean changed = blockState.update(true, false);
 
         // Copy NBT data for the block
         CompoundTag nativeTag = block.getNbtData();
@@ -234,7 +235,7 @@ public final class Spigot_v1_9_2_R1 implements BukkitImplAdapter {
             }
         }
 
-        return changed;
+        return changed |= blockState.update(false, notifyAndLight);
     }
 
     @Override

@@ -7,8 +7,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 
-import org.bukkit.Bukkit;
-
 import com.google.common.collect.Lists;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
@@ -104,7 +102,7 @@ public class ResumableOperationQueue implements Operation {
 		}
 		if (current != null) {
 			if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | ResumableOperationQueue.resume - about to resume operation: [%s]", current));
+				// Bukkit.getLogger().info(String.format("[DEBUG] | ResumableOperationQueue.resume - about to resume operation: [%s]", current));
 			}
 			current = current.resume(run);
 			if (current == null) {

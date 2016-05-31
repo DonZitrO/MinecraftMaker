@@ -3,6 +3,7 @@ package com.minecade.minecraftmaker.function.operation;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
 
@@ -18,9 +19,9 @@ import com.minecade.minecraftmaker.function.visitor.ResumableRegionVisitor;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.transform.Identity;
 import com.minecade.minecraftmaker.schematic.transform.Transform;
-import com.minecade.minecraftmaker.schematic.world.Extent;
 import com.minecade.minecraftmaker.schematic.world.Region;
 import com.minecade.minecraftmaker.schematic.world.Vector;
 
@@ -237,7 +238,7 @@ public class ResumableForwardExtentCopy implements Operation {
 				return new DelegateOperation(this, entityVisitor);
 			}
 		} 
-		Bukkit.getLogger().info(String.format("ResumableForwardExtentCopy.resume - finished on: [%s] nanoseconds", System.nanoTime() - startNanoTime));
+		Bukkit.getLogger().info(String.format("ResumableForwardExtentCopy.resume - finished on: [%s] ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanoTime)));
 		return null;
 	}
 

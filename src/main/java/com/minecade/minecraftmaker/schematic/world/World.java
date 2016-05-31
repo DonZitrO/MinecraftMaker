@@ -5,6 +5,7 @@ import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.block.BaseItem;
 import com.minecade.minecraftmaker.schematic.block.BaseItemStack;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 
 /**
  * Represents a world (dimension).

@@ -10,7 +10,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
-import com.minecade.minecraftmaker.schematic.world.Extent;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.world.Vector;
 
 /**

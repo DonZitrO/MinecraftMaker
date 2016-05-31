@@ -6,12 +6,12 @@ import com.minecade.minecraftmaker.util.MCDirections;
 import com.minecade.minecraftmaker.function.RegionFunction;
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.jnbt.CompoundTag;
 import com.minecade.minecraftmaker.schematic.jnbt.CompoundTagBuilder;
 import com.minecade.minecraftmaker.schematic.transform.Transform;
 import com.minecade.minecraftmaker.schematic.world.Direction;
 import com.minecade.minecraftmaker.schematic.world.Direction.Flag;
-import com.minecade.minecraftmaker.schematic.world.Extent;
 import com.minecade.minecraftmaker.schematic.world.Vector;
 
 /**

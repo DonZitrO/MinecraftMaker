@@ -1,9 +1,11 @@
-package com.minecade.minecraftmaker.schematic.world;
+package com.minecade.minecraftmaker.schematic.extent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.world.Vector;
+import com.minecade.minecraftmaker.schematic.world.World;
 
 /**
  * Automatically loads chunks when blocks are accessed.

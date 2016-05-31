@@ -111,7 +111,7 @@ public class MakerListener implements Listener {
 	@EventHandler
 	public void onBlockPhysics(BlockPhysicsEvent event) {
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().severe(String.format("[ERROR] | MakerListener.onBlockPhysics - location: [%s] - cancelled: [%s]", event.getBlock().getLocation().toVector(), event.isCancelled()));
+			//Bukkit.getLogger().severe(String.format("[ERROR] | MakerListener.onBlockPhysics - location: [%s] - cancelled: [%s]", event.getBlock().getLocation().toVector(), event.isCancelled()));
 		}
 		plugin.getController().onBlockPhysics(event);
 	}
@@ -134,9 +134,9 @@ public class MakerListener implements Listener {
 
 	@EventHandler
 	public void onBlockRedstone(BlockRedstoneEvent event) {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockRedstone - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
-		}
+//		if (plugin.isDebugMode()) {
+//			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onBlockRedstone - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+//		}
 		plugin.getController().onBlockRedstone(event);
 	}
 

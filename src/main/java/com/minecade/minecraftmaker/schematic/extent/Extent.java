@@ -1,4 +1,4 @@
-package com.minecade.minecraftmaker.schematic.world;
+package com.minecade.minecraftmaker.schematic.extent;
 
 import java.util.List;
 
@@ -7,6 +7,10 @@ import javax.annotation.Nullable;
 import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
 import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.util.Location;
+import com.minecade.minecraftmaker.schematic.world.InputExtent;
+import com.minecade.minecraftmaker.schematic.world.OutputExtent;
+import com.minecade.minecraftmaker.schematic.world.Region;
+import com.minecade.minecraftmaker.schematic.world.Vector;
 
 /**
  * A world, portion of a world, clipboard, or other object that can have blocks

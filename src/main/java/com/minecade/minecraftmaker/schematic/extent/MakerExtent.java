@@ -1,4 +1,4 @@
-package com.minecade.minecraftmaker.schematic.world;
+package com.minecade.minecraftmaker.schematic.extent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -16,6 +16,13 @@ import com.minecade.minecraftmaker.schematic.entity.Entity;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.util.Location;
+import com.minecade.minecraftmaker.schematic.world.BaseBiome;
+import com.minecade.minecraftmaker.schematic.world.LastAccessExtentCache;
+import com.minecade.minecraftmaker.schematic.world.Region;
+import com.minecade.minecraftmaker.schematic.world.SurvivalModeExtent;
+import com.minecade.minecraftmaker.schematic.world.Vector;
+import com.minecade.minecraftmaker.schematic.world.Vector2D;
+import com.minecade.minecraftmaker.schematic.world.World;
 
 public class MakerExtent implements Extent {
 
@@ -25,15 +32,19 @@ public class MakerExtent implements Extent {
 	private @Nullable MakerPlayableLevel level;
 
 	public MakerExtent(org.bukkit.World bukkitWorld) {
-		this(bukkitWorld, null);
+		this(bukkitWorld, false, null);
 	}
 
 	public MakerExtent(org.bukkit.World bukkitWorld, MakerPlayableLevel level) {
+		this(bukkitWorld, true, level);
+	}
+
+	private MakerExtent(org.bukkit.World bukkitWorld, boolean fastMode, MakerPlayableLevel level) {
 		checkNotNull(bukkitWorld);
 		world = BukkitUtil.toWorld(bukkitWorld);
 		this.level = level;
 		Extent extent;
-		extent = new FastModeExtent(world, true);
+		extent = new FastModeExtent(world, fastMode);
 		extent = new SurvivalModeExtent(extent, world);
 		extent = new BlockQuirkExtent(extent, world);
 		extent = new ChunkLoadingExtent(extent, world);
@@ -41,7 +52,7 @@ public class MakerExtent implements Extent {
 		extent = new DataValidatorExtent(extent, world);
 		// TODO: check if this extent it's useful on mcmaker
 		// extent = new BlockBagExtent(extent, blockBag);
-		extent = new MultiStageReorder(extent, true);
+		extent = new MultiStageReorder(extent, world, true);
 		this.internalExtent = extent;
 	}
 
@@ -75,7 +86,6 @@ public class MakerExtent implements Extent {
 		if (level != null) {
 			try {
 				level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTING, LevelStatus.CLIPBOARD_PASTE_COMMITTING);
-				level.clearCancelledRedstoneInteractions();
 			} catch (DataException e) {
 				level.disable(e.getMessage(), e);
 				throw e;

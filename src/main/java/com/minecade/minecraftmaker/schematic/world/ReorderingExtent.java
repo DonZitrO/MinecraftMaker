@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.schematic.world;
 
+import com.minecade.minecraftmaker.schematic.extent.Extent;
+
 /**
  * An interface for {@link Extent}s that are meant to reorder changes so that
  * they are more successful.

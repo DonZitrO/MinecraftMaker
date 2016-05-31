@@ -2,9 +2,9 @@ package com.minecade.minecraftmaker.schematic.entity;
 
 import javax.annotation.Nullable;
 
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.util.Faceted;
 import com.minecade.minecraftmaker.schematic.util.Location;
-import com.minecade.minecraftmaker.schematic.world.Extent;
 
 /**
  * A reference to an instance of an entity that exists in an {@link Extent}

@@ -15,6 +15,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
@@ -660,10 +661,32 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void onBlockPhysics(BlockPhysicsEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("MakerController.onBlockPhysics - cancelled block physics outside level - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			}
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("MakerController.onBlockPhysics - cancelled block physics from unregistered level slot - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			}
+			return;
+		}
+		level.onBlockPhysics(event);
+	}
+
 	public void onBlockRedstone(BlockRedstoneEvent event) {
 		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
 		if (slot < 0) {
-			event.setNewCurrent(event.getOldCurrent());
+			Block block = event.getBlock();
+			block.setType(Material.AIR);
+			block.getState().update(true);
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().warning(String.format("MakerController.onBlockRedstone - cancelled redstone change outside level - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
 			}
@@ -671,7 +694,9 @@ public class MakerController implements Runnable, Tickable {
 		}
 		MakerPlayableLevel level = levelMap.get(slot);
 		if (level == null) {
-			event.setNewCurrent(event.getOldCurrent());
+			Block block = event.getBlock();
+			block.setType(Material.AIR);
+			block.getState().update(true);
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().warning(String.format("MakerController.onBlockRedstone - cancelled redstone change from unregistered level slot - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
 			}
@@ -1292,11 +1317,6 @@ public class MakerController implements Runnable, Tickable {
 		for (String playerName : entriesToRemoveFromScoreboardTeams) {
 			mPlayer.removeTeamEntryFromScoreboard(playerName);
 		}
-	}
-
-	public void onBlockPhysics(BlockPhysicsEvent event) {
-		// TODO Auto-generated method stub
-		
 	}
 
 }

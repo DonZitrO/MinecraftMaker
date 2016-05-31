@@ -8,8 +8,8 @@ import java.util.Map;
 
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
+import com.minecade.minecraftmaker.schematic.extent.Extent;
 import com.minecade.minecraftmaker.schematic.world.BlockVector;
-import com.minecade.minecraftmaker.schematic.world.Extent;
 
 /**
  * Sets block from an iterator of {@link Map.Entry} containing a
