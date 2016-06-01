@@ -290,6 +290,9 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		addLevelItemToPages(plugin, level);
 	}
 	public static void updatePlayerMenu(UUID playerId) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
 		LevelBrowserMenu menu = userLevelBrowserMenuMap.get(playerId);
 		if (menu != null) {
 			menu.update();
@@ -372,7 +375,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		items[47] = GeneralMenuItem.CURRENT_PAGE.getItem();
 		items[51] = GeneralMenuItem.EXIT_MENU.getItem();
 
-		plugin.getController().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, getViewerId());
 	}
 
 	private boolean isLevelSlot(int index) {
@@ -403,9 +405,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		if (currentPage < getTotalPages()) {
 			currentPage++;
 		}
-		plugin.getController().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, getViewerId());
-		List<MakerDisplayableLevel> currentPageLevels = getCurrentPageLevels();
-		update(currentPageLevels);
+		update();
 	}
 
 	@Override
@@ -467,19 +467,20 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		update();
 	}
 
-	public void sortBy(LevelSortBy sortBy) {
-		checkNotNull(sortBy);
-		if (sortBy.equals(this.sortBy)) {
-			return;
-		}
-		this.sortBy = sortBy;
-		reverseSortBy = false;
-		update();
-	}
+//	public void sortBy(LevelSortBy sortBy) {
+//		checkNotNull(sortBy);
+//		if (sortBy.equals(this.sortBy)) {
+//			return;
+//		}
+//		this.sortBy = sortBy;
+//		reverseSortBy = false;
+//		update();
+//	}
 
 	private void sortByNext() {
 		sortBy = cycleSortBy.next();
-		reverseSortBy = false;
+		reverseSortBy = sortBy.isReversedDefault();
+		currentPage = 1;
 		update();
 	}
 
@@ -507,6 +508,8 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 
 		update(currentPageLevels);
+
+		plugin.getController().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, getViewerId());
 	}
 
 	public void update(List<MakerDisplayableLevel> currentPageLevels) {

@@ -291,18 +291,13 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
-	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin, LevelSortBy sortBy, boolean update) {
+	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin) {
 		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
 		if (menu == null) {
 			menu = LevelBrowserMenu.getInstance(plugin, this.getUniqueId());
 			personalMenus.put(menu.getName(), menu);
 		}
-		if (sortBy != null) {
-			menu.sortBy(sortBy);
-		}
-		if (update) {
-			menu.update();
-		}
+		menu.update();
 		inventoryToOpen = menu;
 	}
 

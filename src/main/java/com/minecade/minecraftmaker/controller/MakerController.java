@@ -849,7 +849,7 @@ public class MakerController implements Runnable, Tickable {
 				mPlayer.openPlayerLevelsMenu(plugin, LevelSortBy.LIKES, true);
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
-				mPlayer.openLevelBrowserMenu(plugin, LevelSortBy.LIKES, true);
+				mPlayer.openLevelBrowserMenu(plugin);
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
 				BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
