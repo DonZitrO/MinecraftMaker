@@ -38,6 +38,7 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
@@ -779,6 +780,20 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
+		if (mPlayer.isInLobby()) {
+			if (event.getClick().equals(ClickType.NUMBER_KEY)) {
+				event.setCancelled(true);
+				mPlayer.updateInventory();
+				return;
+			}
+		} else {
+			if (event.getClick().equals(ClickType.NUMBER_KEY) && event.getHotbarButton() == 8) {
+				event.setCancelled(true);
+				mPlayer.updateInventory();
+				return;
+			}
+		}
+
 		// priority for custom menu items
 		switch (onMenuItemClick(mPlayer, event.getCurrentItem())) {
 		case CANCEL_CLOSE:
