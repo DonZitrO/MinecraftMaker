@@ -1155,6 +1155,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.tickEdited - level: [%s] - status: [%s] - tick: [%s]", getLevelName(), getStatus(), getCurrentTick()));
 		}
+		this.clearedByAuthorMillis = 0;
 		this.status = LevelStatus.CLIPBOARD_COPY_READY;
 		plugin.getLevelOperatorTask().offerHighestPriority(new LevelClipboardCopyOperation(this));
 	}
