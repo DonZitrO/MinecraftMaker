@@ -126,6 +126,10 @@ public class AbstractMakerLevel {
 		this.authorRank = authorRank;
 	}
 
+	public void setClearedByAuthorMillis(long clearedByAuthorMillis) {
+		this.clearedByAuthorMillis = clearedByAuthorMillis;
+	}
+
 	public void setDatePublished(Date datePublished) {
 		this.datePublished = datePublished;
 	}

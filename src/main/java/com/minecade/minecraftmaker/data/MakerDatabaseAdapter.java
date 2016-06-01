@@ -523,6 +523,7 @@ public class MakerDatabaseAdapter {
 		level.setLevelName(result.getString("level_name"));
 		level.setAuthorId(new UUID(authorIdBytes.getLong(), authorIdBytes.getLong()));
 		level.setAuthorName(result.getString("author_name"));
+		level.setClearedByAuthorMillis(result.getLong("author_cleared"));
 		level.setAuthorRank(loadRank(result));
 		byte[] locationId = result.getBytes("end_location_id");
 		if (locationId != null) {
