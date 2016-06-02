@@ -3,6 +3,7 @@ package com.minecade.minecraftmaker.player;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +27,7 @@ import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
+import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
@@ -45,28 +47,32 @@ import com.minecade.nms.NMSUtils;
 
 public class MakerPlayer implements Tickable {
 
+	private static final int MIN_TIME_BETWEEN_SEARCHES_MILLIS = 3000;
+
 	private final Player player;
+
 	private final MakerPlayerData data;
 
 	private MakerSteveData steveData;
 	private MakerPlayableLevel currentLevel;
-	private MakerScoreboard makerScoreboard;
 
+	private MakerScoreboard makerScoreboard;
 	private ChatColor nameColor = ChatColor.RESET;
 	private final Map<String, AbstractMakerMenu> personalMenus = new HashMap<>();
+
 	private final LinkedList<String> pendingActionMessages = new LinkedList<>();
 	private long lastActionMessageTick;
-
 	private AbstractMakerMenu inventoryToOpen;
 	private boolean closeInventoryRequest;
-	private boolean dirtyInventory;
 
+	private boolean dirtyInventory;
 	private long currentTick;
 	private boolean disabled = false;
 
 	private Location teleportDestination;
-
 	private long levelToDeleteSerial;
+
+	private long nextAllowedSearchMillis;
 
 	@Deprecated
 	private LevelSortBy levelSortBy = LevelSortBy.LIKES;
@@ -74,6 +80,16 @@ public class MakerPlayer implements Tickable {
 	public MakerPlayer(Player player, MakerPlayerData data) {
 		this.player = player;
 		this.data = data;
+	} 
+
+	public boolean canSearchAgain() {
+		long currentTimeMillis = System.currentTimeMillis();
+		if (nextAllowedSearchMillis < currentTimeMillis) {
+			nextAllowedSearchMillis = currentTimeMillis + MIN_TIME_BETWEEN_SEARCHES_MILLIS;
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	public void clearInventory() {
@@ -167,7 +183,7 @@ public class MakerPlayer implements Tickable {
 		return this.player;
 	}
 
-    public String getPlayerRecordTime(){
+	public String getPlayerRecordTime(){
         if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null){
             for(MakerLevelClearData makerLevelClear : this.currentLevel.getLevelsClear()){
                 if(makerLevelClear.getUniqueId().equals(this.getUniqueId())){
@@ -199,7 +215,7 @@ public class MakerPlayer implements Tickable {
         return MinecraftMakerPlugin.getInstance().getMessage("general.empty");
     }
 
-	public MakerSteveData getSteveData(){
+    public MakerSteveData getSteveData(){
 		return this.steveData;
 	}
 
@@ -298,6 +314,16 @@ public class MakerPlayer implements Tickable {
 			personalMenus.put(menu.getName(), menu);
 		}
 		menu.update();
+		inventoryToOpen = menu;
+	}
+
+	public void openLevelSearchMenu(MinecraftMakerPlugin plugin, Set<MakerDisplayableLevel> levels) {
+		LevelSearchMenu menu = (LevelSearchMenu) personalMenus.get(plugin.getMessage(LevelSearchMenu.getTitleKey()));
+		if (menu == null) {
+			menu = LevelSearchMenu.getInstance(plugin, this.getUniqueId());
+			personalMenus.put(menu.getName(), menu);
+		}
+		menu.update(levels);
 		inventoryToOpen = menu;
 	}
 

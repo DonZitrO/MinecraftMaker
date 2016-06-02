@@ -606,6 +606,26 @@ public class MakerController implements Runnable, Tickable {
 		level.onBlockIgnite(event);
 	}
 
+	public void onBlockPhysics(BlockPhysicsEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
+		if (slot < 0) {
+			event.setCancelled(true);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("MakerController.onBlockPhysics - cancelled block physics outside level - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			}
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.setCancelled(true);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("MakerController.onBlockPhysics - cancelled block physics from unregistered level slot - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
+			}
+			return;
+		}
+		level.onBlockPhysics(event);
+	}
+
 	public void onBlockPistonExtend(BlockPistonExtendEvent event) {
 		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
 		if (slot < 0) {
@@ -660,26 +680,6 @@ public class MakerController implements Runnable, Tickable {
 			}
 			break;
 		}
-	}
-
-	public void onBlockPhysics(BlockPhysicsEvent event) {
-		short slot = LevelUtils.getLocationSlot(event.getBlock().getLocation());
-		if (slot < 0) {
-			event.setCancelled(true);
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().warning(String.format("MakerController.onBlockPhysics - cancelled block physics outside level - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
-			}
-			return;
-		}
-		MakerPlayableLevel level = levelMap.get(slot);
-		if (level == null) {
-			event.setCancelled(true);
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().warning(String.format("MakerController.onBlockPhysics - cancelled block physics from unregistered level slot - block type: [%s] - location: [%s]", event.getBlock().getType(), event.getBlock().getLocation().toVector()));
-			}
-			return;
-		}
-		level.onBlockPhysics(event);
 	}
 
 	public void onBlockRedstone(BlockRedstoneEvent event) {
@@ -1210,7 +1210,7 @@ public class MakerController implements Runnable, Tickable {
 		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
 		levelMap.remove(makerLevel.getChunkZ());
 	}
-
+	
 	public void renameLevel(MakerPlayer mPlayer, String newName) {
 		// needs to be editing that level
 		if (!mPlayer.isEditingLevel()) {
@@ -1235,6 +1235,36 @@ public class MakerController implements Runnable, Tickable {
 	@Override
 	public void run() {
 		tick(getCurrentTick() + 1);
+	}
+
+	public void searchLevels(MakerPlayer mPlayer, String searchString) {
+		if (!mPlayer.isInLobby()) {
+			mPlayer.sendActionMessage(plugin, "level.search.error.not-in-lobby");
+			return;
+		}
+		if (!mPlayer.canSearchAgain()){
+			mPlayer.sendActionMessage(plugin, "level.search.error.too-soon");
+			return;
+		}
+		plugin.getDatabaseAdapter().searchPublishedLevelsByNameAsync(mPlayer.getUniqueId(), searchString);
+	}
+
+	public void searchLevelsCallback(UUID playerId, String searchString, int levelCount, Set<MakerDisplayableLevel> levels) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		MakerPlayer mPlayer = getPlayer(playerId);
+		if (mPlayer == null || !mPlayer.isInLobby()) {
+			return;
+		}
+		if (levelCount == 0) {
+			mPlayer.sendActionMessage(plugin, "level.search.error.no-results", searchString);
+			return;
+		} else if (levels == null) {
+			mPlayer.sendActionMessage(plugin, "level.search.error.too-many-results", levelCount, searchString);
+			return;
+		}
+		mPlayer.openLevelSearchMenu(plugin, levels);
 	}
 
 	public void sendActionMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {

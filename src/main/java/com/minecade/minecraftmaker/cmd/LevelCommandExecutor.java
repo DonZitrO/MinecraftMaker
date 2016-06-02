@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import org.apache.commons.lang.Validate;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.WordUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -34,11 +35,14 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 		}
 		if (args.length < 1) {
 			sender.sendMessage(plugin.getMessage("command.level.usage"));
+			sender.sendMessage(plugin.getMessage("command.level.actions"));
+			sender.sendMessage(plugin.getMessage("command.level.actions.help"));
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("rename")) {
 			if (args.length < 2) {
-				sender.sendMessage(plugin.getMessage("level.rename.error.empty-name"));
+				sender.sendMessage(plugin.getMessage("command.level.rename.usage"));
+				sender.sendMessage(plugin.getMessage("command.level.rename.permissions"));
 				return true;
 			}
 			String name = Joiner.on(" ").join(Arrays.copyOfRange(args, 1, args.length));
@@ -58,18 +62,48 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 				return true;
 			}
 			// capitalize
-			name = StringUtils.capitalize(name);
+			name = WordUtils.capitalize(name);
 			plugin.getController().renameLevel(mPlayer, name);
+			return true;
+		}
+		if (args[0].equalsIgnoreCase("search")) {
+			if (args.length < 2) {
+				sender.sendMessage(plugin.getMessage("command.level.search.usage"));
+				sender.sendMessage(plugin.getMessage("command.level.search.permissions"));
+				//sender.sendMessage(plugin.getMessage("level.search.error.empty-string"));
+				return true;
+			}
+			String searchString = Joiner.on(" ").join(Arrays.copyOfRange(args, 1, args.length));
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | LevelCommandExecutor.onCommand - search string: [%s]", searchString));
+			}
+			if (StringUtils.isBlank(searchString)) {
+				sender.sendMessage(plugin.getMessage("level.search.error.empty-string"));
+				return true;
+			}
+			if (searchString.length() < 3 || searchString.length() > 16) {
+				sender.sendMessage(plugin.getMessage("level.search.error.wrong-size-string"));
+				return true;
+			}
+			if (!searchString.matches("\\w(\\w|'|\\ )*\\w")) {
+				sender.sendMessage(plugin.getMessage("level.search.error.invalid-string"));
+				return true;
+			}
+			plugin.getController().searchLevels(mPlayer, searchString);
 			return true;
 		}
 		// ADMIN only sub-commands below
 		if (!mPlayer.getData().hasRank(Rank.ADMIN)) {
 			sender.sendMessage(plugin.getMessage("command.level.error.permissions"));
+			sender.sendMessage(plugin.getMessage("command.level.usage"));
+			sender.sendMessage(plugin.getMessage("command.level.actions"));
+			sender.sendMessage(plugin.getMessage("command.level.actions.help"));
 			return true;
 		}
-		if (args[0].equalsIgnoreCase("copy")) {
+		if (args[0].equalsIgnoreCase("edit")) {
 			if (args.length < 2) {
-				sender.sendMessage(plugin.getMessage("command.level.error.empty-serial"));
+				sender.sendMessage(plugin.getMessage("command.level.edit.usage"));
+				sender.sendMessage(plugin.getMessage("command.level.edit.permissions"));
 				return true;
 			}
 			long serial = validateLevelSerial(args, 1);
@@ -82,7 +116,9 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 		}
 		if (args[0].equalsIgnoreCase("delete")) {
 			if (args.length < 2) {
-				sender.sendMessage(plugin.getMessage("command.level.error.empty-serial"));
+				sender.sendMessage(plugin.getMessage("command.level.delete.usage"));
+				sender.sendMessage(plugin.getMessage("command.level.delete.permissions"));
+				// sender.sendMessage(plugin.getMessage("command.level.error.empty-serial"));
 				return true;
 			}
 			long serial = validateLevelSerial(args, 1);
@@ -93,6 +129,9 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 			plugin.getController().deleteLevel(mPlayer, serial);
 			return true;
 		}
+		sender.sendMessage(plugin.getMessage("command.level.usage"));
+		sender.sendMessage(plugin.getMessage("command.level.actions"));
+		sender.sendMessage(plugin.getMessage("command.level.actions.help"));
 		return true;
 	}
 

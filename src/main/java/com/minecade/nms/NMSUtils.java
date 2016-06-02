@@ -72,9 +72,14 @@ public class NMSUtils {
 	}
 
 	public static void sendActionMessage(Player p, String message) {
-		IChatBaseComponent icbc = ChatSerializer.a("{\"text\": \"" + ChatColor.translateAlternateColorCodes('&', message) + "\"}");
-		PacketPlayOutChat bar = new PacketPlayOutChat(icbc, (byte) 2);
-		((CraftPlayer)p).getHandle().playerConnection.sendPacket(bar);
+		try {
+			IChatBaseComponent icbc = ChatSerializer.a("{\"text\": \"" + ChatColor.translateAlternateColorCodes('&', message) + "\"}");
+			PacketPlayOutChat bar = new PacketPlayOutChat(icbc, (byte) 2);
+			((CraftPlayer)p).getHandle().playerConnection.sendPacket(bar);
+		} catch (Exception e) {
+			e.printStackTrace();
+			p.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+		}
 	}
 
 	public static ItemStack createSkull(ItemStack item, String uniqueId, String value) {

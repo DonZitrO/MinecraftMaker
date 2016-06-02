@@ -43,6 +43,8 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 
 public class MakerDatabaseAdapter {
 
+	private static final int MAX_SEARCH_RESULTS = 28;
+
 	private static final String LOAD_LEVEL_WITH_DATA_QUERY_BASE =
 			"%s, `levels`.`level_id`, " + // select placeholder
 			"SUM(CASE WHEN `level_likes`.`dislike` = 0 THEN 1 ELSE 0 END) as likes, " +
@@ -52,6 +54,7 @@ public class MakerDatabaseAdapter {
 			"%s " + // before grouping clauses placeholder
 			"GROUP BY `levels`.`level_id` " + 
 			"%s "; // after grouping clauses placeholder
+
 	private static final String SELECT_ALL_FROM_LEVELS = "SELECT `levels`.*";
 
 	private final MinecraftMakerPlugin plugin;
@@ -790,7 +793,7 @@ public class MakerDatabaseAdapter {
 		String authorIdString = levelBrowserMenu.getViewerId().toString().replace("-", "");
 		List<MakerDisplayableLevel> levels = new ArrayList<>();
 		// FIXME: hardcoded limit
-		try (PreparedStatement levelsByAuthorQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` WHERE `author_id` = UNHEX(?) AND `date_published` IS NULL AND `levels`.`deleted` = 0 ORDER BY level_serial DESC LIMIT 10"))) {
+		try (PreparedStatement levelsByAuthorQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`levels` WHERE `author_id` = UNHEX(?) AND `date_published` IS NULL AND `levels`.`deleted` = 0 ORDER BY level_serial DESC LIMIT 27"))) {
 			levelsByAuthorQuery.setString(1, authorIdString);
 			ResultSet resultSet = levelsByAuthorQuery.executeQuery();
 			while (resultSet.next()) {
@@ -943,6 +946,85 @@ public class MakerDatabaseAdapter {
 
 	public void saveReportAsync(UUID playerId, String playerName, String report) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> insertReport(playerId, playerName, report));
+	}
+
+	private synchronized Set<MakerDisplayableLevel> searchPublishedLevelsByName(String searchString, int limit) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should NOT be called from the main thread");
+		}
+		checkNotNull(searchString);
+		Set<MakerDisplayableLevel> levels = new LinkedHashSet<MakerDisplayableLevel>();
+		if (StringUtils.isBlank(searchString)) {
+			return levels;
+		}
+		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
+				SELECT_ALL_FROM_LEVELS,
+				"WHERE `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0 AND `levels`.`level_name` like ? ",
+				"ORDER BY `levels`.`level_name` ASC LIMIT ?");
+		try (PreparedStatement searchByNameQuery = getConnection().prepareStatement(query)) {
+			searchByNameQuery.setString(1, String.format("%%%s%%", searchString));
+			searchByNameQuery.setInt(2, limit);
+			ResultSet resultSet = searchByNameQuery.executeQuery();
+			while (resultSet.next()) {
+				MakerDisplayableLevel level = new MakerDisplayableLevel(plugin);
+				loadLevelFromResult(level, resultSet);
+				loadLevelRecords(level);
+				levels.add(level);
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPublishedLevelsSearchByNameSerials - error while loading level - %s", e.getMessage()));
+			e.printStackTrace();
+		}
+		return levels;
+	}
+
+	private void searchPublishedLevelsByName(final UUID playerId, final String searchString) {
+		checkNotNull(searchString);
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		int levelCount = 0;
+		Set<MakerDisplayableLevel> levelSet = null;
+		try {
+			levelCount = searchPublishedLevelsByNameCount(searchString);
+			if (levelCount > MAX_SEARCH_RESULTS) {
+				return;
+			}
+			levelSet = searchPublishedLevelsByName(searchString, MAX_SEARCH_RESULTS);
+		} finally {
+			final int finalCount = levelCount;
+			final Set<MakerDisplayableLevel> finalLevelSet = levelSet;
+			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().searchLevelsCallback(playerId, searchString, finalCount, finalLevelSet));
+		}
+	}
+
+	public void searchPublishedLevelsByNameAsync(UUID playerId, String searchString) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> searchPublishedLevelsByName(playerId, searchString));
+	}
+
+	private int searchPublishedLevelsByNameCount(String searchString) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should NOT be called from the main thread");
+		}
+		int levelCount = 0;
+		String query = 
+				"SELECT count(`level_serial`) " +
+				"FROM `mcmaker`.`levels` " +
+				"WHERE `date_published` IS NOT NULL AND `levels`.`deleted` = 0 AND `levels`.`level_name` like ?";
+		try (PreparedStatement searchCountQuery = getConnection().prepareStatement(String.format(query))) {
+			searchCountQuery.setString(1, String.format("%%%s%%", searchString));
+			ResultSet resultSet = searchCountQuery.executeQuery();
+			if (resultSet.next()) {
+				levelCount = resultSet.getInt(1);
+			}
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadPublishedLevelCount - total level count: [%s]", levelCount));
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevel - error while loading levels - %s", e.getMessage()));
+			e.printStackTrace();
+		}
+		return levelCount;
 	}
 
 	public boolean testConnection() {

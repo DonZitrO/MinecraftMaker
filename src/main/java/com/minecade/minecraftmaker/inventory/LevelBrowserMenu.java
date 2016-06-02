@@ -21,7 +21,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.google.common.collect.Iterators;
 import com.minecade.core.i18n.Internationalizable;
-import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
@@ -49,7 +48,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	// TODO: https://bukkit.org/threads/class-anvilgui-use-the-anvil-gui-to-retrieve-strings.211849/
 	//private static Inventory searchInventory = Bukkit.createInventory(null, InventoryType.ANVIL, MinecraftMakerPlugin.getInstance().getMessage("menu.search-item.title"));
 
-	private static ItemStack glassPane;
 	private static int levelCount;
 
 	private static void addLevelItemToPages(Internationalizable plugin, MakerDisplayableLevel level) {
@@ -160,17 +158,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
 	}
 
-	private static ItemStack getGlassPane(){
-		if(glassPane == null){
-			ItemStack itemStack = new ItemStack(Material.STAINED_GLASS_PANE);
-			ItemMeta itemMeta = itemStack.getItemMeta();
-			itemMeta.setDisplayName(StringUtils.EMPTY);
-			itemStack.setItemMeta(itemMeta);
-			glassPane = itemStack;
-		}
-		return glassPane;
-	}
-
 	public static LevelBrowserMenu getInstance(MinecraftMakerPlugin plugin, UUID viewerId) {
 		checkNotNull(plugin);
 		checkNotNull(viewerId);
@@ -180,24 +167,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 		userLevelBrowserMenuMap.put(viewerId, menu);
 		return menu;
-	}
-
-	private static ItemStack getLevelItem(Internationalizable plugin, MakerDisplayableLevel level) {
-		ItemBuilder builder = new ItemBuilder(Material.MONSTER_EGG);
-		builder.withDisplayName(plugin.getMessage("menu.level-browser.level.display-name", level.getLevelName()));
-		List<String> lore = new ArrayList<>();
-		lore.add(plugin.getMessage("menu.level-browser.level.serial", level.getLevelSerial()));
-		lore.add(StringUtils.EMPTY);
-		lore.add(plugin.getMessage("menu.level-browser.level.created-by", level.getAuthorName()));
-		lore.add(plugin.getMessage("menu.level-browser.level.created-by-rank", level.getAuthorRank().getDisplayName()));
-		lore.add(StringUtils.EMPTY);
-		lore.add(plugin.getMessage("menu.level-browser.level.likes", level.getLikes()));
-		lore.add(plugin.getMessage("menu.level-browser.level.dislikes", level.getDislikes()));
-		lore.add(plugin.getMessage("menu.level-browser.level.favorites", level.getFavs()));
-		lore.add(plugin.getMessage("menu.level-browser.level.publish-date", level.getDatePublished()));
-		lore.add(StringUtils.EMPTY);
-		builder.withLore(lore);
-		return builder.build();
 	}
 
 	public static synchronized Set<Long> getLevelPageSerials(LevelSortBy sortBy, boolean reverse, int offset, int limit) {
@@ -289,6 +258,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		levelsByDislikes.add(level);
 		addLevelItemToPages(plugin, level);
 	}
+
 	public static void updatePlayerMenu(UUID playerId) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
@@ -298,6 +268,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			menu.update();
 		}
 	}
+
 	private final Iterator<LevelSortBy> cycleSortBy;
 	private int currentPage = 1;
 	private LevelSortBy sortBy;
@@ -305,7 +276,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	private boolean reverseSortBy;
 
 	private final UUID viewerId;
-//	private boolean nextRequest = false;
 
 	private LevelBrowserMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
 		super(plugin, plugin.getMessage(getTitleKey()), 54);
@@ -377,22 +347,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	}
 
-	private boolean isLevelSlot(int index) {
-		if (index > 9 && index < 17) {
-			return true;
-		}
-		if (index > 18 && index < 26) {
-			return true;
-		}
-		if (index > 27 && index < 35) {
-			return true;
-		}
-		if (index > 36 && index < 44) {
-			return true;
-		}
-		return false;
-	}
-
 	@Override
 	public boolean isShared() {
 		return false;
@@ -427,9 +381,9 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			}
 			plugin.getController().loadLevelForPlayingBySerial(mPlayer, Long.valueOf(serial));
 			return MenuClickResult.CANCEL_CLOSE;
-//		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SEARCH.getDisplayName())) {
-//		    mPlayer.getPlayer().openInventory(searchInventory);
-//			return MenuClickResult.CANCEL_UPDATE;
+		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SEARCH.getDisplayName())) {
+			mPlayer.sendMessage(plugin, "command.level.search.usage");
+			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
 			sortByNext();
 			return MenuClickResult.CANCEL_UPDATE;
@@ -512,7 +466,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		plugin.getController().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, getViewerId());
 	}
 
-	public void update(List<MakerDisplayableLevel> currentPageLevels) {
+	private void update(List<MakerDisplayableLevel> currentPageLevels) {
 
 		updatePaginationItems();
 
