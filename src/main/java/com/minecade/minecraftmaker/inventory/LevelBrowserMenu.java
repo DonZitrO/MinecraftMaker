@@ -44,6 +44,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	private static TreeSet<MakerDisplayableLevel> levelsByPublishDate = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> comparePublishDatesAndSerial(l1, l2));
 	private static TreeSet<MakerDisplayableLevel> levelsByRank = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> compareRanksAndSerial(l1, l2));
 	private static TreeSet<MakerDisplayableLevel> levelsBySerial = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
+	private static TreeSet<MakerDisplayableLevel> levelsByTrendingScore = new TreeSet<MakerDisplayableLevel>((MakerDisplayableLevel l1, MakerDisplayableLevel l2) -> compareTrendingAndSerial(l1, l2));
 
 	// TODO: https://bukkit.org/threads/class-anvilgui-use-the-anvil-gui-to-retrieve-strings.211849/
 	//private static Inventory searchInventory = Bukkit.createInventory(null, InventoryType.ANVIL, MinecraftMakerPlugin.getInstance().getMessage("menu.search-item.title"));
@@ -69,6 +70,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			levelsByDislikes.remove(former);
 			levelsByPublishDate.remove(former);
 			levelsByRank.remove(former);
+			levelsByTrendingScore.remove(former);
 		}
 		bySerialMap.put(level.getLevelSerial(), level);
 		levelsByAuthorName.add(level);
@@ -78,6 +80,20 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		levelsByDislikes.add(level);
 		levelsByPublishDate.add(level);
 		levelsByRank.add(level);
+		levelsByTrendingScore.add(level);
+	}
+
+	private static int compareTrendingAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
+		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+		if (diff == 0) {
+			// avoid duplicated levels
+			return diff;
+		}
+		diff = Long.valueOf(l1.getTrendingScore()).compareTo(Long.valueOf(l2.getTrendingScore()));
+		if (diff != 0) {
+			return diff;
+		}
+		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
 	}
 
 	private static int compareAuthorNameAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
@@ -99,7 +115,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			// avoid duplicated levels
 			return diff;
 		}
-		diff = Long.valueOf(l1.getDislikes()).compareTo(Long.valueOf(l1.getDislikes()));
+		diff = Long.valueOf(l1.getDislikes()).compareTo(Long.valueOf(l2.getDislikes()));
 		if (diff != 0) {
 			return diff;
 		}
@@ -190,6 +206,9 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		case LIKES:
 			allLevels = levelsByLikes;
 			break;
+		case TRENDING_SCORE:
+			allLevels = levelsByTrendingScore;
+			break;
 		case LEVEL_SERIAL:
 		default:
 			allLevels = levelsBySerial;
@@ -227,6 +246,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			levelsByDislikes.remove(former);
 			levelsByPublishDate.remove(former);
 			levelsByRank.remove(former);
+			levelsByTrendingScore.remove(former);
 			removeLevelItemToPages(former.getLevelId());
 		}
 		// TODO: update all menus?
@@ -245,17 +265,23 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 	}
 
-	public static void updateLevelLikes(Internationalizable plugin, UUID levelId, long totalLikes, long totalDislikes) {
+	public static void updateLevelLikes(Internationalizable plugin, UUID levelId, long totalLikes, long totalDislikes, long trendingScore) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
 		MakerDisplayableLevel level = byIdMap.get(levelId);
 		if (level == null) {
 			return;
 		}
+		levelsByTrendingScore.remove(level);
 		levelsByLikes.remove(level);
-		level.setLikes(totalLikes);
-		levelsByLikes.add(level);
 		levelsByDislikes.remove(level);
+		level.setLikes(totalLikes);
 		level.setDislikes(totalDislikes);
+		level.setTrendingScore(trendingScore);
+		levelsByLikes.add(level);
 		levelsByDislikes.add(level);
+		levelsByTrendingScore.add(level);
 		addLevelItemToPages(plugin, level);
 	}
 
@@ -313,6 +339,9 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		case LIKES:
 			allLevels = levelsByLikes;
 			break;
+		case TRENDING_SCORE:
+			allLevels = levelsByTrendingScore;
+			break;
 		case LEVEL_SERIAL:
 		default:
 			allLevels = levelsBySerial;
@@ -339,7 +368,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 		items[2] = GeneralMenuItem.SEARCH.getItem();
 		items[5] = GeneralMenuItem.SORT.getItem();
-		items[6] = this.reverseSortBy ? GeneralMenuItem.SORT_DIRECTION_DOWN.getItem(): GeneralMenuItem.SORT_DIRECTION_UP.getItem();
+		updateSortDirectionItem();
 		items[18] = GeneralMenuItem.PREVIOUS_PAGE.getItem();
 		items[26] = GeneralMenuItem.NEXT_PAGE.getItem();
 		items[47] = GeneralMenuItem.CURRENT_PAGE.getItem();
@@ -541,7 +570,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private void updateSortDirectionItem() {
-		items[6] = this.reverseSortBy ? GeneralMenuItem.SORT_DIRECTION_DOWN.getItem(): GeneralMenuItem.SORT_DIRECTION_UP.getItem();
+		items[6] = this.sortBy.isReversible() ? this.reverseSortBy ? GeneralMenuItem.SORT_DIRECTION_DOWN.getItem() : GeneralMenuItem.SORT_DIRECTION_UP.getItem() : getGlassPane();
 	}
 
 	private void updateSortItem() {

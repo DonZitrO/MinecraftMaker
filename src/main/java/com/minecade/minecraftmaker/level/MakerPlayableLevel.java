@@ -71,7 +71,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	public static final short MAX_LEVELS_PER_WORLD = 50;
 	public static final short MAX_LEVEL_WIDTH = 160;
 	public static final short MAX_LEVEL_HEIGHT = 80;
-	public static final short HIGHEST_LEVEL_Y = 63;
+	public static final short HIGHEST_LEVEL_Y = 96;
 	public static final short FLOOR_LEVEL_Y = 16;
 
 	private static final MakerRelativeLocationData RELATIVE_START_LOCATION = new MakerRelativeLocationData(2.5, 17, 6.5, -90f, 0);

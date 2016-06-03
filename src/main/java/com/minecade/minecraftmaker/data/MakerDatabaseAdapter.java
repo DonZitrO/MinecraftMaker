@@ -13,11 +13,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.apache.commons.lang3.StringUtils;
@@ -57,16 +59,29 @@ public class MakerDatabaseAdapter {
 
 	private static final String SELECT_ALL_FROM_LEVELS = "SELECT `levels`.*";
 
+	// based on:
+	// https://medium.com/hacking-and-gonzo/how-reddit-ranking-algorithms-work-ef111e33d0d9#.4vtsrfifk
+	private static long calculateTrendingScore(long likes, long dislikes, Date published) {
+		if (published == null) {
+			return 0;
+		}
+		double score = likes - dislikes;
+		double order = Math.log10(Math.max(Math.abs(score), 1));
+		double sign = (score > 0) ? 1 : (score < 0) ? -1 : 0;
+		double seconds = TimeUnit.MILLISECONDS.toSeconds(published.getTime()) - 1134028003;
+		return Math.round(((sign * order) + (seconds / 45000d)) * 10000000d);
+	}
+
 	private final MinecraftMakerPlugin plugin;
 
 	private final String jdbcUrl;
 	private final String dbUsername;
 	private final String dbpassword;
-
 	private final String networkSchema;
 	private final String coinsColumn;
 
 	private Connection connection;
+
 	private int lastCount = 0;
 
 	public MakerDatabaseAdapter(MinecraftMakerPlugin plugin) {
@@ -145,6 +160,43 @@ public class MakerDatabaseAdapter {
 				// no-op
 			}
 		}
+	}
+
+	private synchronized void fixTrendingScores() {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		String query = "SELECT `levels`.`date_published`, `levels`.`trending_score`, `levels`.`level_id`, `levels`.`level_name` FROM `mcmaker`.`levels` ORDER BY `levels`.`level_serial` ASC LIMIT ?,?";
+		int offSet = 0;
+		try {
+			do {
+				try (PreparedStatement loadLevelIdsSt = getConnection().prepareStatement(String.format(query))) {
+					loadLevelIdsSt.setInt(1, offSet);
+					offSet += 100;
+					loadLevelIdsSt.setInt(2, 100);
+					ResultSet resultSet = loadLevelIdsSt.executeQuery();
+					if (!resultSet.next()) {
+						return;
+					}
+					do {
+						Date datePublished = resultSet.getTimestamp("date_published");
+						if (datePublished == null) {
+							continue;
+						}
+						ByteBuffer levelIdBytes = ByteBuffer.wrap(resultSet.getBytes("level_id"));
+						UUID levelId = new UUID(levelIdBytes.getLong(), levelIdBytes.getLong());
+						loadLevelLikesAndUnlikesAndUpdateTrendingScore(levelId);
+					} while (resultSet.next());
+				}
+			} while (true);
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.fixTrendingScores - error while fixing trending scores: %s", e.getMessage()));
+			e.printStackTrace();
+		}
+	}
+
+	public void fixTrendingScoresAsync() {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> fixTrendingScores());
 	}
 
 	private synchronized Connection getConnection() throws SQLException {
@@ -325,8 +377,8 @@ public class MakerDatabaseAdapter {
 					insertLikeSt.executeUpdate();
 				}
 			}
-			long[] likesAndDislikes = loadLevelLikesAndDislikes(levelId);
-			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().levelLikeCallback(levelId, playerId, dislike, likesAndDislikes[0], likesAndDislikes[1]));
+			long[] result = loadLevelLikesAndUnlikesAndUpdateTrendingScore(levelId);
+			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().levelLikeCallback(levelId, playerId, dislike, result[0], result[1], result[2]));
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.likeLevel - level like/dislike operation completed without errors for level: [%s] and player: [%s] - dislike: [%s]", levelId, playerId, dislike));
 			}
@@ -526,14 +578,15 @@ public class MakerDatabaseAdapter {
 		level.setLevelName(result.getString("level_name"));
 		level.setAuthorId(new UUID(authorIdBytes.getLong(), authorIdBytes.getLong()));
 		level.setAuthorName(result.getString("author_name"));
-		level.setClearedByAuthorMillis(result.getLong("author_cleared"));
 		level.setAuthorRank(loadRank(result));
+		level.setTrendingScore(result.getLong("trending_score"));
+		level.setClearedByAuthorMillis(result.getLong("author_cleared"));
 		byte[] locationId = result.getBytes("end_location_id");
 		if (locationId != null) {
 			ByteBuffer buffer = ByteBuffer.wrap(locationId);
 			level.setRelativeEndLocation(loadRelativeLocationById(new UUID(buffer.getLong(), buffer.getLong())));
 		}
-		level.setDatePublished(result.getDate("date_published"));
+		level.setDatePublished(result.getTimestamp("date_published"));
 		if (level.getDatePublished() != null) {
 			level.setLikes(result.getLong("likes"));
 			level.setDislikes(result.getLong("dislikes"));
@@ -565,17 +618,29 @@ public class MakerDatabaseAdapter {
 		return result;
 	}
 
-	private synchronized long[] loadLevelLikesAndDislikes(UUID levelId) throws SQLException {
+	private synchronized long[] loadLevelLikesAndUnlikesAndUpdateTrendingScore(UUID levelId) throws SQLException {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
 		String levelIdString = levelId.toString().replace("-", "");
-		try (PreparedStatement selectLikesDislikesSt = getConnection().prepareStatement(
-				"SELECT SUM(CASE WHEN `dislike` = 0 THEN 1 ELSE 0 END) as likes, SUM(CASE WHEN `dislike` = 1 THEN 1 ELSE 0 END) as dislikes FROM `mcmaker`.`level_likes` WHERE `level_id` = UNHEX(?)")) {
+		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
+				"SELECT `levels`.`date_published`, `levels`.`trending_score`, `levels`.`level_name` ",
+				"WHERE `levels`.`date_published` IS NOT NULL AND `levels`.`level_id` = UNHEX(?) ","");
+		try (PreparedStatement selectLikesDislikesSt = getConnection().prepareStatement(query)) {
 			selectLikesDislikesSt.setString(1, levelIdString);
 			ResultSet result = selectLikesDislikesSt.executeQuery();
-			result.next();
-			return new long[] { result.getLong("likes"), result.getLong("dislikes") };
+			if (result.next()) {
+				long likes = result.getLong("likes");
+				long dislikes = result.getLong("dislikes");
+				long formerTrendingScore = result.getLong("trending_score");
+				long expectedTrendingScore = calculateTrendingScore(likes, dislikes, result.getTimestamp("date_published"));
+				if (expectedTrendingScore != formerTrendingScore) {
+					Bukkit.getLogger().warning(String.format("MakerDatabaseAdapter.loadLevelLikesAndUnlikesAndUpdateTrendingScore - updating trending score from: [%s] to [%s] on level: [%s]", formerTrendingScore, expectedTrendingScore, result.getString("level_name")));
+					updateLevelTrendingScore(levelId, expectedTrendingScore);
+				}
+				return new long[] { likes, dislikes, expectedTrendingScore };
+			}
+			return new long[] {0,0,0};
 		}
 	}
 
@@ -832,7 +897,7 @@ public class MakerDatabaseAdapter {
 				if (!resultSet.next()) {
 					throw new DataException(String.format("Unable to find level published date for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
 				}
-				level.setDatePublished(resultSet.getDate("date_published"));
+				level.setDatePublished(resultSet.getTimestamp("date_published"));
 			}
 			level.tryStatusTransition(LevelStatus.PUBLISHING, LevelStatus.PUBLISHED);
 			loadPublishedLevelByLevelId(levelId);
@@ -1059,6 +1124,26 @@ public class MakerDatabaseAdapter {
 
 	public void updateLevelAuthorClearTimeAsync(UUID levelId, long clearTimeMillis) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> updateLevelAuthorClearTime(levelId, clearTimeMillis));
+	}
+
+	private synchronized void updateLevelTrendingScore(UUID levelId, long trendingScore) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		try {
+			String levelIdString = levelId.toString().replace("-", "");
+			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `trending_score` = ? WHERE `level_id` = UNHEX(?)")) {
+				updateLevelSt.setLong(1, trendingScore);
+				updateLevelSt.setString(2, levelIdString);
+				updateLevelSt.executeUpdate();
+			}
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.updateLevelTrendingScore - level updated without errors: [%s]", levelId));
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updateLevelTrendingScore - error while updating level: [%s] - ", levelId, e.getMessage()));
+			e.printStackTrace();
+		}
 	}
 
 	@Deprecated

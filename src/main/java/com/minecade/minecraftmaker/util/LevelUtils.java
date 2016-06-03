@@ -155,12 +155,12 @@ public class LevelUtils {
 		if (location.getBlockX() < 0 || location.getBlockX() > MakerPlayableLevel.MAX_LEVEL_WIDTH - 1) {
 			return -1;
 		}
-		if (location.getBlockZ() < 0 || location.getBlockZ() > MakerPlayableLevel.MAX_LEVELS_PER_WORLD * 16 * 3) {
+		if (location.getBlockZ() < 0) {
 			return -1;
 		}
 		int slot = (location.getBlockZ() / 16);
-		if (slot % 3 != 0) {
-			return -1;
+		if (slot != location.getBlockZ() >> 4) {
+			Bukkit.getLogger().severe("XXXXXXXXXXXXXXXXXXXXXXX");
 		}
 		return (short) slot;
 	}

@@ -32,19 +32,15 @@ public class MakerExtent implements Extent {
 	private @Nullable MakerPlayableLevel level;
 
 	public MakerExtent(org.bukkit.World bukkitWorld) {
-		this(bukkitWorld, false, null);
+		this(bukkitWorld, null);
 	}
 
 	public MakerExtent(org.bukkit.World bukkitWorld, MakerPlayableLevel level) {
-		this(bukkitWorld, true, level);
-	}
-
-	private MakerExtent(org.bukkit.World bukkitWorld, boolean fastMode, MakerPlayableLevel level) {
 		checkNotNull(bukkitWorld);
 		world = BukkitUtil.toWorld(bukkitWorld);
 		this.level = level;
 		Extent extent;
-		extent = new FastModeExtent(world, fastMode);
+		extent = new FastModeExtent(world, true);
 		extent = new SurvivalModeExtent(extent, world);
 		extent = new BlockQuirkExtent(extent, world);
 		extent = new ChunkLoadingExtent(extent, world);

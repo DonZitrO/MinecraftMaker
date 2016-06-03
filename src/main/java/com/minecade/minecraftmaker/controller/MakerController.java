@@ -87,13 +87,13 @@ public class MakerController implements Runnable, Tickable {
 	private static final int FAST_RELOGIN_DELAY_SECONDS = 5;
 	private static final int DOUBLE_LOGIN_DELAY_SECONDS = 2;
 	private static final int DEFAULT_MAX_PLAYERS = 40;
-	private static final int DEFAULT_MAX_LEVELS = 50;
+	//private static final int DEFAULT_MAX_LEVELS = 50;
 	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
 	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
 	private static final int MIN_STEVE_LEVELS = 16;
 
-	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-15.0d, 45.0d, 80.0d);
-	private static final float DEFAULT_SPAWN_YAW = 90.0f;
+	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.0d, 35.0d, 78.5d);
+	private static final float DEFAULT_SPAWN_YAW = -90.0f;
 	private static final float DEFAULT_SPAWN_PITCH = -15.0f;
 
 	private final MinecraftMakerPlugin plugin;
@@ -110,7 +110,7 @@ public class MakerController implements Runnable, Tickable {
 	private boolean disabled;
 	private boolean initialized;
 	private int maxPlayers;
-	private short maxLevels;
+	//private short maxLevels;
 
 	private final Set<String> entriesToRemoveFromScoreboardTeams = new HashSet<>();
 	private final Set<UUID> entriesToAddToScoreboardTeams = new HashSet<>();
@@ -144,7 +144,7 @@ public class MakerController implements Runnable, Tickable {
 		this.plugin = plugin;
 		this.mainWorldName = config != null ? config.getString("main-world", "world") : "world";
 		this.maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
-		this.maxLevels = config != null ? (short)config.getInt("max-levels", DEFAULT_MAX_LEVELS) : DEFAULT_MAX_LEVELS;
+		//this.maxLevels = config != null ? (short)config.getInt("max-levels", DEFAULT_MAX_LEVELS) : DEFAULT_MAX_LEVELS;
 		this.spawnVector = config != null ? config.getVector("spawn-vector", DEFAULT_SPAWN_VECTOR) : DEFAULT_SPAWN_VECTOR;
 		this.spawnYaw = config != null ? (float)config.getDouble("spawn-yaw", DEFAULT_SPAWN_YAW) : DEFAULT_SPAWN_YAW;
 		this.spawnPitch = config != null ? (float)config.getDouble("spawn-pitch", DEFAULT_SPAWN_PITCH) : DEFAULT_SPAWN_PITCH;
@@ -312,7 +312,14 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	private MakerPlayableLevel getEmptyLevelIfAvailable() {
-		for (short i = 0; i < maxLevels * 3; i += 3) {
+		for (short i = 0; i < 10; i += 3) {
+			if (!levelMap.containsKey(i)) {
+				MakerPlayableLevel level = new MakerPlayableLevel(plugin, i);
+				levelMap.put(i, level);
+				return level;
+			}
+		}
+		for (short i = 100; i <= Short.MAX_VALUE; i += 20) {
 			if (!levelMap.containsKey(i)) {
 				MakerPlayableLevel level = new MakerPlayableLevel(plugin, i);
 				levelMap.put(i, level);
@@ -376,12 +383,12 @@ public class MakerController implements Runnable, Tickable {
 		return disabled;
 	}
 
-	public void levelLikeCallback(UUID levelId, UUID playerId, boolean dislike, long totalLikes, long totalDislikes) {
+	public void levelLikeCallback(UUID levelId, UUID playerId, boolean dislike, long totalLikes, long totalDislikes, long trendingScore) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		// update level browser
-		LevelBrowserMenu.updateLevelLikes(plugin, levelId, totalLikes, totalDislikes);
+		LevelBrowserMenu.updateLevelLikes(plugin, levelId, totalLikes, totalDislikes, trendingScore);
 		// update current user level
 		MakerPlayer mPlayer = getPlayer(playerId);
 		if (mPlayer == null) {

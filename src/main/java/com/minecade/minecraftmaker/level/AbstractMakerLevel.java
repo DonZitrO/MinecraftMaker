@@ -26,6 +26,7 @@ public class AbstractMakerLevel {
 	protected long levelSerial;
 	protected long likes;
 	protected MakerRelativeLocationData relativeEndLocation;
+	protected long trendingScore;
 
 	protected List<MakerLevelClearData> levelsClear = new ArrayList<MakerLevelClearData>();;
 
@@ -83,6 +84,10 @@ public class AbstractMakerLevel {
 
 	public MakerRelativeLocationData getRelativeEndLocation() {
 		return relativeEndLocation;
+	}
+
+	public long getTrendingScore() {
+		return trendingScore;
 	}
 
 	public boolean isClearedByAuthor() {
@@ -156,6 +161,10 @@ public class AbstractMakerLevel {
 
 	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
 		this.relativeEndLocation = relativeEndLocation;
+	}
+
+	public void setTrendingScore(long trendingScore) {
+		this.trendingScore = trendingScore;
 	}
 
 }

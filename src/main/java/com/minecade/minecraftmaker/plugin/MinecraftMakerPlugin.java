@@ -128,6 +128,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		levelOperatorTask.runTaskTimer(this, 0, 0);
 		// register listeners
 		getServer().getPluginManager().registerEvents(new MakerListener(this), this);
+		// TODO: remove this after fixed
+		if (getConfig().getBoolean("fix-trending-scores", false)) {
+			databaseAdapter.fixTrendingScoresAsync();
+		}
 		// TODO: remove this after rabbit
 		if (getServerId() > 5) {
 			return;

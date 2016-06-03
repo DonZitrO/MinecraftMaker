@@ -4,22 +4,21 @@ import com.minecade.core.i18n.Translatable;
 
 public enum LevelSortBy implements Translatable {
 
-	LIKES(true),
-	LEVEL_NAME,
-	AUTHOR_NAME,
-	AUTHOR_RANK(true),
-	DATE_PUBLISHED(true),
-	LEVEL_SERIAL,
-	DISLIKES(true);
+	TRENDING_SCORE(false, true),
+	LIKES(false, true),
+	LEVEL_NAME(true, false),
+	AUTHOR_NAME(true, false),
+	AUTHOR_RANK(true, true),
+	DATE_PUBLISHED(true, true),
+	LEVEL_SERIAL(true, false),
+	DISLIKES(false, true);
 
 	private String displayName;
+	private boolean reversible = false;
 	private boolean reversedDefault = false;
 
-	private LevelSortBy() {
-		this.reversedDefault = false;
-	}
-
-	private LevelSortBy(boolean reversedDefault) {
+	private LevelSortBy(boolean reversible, boolean reversedDefault) {
+		this.reversible = reversible;
 		this.reversedDefault = reversedDefault;
 	}
 
@@ -40,6 +39,10 @@ public enum LevelSortBy implements Translatable {
 
 	public boolean isReversedDefault() {
 		return reversedDefault;
+	}
+
+	public boolean isReversible() {
+		return reversible;
 	}
 
 	@Override
