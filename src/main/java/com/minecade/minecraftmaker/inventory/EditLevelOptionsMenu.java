@@ -3,6 +3,7 @@ package com.minecade.minecraftmaker.inventory;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
+import com.minecade.core.data.Rank;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
@@ -50,6 +51,15 @@ public class EditLevelOptionsMenu extends AbstractMakerMenu {
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PLAY.getDisplayName())) {
 			mPlayer.getCurrentLevel().saveAndPlay();
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PUBLISH.getDisplayName())) {
+			if (!mPlayer.canPublishLevel()) {
+				mPlayer.sendMessage(plugin, "level.publish.error.published-limit", mPlayer.getPublishedLevelsCount());
+				mPlayer.sendMessage(plugin, "level.publish.error.published-limit.unpublish-delete");
+				if (!mPlayer.hasRank(Rank.TITAN)) {
+					mPlayer.sendMessage(plugin, "upgrade.rank.increase.limits.or");
+					mPlayer.sendMessage(plugin, "upgrade.rank.published.limits");
+				}
+				return MenuClickResult.CANCEL_CLOSE;
+			}
 			mPlayer.getCurrentLevel().publishLevel();
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.EXIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().exitEditing();

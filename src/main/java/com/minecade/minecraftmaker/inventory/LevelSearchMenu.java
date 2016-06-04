@@ -2,7 +2,6 @@ package com.minecade.minecraftmaker.inventory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -14,11 +13,10 @@ import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
-import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelSearchMenu extends AbstractMakerMenu {
+public class LevelSearchMenu extends AbstractDisplayableLevelMenu {
 
 	private static Map<UUID, LevelSearchMenu> userLevelSearchMenuMap = new HashMap<>();
 
@@ -103,33 +101,6 @@ public class LevelSearchMenu extends AbstractMakerMenu {
 	@Override
 	public void update() {
 		throw new UnsupportedOperationException();
-	}
-
-	public void update(Collection<MakerDisplayableLevel> currentSearchLevels) {
-
-		for (int j = 10; j < 44; j++) {
-			if (isLevelSlot(j)) {
-				items[j] = getGlassPane();
-			}
-		}
-
-		int i = 10;
-		levelSlots:
-		for (MakerDisplayableLevel level : currentSearchLevels) {
-			while (!isLevelSlot(i)) {
-				i++;
-				if (i >= items.length) {
-					break levelSlots;
-				}
-			}
-			items[i++] = getLevelItem(plugin, level);
-		}
-		for (; i < items.length; i++) {
-			if (isLevelSlot(i)) {
-				items[i] = getBlackGlassPane();
-			}
-		}
-		inventory.setContents(items);
 	}
 
 }

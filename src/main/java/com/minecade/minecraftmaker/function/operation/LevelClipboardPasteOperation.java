@@ -1,6 +1,7 @@
 package com.minecade.minecraftmaker.function.operation;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
 
@@ -34,7 +35,7 @@ public class LevelClipboardPasteOperation implements Operation {
 			return new DelegateOperation(this, LevelUtils.createPasteOperation(level.getClipboard(), new MakerExtent(level.getWorld(), level), level.getWorldData()));
 		}
 		level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTE_COMMITTING, LevelStatus.CLIPBOARD_PASTED);
-		Bukkit.getLogger().info(String.format("LevelClipboardPasteOperation.resume - finished on: [%s] nanoseconds - level: [%s]", System.nanoTime() - startNanoTime, level.getDescription()));
+		Bukkit.getLogger().info(String.format("LevelClipboardPasteOperation.resume - finished on: [%s] ms - level: [%s]", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanoTime), level.getDescription()));
 		return null;
 	}
 

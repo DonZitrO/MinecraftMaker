@@ -2,41 +2,33 @@ package com.minecade.minecraftmaker.inventory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import com.google.common.collect.Iterators;
 import com.minecade.core.i18n.Internationalizable;
-import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.level.AbstractMakerLevel;
-import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class PlayerLevelsMenu extends AbstractMakerMenu {
+public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 
-	private static int LEVELS_PER_PAGE = 36;
+	private static final long MIN_TIME_BETWEEN_REFRESHES_MILLIS = 300000;
 
 	private static Map<UUID, ItemStack> levelItems = new HashMap<>();
-	private static ItemStack[] loadingPaneItems;
 	private static Map<UUID, PlayerLevelsMenu> userLevelBrowserMenuMap = new HashMap<>();
 
-	private static void addLevelItemToPages(Internationalizable plugin, AbstractMakerLevel level) {
+	private static void addLevelItem(Internationalizable plugin, MakerDisplayableLevel level) {
 		levelItems.put(level.getLevelId(), getLevelItem(plugin, level));
 	}
 
@@ -51,51 +43,30 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 		return menu;
 	}
 
-	private static ItemStack getLevelItem(Internationalizable plugin, AbstractMakerLevel level) {
-		ItemBuilder builder = new ItemBuilder(Material.SIGN);
-		builder.withDisplayName(plugin.getMessage("menu.level-browser.level.display-name", level.getLevelName()));
-		List<String> lore = new ArrayList<>();
-		lore.add(plugin.getMessage("menu.level-browser.level.serial", level.getLevelSerial()));
-		lore.add("");
-		lore.add(plugin.getMessage("menu.level-browser.level.created-by", level.getAuthorName()));
-		lore.add("");
-		lore.add(plugin.getMessage("menu.level-browser.level.likes", level.getLikes()));
-		lore.add(plugin.getMessage("menu.level-browser.level.dislikes", level.getDislikes()));
-		lore.add(plugin.getMessage("menu.level-browser.level.favorites", level.getFavs()));
-		lore.add("");
-		builder.withLore(lore);
-		return builder.build();
-	}
-
-	private static ItemStack[] getLoadingPaneItems() {
-		if (loadingPaneItems == null) {
-			loadingPaneItems = new ItemStack[36];
-			for (int i = 0; i < loadingPaneItems.length; i++) {
-				if (i == 20 || i == 22 || i == 24) {
-					loadingPaneItems[i] = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short)15);
-				} else {
-					loadingPaneItems[i] = new ItemStack(Material.STAINED_GLASS_PANE);
-				}
-			}
-		}
-		return loadingPaneItems;
-	}
-
 	public static String getTitleKey() {
 		return "menu.player-levels.title";
 	}
 
-	private TreeSet<MakerDisplayableLevel> ownedLevelsBySerial = new TreeSet<MakerDisplayableLevel>((AbstractMakerLevel l1, AbstractMakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
-	private Iterator<LevelSortBy> cycleSortBy = Iterators.cycle(LevelSortBy.values());
-	private LevelSortBy sortBy;
-	private boolean reverseSortBy = false;
-	private int totalOwnedLevels = -1;
+	public static void removeLevelFromViewer(MakerDisplayableLevel level) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		PlayerLevelsMenu menu = userLevelBrowserMenuMap.get(level.getAuthorId());
+		if (menu != null) {
+			menu.removeOwnedLevel(level);
+		}
+	}
 
+	private static void removeLevelItem(UUID levelId) {
+		levelItems.remove(levelId);
+	}
+	private final TreeSet<MakerDisplayableLevel> ownedLevelsBySerial = new TreeSet<MakerDisplayableLevel>((AbstractMakerLevel l1, AbstractMakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
 	private final UUID viewerId;
+
+	private long nextAllowedRefreshMillis;
 
 	private PlayerLevelsMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
 		super(plugin, plugin.getMessage(getTitleKey()), 54);
-		this.sortBy = cycleSortBy.next();
 		this.viewerId = viewerId;
 		init();
 	}
@@ -106,16 +77,20 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 		userLevelBrowserMenuMap.remove(getViewerId());
 	}
 
+	@Override
+	protected ItemStack getLevelItem(MakerDisplayableLevel level) {
+		return levelItems.get(level.getLevelId());
+	}
+
 	public UUID getViewerId() {
 		return this.viewerId;
 	}
 
 	private void init() {
-		items[0] = GeneralMenuItem.SORT.getItem();
-		items[8] = GeneralMenuItem.EXIT_MENU.getItem();
-		for (int i = 9; i < inventory.getSize(); i++) {
-			items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
+		for (int i = 0; i < inventory.getSize(); i++) {
+			items[i] = getGlassPane();
 		}
+		items[51] = GeneralMenuItem.EXIT_MENU.getItem();
 	}
 
 	@Override
@@ -130,7 +105,7 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 			return result;
 		}
 		ItemStack clickedItem = inventory.getItem(slot);
-		if (clickedItem.getType().equals(Material.SIGN_POST) || clickedItem.getType().equals(Material.SIGN)) {
+		if (clickedItem.getType().equals(Material.MONSTER_EGG)) {
 			String serial = ItemUtils.getLoreLine(clickedItem, 1);
 			if (StringUtils.isBlank(serial) || !StringUtils.isNumeric(serial)) {
 				Bukkit.getLogger().severe(String.format("PlayerLevelsMenu.onClick - unable to get level serial from lore: [%s]", serial));
@@ -138,31 +113,27 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 			}
 			plugin.getController().loadLevelForEditingBySerial(mPlayer, Long.valueOf(serial));
 			return MenuClickResult.CANCEL_CLOSE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
-			sortByNext();
-			return MenuClickResult.CANCEL_UPDATE;
 		}
 		return MenuClickResult.CANCEL_UPDATE;
 	}
 
-	private void sortByNext() {
-		sortBy = cycleSortBy.next();
-		reverseSortBy = false;
-		update();
-	}
-
-	public void removeLevel(AbstractMakerLevel makerLevel) {
-		ownedLevelsBySerial.remove(makerLevel);
-		update();
-	}
-
-	public void sortBy(LevelSortBy sortBy) {
-		checkNotNull(sortBy);
-		if (sortBy.equals(this.sortBy)) {
-			return;
+	public void removeOwnedLevel(MakerDisplayableLevel level) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		this.sortBy = sortBy;
-		update();
+		removeLevelItem(level.getLevelId());
+		ownedLevelsBySerial.remove(level);
+		update(ownedLevelsBySerial);
+	}
+
+	public boolean shoulRefreshAgain() {
+		long currentTimeMillis = System.currentTimeMillis();
+		if (nextAllowedRefreshMillis < currentTimeMillis) {
+			nextAllowedRefreshMillis = currentTimeMillis + MIN_TIME_BETWEEN_REFRESHES_MILLIS;
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	@Override
@@ -170,66 +141,30 @@ public class PlayerLevelsMenu extends AbstractMakerMenu {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		// TODO use local dirtyInventory
-		// if (!dirtyInventory) return;
-
-		Collection<MakerDisplayableLevel> allLevels = null;
-		switch (sortBy) {
-		default:
-			allLevels = ownedLevelsBySerial;
-			break;
+		update(ownedLevelsBySerial);
+		if (shoulRefreshAgain()) {
+			plugin.getDatabaseAdapter().loadUnpublishedLevelsByAuthorIdAsync(this);
 		}
-
-		int offset = 0; //(Math.max(0, (currentPage - 1) * LEVELS_PER_PAGE));
-		List<MakerDisplayableLevel> currentPageLevels = allLevels.stream().skip(offset).limit(LEVELS_PER_PAGE).collect(Collectors.toList());
-
-		if (currentPageLevels == null || currentPageLevels.size() == 0) {
-			if (totalOwnedLevels < 0) {
-				plugin.getDatabaseAdapter().loadUnpublishedLevelsByAuthorIdAsync(this);
-			}
-			ItemStack[] loadingPane = getLoadingPaneItems();
-			for (int i = 9; i < (loadingPane.length + 9); i++) {
-				items[i] = loadingPane[i-9];
-			}
-			inventory.setContents(items);
-			return;
-		}
-
-		int i = 18;
-		for (AbstractMakerLevel level : currentPageLevels) {
-			ItemStack item = levelItems.get(level.getLevelId());
-			if (item != null) {
-				items[i++] = item;
-			} else {
-				new ItemStack(Material.STAINED_GLASS_PANE);
-			}
-		}
-		for (; i < inventory.getSize(); i++) {
-			items[i] = new ItemStack(Material.STAINED_GLASS_PANE);
-		}
-		inventory.setContents(items);
-	}
-
-	public void updateOwnedLevels(Collection<MakerDisplayableLevel> levels) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		for (AbstractMakerLevel level : levels) {
-			addLevelItemToPages(plugin, level);
-		}
-		ownedLevelsBySerial.addAll(levels);
-		totalOwnedLevels = ownedLevelsBySerial.size();
-		update();
 	}
 
 	public void updateOwnedLevel(MakerDisplayableLevel level) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		addLevelItemToPages(plugin, level);
+		addLevelItem(plugin, level);
 		ownedLevelsBySerial.add(level);
-		totalOwnedLevels = ownedLevelsBySerial.size();
-		update();
+		update(ownedLevelsBySerial);
+	}
+
+	public void updateOwnedLevels(Collection<MakerDisplayableLevel> levels) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		for (MakerDisplayableLevel level : levels) {
+			addLevelItem(plugin, level);
+		}
+		ownedLevelsBySerial.addAll(levels);
+		update(ownedLevelsBySerial);
 	}
 
 }

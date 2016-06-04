@@ -67,6 +67,7 @@ import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageUpdateCallback;
 import com.minecade.minecraftmaker.inventory.MenuClickResult;
+import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
@@ -93,7 +94,7 @@ public class MakerController implements Runnable, Tickable {
 	private static final int MIN_STEVE_LEVELS = 16;
 
 	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.0d, 35.0d, 78.5d);
-	private static final float DEFAULT_SPAWN_YAW = -90.0f;
+	private static final float DEFAULT_SPAWN_YAW = 90.0f;
 	private static final float DEFAULT_SPAWN_PITCH = -15.0f;
 
 	private final MinecraftMakerPlugin plugin;
@@ -226,6 +227,15 @@ public class MakerController implements Runnable, Tickable {
 	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
 		if (!author.isInLobby()) {
 			author.sendActionMessage(plugin, "level.create.error.author-busy");
+			return;
+		}
+		if (!author.canCreateLevel()) {
+			author.sendMessage(plugin, "level.create.error.unpublished-limit", author.getUnpublishedLevelsCount());
+			author.sendMessage(plugin, "level.create.error.unpublished-limit.publish-delete");
+			if (!author.hasRank(Rank.TITAN)) {
+				author.sendMessage(plugin, "upgrade.rank.increase.limits.or");
+				author.sendMessage(plugin, "upgrade.rank.unpublished.limits");
+			}
 			return;
 		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
@@ -459,6 +469,7 @@ public class MakerController implements Runnable, Tickable {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
+		PlayerLevelsMenu.removeLevelFromViewer(level);
 		LevelBrowserMenu.updateLevelCount(levelCount);
 		steveLevelSerials.add(level.getLevelSerial());
 		LevelBrowserMenu.addOrUpdateLevel(plugin, level);
@@ -514,15 +525,11 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 
-		// TODO: Beta - remove after beta
-		if (!data.hasRank(Rank.VIP)) {
-			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.login.error.vip-only"));
-			return;
-		}
-		
 		// allows YTs and staff to join full servers
 		if (Result.KICK_FULL.equals(event.getLoginResult())) {
 			if (data.hasRank(Rank.GM) || data.hasRank(Rank.YT)) {
+				event.allow();
+			} else if (data.hasRank(Rank.VIP) && getPlayerCount() < Bukkit.getMaxPlayers() + 10) {
 				event.allow();
 			} else {
 				event.setKickMessage(plugin.getMessage("server.error.max-player-capacity"));
@@ -865,10 +872,19 @@ public class MakerController implements Runnable, Tickable {
 				startSteveChallenge(mPlayer);
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
+				if (!mPlayer.canCreateLevel()) {
+					mPlayer.sendMessage(plugin, "level.create.error.unpublished-limit", mPlayer.getUnpublishedLevelsCount());
+					mPlayer.sendMessage(plugin, "level.create.error.unpublished-limit.publish-delete");
+					if (!mPlayer.hasRank(Rank.TITAN)) {
+						mPlayer.sendMessage(plugin, "upgrade.rank.increase.limits.or");
+						mPlayer.sendMessage(plugin, "upgrade.rank.unpublished.limits");
+					}
+					return MenuClickResult.CANCEL_CLOSE;
+				}
 				mPlayer.openLevelTemplateMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.PLAYER_LEVELS.getDisplayName())) {
-				mPlayer.openPlayerLevelsMenu(plugin, LevelSortBy.LIKES, true);
+				mPlayer.openPlayerLevelsMenu(plugin, true);
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
 				mPlayer.openLevelBrowserMenu(plugin);
@@ -1369,6 +1385,21 @@ public class MakerController implements Runnable, Tickable {
 		for (String playerName : entriesToRemoveFromScoreboardTeams) {
 			mPlayer.removeTeamEntryFromScoreboard(playerName);
 		}
+	}
+
+	public void playerLevelsCountCallback(UUID authorId, int publishedCount, int unpublishedCount) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.playerLevelsCountCallback - maker: [%s] - published count: [%s] - unpublished count: [%s]", authorId, publishedCount, unpublishedCount));
+		}
+		MakerPlayer mPlayer = getPlayer(authorId);
+		if (mPlayer == null) {
+			return;
+		}
+		mPlayer.setPublishedLevelsCount(publishedCount);
+		mPlayer.setUnblishedLevelsCount(unpublishedCount);
 	}
 
 }

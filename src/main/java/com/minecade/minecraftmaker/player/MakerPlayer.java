@@ -39,6 +39,7 @@ import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
+import com.minecade.minecraftmaker.level.PlayableLevelLimits;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.scoreboard.MakerScoreboard;
 import com.minecade.minecraftmaker.util.Tickable;
@@ -57,7 +58,7 @@ public class MakerPlayer implements Tickable {
 	private MakerPlayableLevel currentLevel;
 
 	private MakerScoreboard makerScoreboard;
-	private ChatColor nameColor = ChatColor.RESET;
+	//private ChatColor nameColor = ChatColor.RESET;
 	private final Map<String, AbstractMakerMenu> personalMenus = new HashMap<>();
 
 	private final LinkedList<String> pendingActionMessages = new LinkedList<>();
@@ -81,6 +82,20 @@ public class MakerPlayer implements Tickable {
 		this.player = player;
 		this.data = data;
 	} 
+
+	public boolean canCreateLevel() {
+		if (data.getUnpublishedLevelsCount() < PlayableLevelLimits.getRankUnpublishedLevelsLimit(data.getHighestRank())) {
+			return true;
+		}
+		return false;
+	}
+
+	public boolean canPublishLevel() {
+		if (data.getPublishedLevelsCount() < PlayableLevelLimits.getRankPublishedLevelsLimit(data.getHighestRank())) {
+			return true;
+		}
+		return false;
+	}
 
 	public boolean canSearchAgain() {
 		long currentTimeMillis = System.currentTimeMillis();
@@ -148,8 +163,8 @@ public class MakerPlayer implements Tickable {
 	public String getDisplayName() {
 		String name = this.player.getName();
 		StringBuilder displayName = new StringBuilder();
-		if (data.getDisplayRank() != Rank.GUEST) {
-			displayName.append(data.getDisplayRank().getDisplayName()).append(ChatColor.RESET).append(" ").append(this.nameColor).append(name);
+		if (!data.getDisplayRank().equals(Rank.GUEST)) {
+			displayName.append(data.getDisplayRank().getDisplayName()).append(" ").append(name);
 		} else {
 			displayName.append(ChatColor.GRAY).append(name);
 		}
@@ -167,6 +182,10 @@ public class MakerPlayer implements Tickable {
 				TimeUnit.MILLISECONDS.toMillis(millis) - TimeUnit.SECONDS.toMillis(TimeUnit.MILLISECONDS.toSeconds(millis)));
 	}
 
+	public Rank getHighestRank() {
+		return data.getHighestRank();
+	}
+
 	public LevelSortBy getLevelSortBy(){
 		return this.levelSortBy;
 	}
@@ -175,15 +194,15 @@ public class MakerPlayer implements Tickable {
 		return levelToDeleteSerial;
 	}
 
-	public String getName() {
+    public String getName() {
 		return player.getName();
 	}
 
-	public Player getPlayer() {
+    public Player getPlayer() {
 		return this.player;
 	}
 
-	public String getPlayerRecordTime(){
+    public String getPlayerRecordTime(){
         if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null){
             for(MakerLevelClearData makerLevelClear : this.currentLevel.getLevelsClear()){
                 if(makerLevelClear.getUniqueId().equals(this.getUniqueId())){
@@ -195,7 +214,11 @@ public class MakerPlayer implements Tickable {
         return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
     }
 
-    public String getRecordTime(){
+	public int getPublishedLevelsCount() {
+		return data.getPublishedLevelsCount();
+	}
+
+	public String getRecordTime(){
         if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
                 this.currentLevel.getLevelsClear().size() > 0){
             MakerLevelClearData makerLevelClear = this.currentLevel.getLevelsClear().get(0);
@@ -205,7 +228,7 @@ public class MakerPlayer implements Tickable {
         return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
     }
 
-    public String getRecordUsername(){
+	public String getRecordUsername(){
         if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
                 this.currentLevel.getLevelsClear().size() > 0){
             MakerLevelClearData makerLevelClear = this.currentLevel.getLevelsClear().get(0);
@@ -215,12 +238,16 @@ public class MakerPlayer implements Tickable {
         return MinecraftMakerPlugin.getInstance().getMessage("general.empty");
     }
 
-    public MakerSteveData getSteveData(){
+	public MakerSteveData getSteveData(){
 		return this.steveData;
 	}
 
 	public UUID getUniqueId() {
 		return this.player.getUniqueId();
+	}
+
+	public int getUnpublishedLevelsCount() {
+		return data.getUnpublishedLevelsCount();
 	}
 
 	public boolean hasClearedLevel() {
@@ -229,6 +256,10 @@ public class MakerPlayer implements Tickable {
 
 	public boolean hasInventoryToOpen() {
 		return inventoryToOpen != null;
+	}
+
+	public boolean hasRank(Rank rank) {
+		return getHighestRank().includes(rank);
 	}
 
 	public void initScoreboard(MinecraftMakerPlugin plugin) {
@@ -336,14 +367,11 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
-	public void openPlayerLevelsMenu(MinecraftMakerPlugin plugin, LevelSortBy sortBy, boolean update) {
+	public void openPlayerLevelsMenu(MinecraftMakerPlugin plugin, boolean update) {
 		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
 		if (menu == null) {
 			menu = PlayerLevelsMenu.getInstance(plugin, this.getUniqueId());
 			personalMenus.put(menu.getName(), menu);
-		}
-		if (sortBy != null) {
-			menu.sortBy(sortBy);
 		}
 		if (update) {
 			menu.update();
@@ -498,25 +526,18 @@ public class MakerPlayer implements Tickable {
 		dirtyInventory = true;
 	}
 
-	public void updatePublishedLevelOnPlayerLevelsMenu(MinecraftMakerPlugin plugin, MakerDisplayableLevel makerLevel) {
-		LevelBrowserMenu.addOrUpdateLevel(plugin, makerLevel);
-		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
-		if (menu != null) {
-			menu.removeLevel(makerLevel);
-		}
-	}
-
-	public void updateSavedLevelOnPlayerLevelsMenu(MinecraftMakerPlugin plugin, MakerDisplayableLevel makerLevel) {
-		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
-		if (menu != null) {
-			menu.updateOwnedLevel(makerLevel);
-		}
-	}
-
 	public void updateScoreboardPlayerEntry(Rank rank, String playerName) {
 		if (makerScoreboard != null && !makerScoreboard.isDisabled()) {
 			makerScoreboard.addEntryToTeam(rank.name(), playerName);
 		}
+	}
+
+	public void setPublishedLevelsCount(int publishedCount) {
+		data.setPublishedLevelsCount(publishedCount);
+	}
+
+	public void setUnblishedLevelsCount(int unpublishedCount) {
+		data.setUnpublishedLevelsCount(unpublishedCount);
 	}
 
 }

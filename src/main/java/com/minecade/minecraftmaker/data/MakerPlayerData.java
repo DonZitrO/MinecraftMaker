@@ -8,6 +8,9 @@ import com.minecade.core.data.MinecadeAccountData;
 
 public class MakerPlayerData extends MinecadeAccountData {
 
+	private int unpublishedLevelsCount;
+	private int publishedLevelsCount;
+
 	// FIXME: review this
 	private List<MakerLevelClearData> levelsClear;
 
@@ -18,6 +21,22 @@ public class MakerPlayerData extends MinecadeAccountData {
 
 	public List<MakerLevelClearData> getLevelsClear() {
 		return levelsClear;
+	}
+
+	public int getUnpublishedLevelsCount() {
+		return unpublishedLevelsCount;
+	}
+
+	public void setUnpublishedLevelsCount(int unpublishedLevelsCount) {
+		this.unpublishedLevelsCount = unpublishedLevelsCount;
+	}
+
+	public int getPublishedLevelsCount() {
+		return publishedLevelsCount;
+	}
+
+	public void setPublishedLevelsCount(int publishedLevelsCount) {
+		this.publishedLevelsCount = publishedLevelsCount;
 	}
 
 }

@@ -40,6 +40,7 @@ import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
+import com.minecade.core.data.Rank;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
@@ -75,9 +76,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	public static final short FLOOR_LEVEL_Y = 16;
 
 	private static final MakerRelativeLocationData RELATIVE_START_LOCATION = new MakerRelativeLocationData(2.5, 17, 6.5, -90f, 0);
-
-	private static final short MAX_LEVEL_ITEMS = 20;
-	private static final short MAX_LEVEL_MOBS = 20;
 
 	//private Map<BlockVector, LevelRedstoneInteraction> cancelledRedstoneInteractions = new LinkedHashMap<>();
 	private Set<Entity> problematicEntities = new LinkedHashSet<>();
@@ -605,9 +603,13 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onCreatureSpawn - level: [%s] - current mob count: [%s]", getDescription(), lastMobCount));
 			}
-			if (lastMobCount >= MAX_LEVEL_MOBS) {
+			if (lastMobCount >= PlayableLevelLimits.getRankLivingEntitiesLimit(getAuthorRank())) {
 				event.setCancelled(true);
-				plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.mob-limit", lastMobCount);
+				plugin.getController().sendMessageToPlayerIfPresent(authorId, "level.create.error.mob-limit", lastMobCount);
+				if (!getAuthorRank().includes(Rank.TITAN)) {
+					plugin.getController().sendMessageToPlayerIfPresent(authorId, "upgrade.rank.increase.limits");
+					plugin.getController().sendMessageToPlayerIfPresent(authorId, "upgrade.rank.entities.limits");
+				}
 				return;
 			}
 			NMSUtils.disableMobAI(event.getEntity(), true);
@@ -624,9 +626,9 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onCreatureSpawn - level: [%s] - current mob count: [%s]", getDescription(), lastMobCount));
 			}
-			if (lastMobCount >= MAX_LEVEL_MOBS) {
+			if (lastMobCount >= PlayableLevelLimits.getRankLivingEntitiesLimit(getAuthorRank())) {
 				event.setCancelled(true);
-				Bukkit.getLogger().warning(String.format("MakerLevel.onCreatureSpawn - cancelled creature spawn level: [%s] to comply with entity limit: [%s]", getLevelName(), lastMobCount));
+				Bukkit.getLogger().warning(String.format("MakerLevel.onCreatureSpawn - cancelled creature spawn level: [%s] with author rank: [%s] to comply with entity limit: [%s]", getLevelName(), getAuthorRank(), lastMobCount));
 				return;
 			}
 			NMSUtils.disableMobAI(event.getEntity(), false);
@@ -674,9 +676,13 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onPlayerDropItem - current item count: [%s]", lastItemCount));
 			}
-			if (lastItemCount >= MAX_LEVEL_ITEMS) {
+			if (lastItemCount >= PlayableLevelLimits.getRankDroppedItemsLimit(getAuthorRank())) {
 				event.setCancelled(true);
-				plugin.getController().sendActionMessageToPlayerIfPresent(authorId, "level.create.error.item-limit", lastItemCount);
+				plugin.getController().sendMessageToPlayerIfPresent(authorId, "level.create.error.item-limit", lastMobCount);
+				if (!getAuthorRank().includes(Rank.TITAN)) {
+					plugin.getController().sendMessageToPlayerIfPresent(authorId, "upgrade.rank.increase.limits");
+					plugin.getController().sendMessageToPlayerIfPresent(authorId, "upgrade.rank.items.limits");
+				}
 				return;
 			}
 			NMSUtils.stopItemFromDespawning(event.getItemDrop());
@@ -724,6 +730,15 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 		if (!isClearedByAuthor()) {
 			mPlayer.sendActionMessage(plugin, "level.publish.error.not-cleared");
+			return;
+		}
+		if (!mPlayer.canPublishLevel()) {
+			mPlayer.sendMessage(plugin, "level.publish.error.published-limit", mPlayer.getPublishedLevelsCount());
+			mPlayer.sendMessage(plugin, "level.publish.error.published-limit.unpublish-delete");
+			if (!mPlayer.hasRank(Rank.TITAN)) {
+				mPlayer.sendMessage(plugin, "upgrade.rank.increase.limits.or");
+				mPlayer.sendMessage(plugin, "upgrade.rank.published.limits");
+			}
 			return;
 		}
 		status = LevelStatus.PUBLISH_READY;
@@ -909,7 +924,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		// reuse object on DB by inheriting the UUID when possible
 		relativeEndLocation = new MakerRelativeLocationData(location, relativeEndLocation != null ? relativeEndLocation.getLocationId() : null);
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.setupEndLocation took: [%s] nanoseconds", System.nanoTime() - startNanos));
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.setupEndLocation took: [%s] ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos)));
 		}
 	}
 

@@ -1,5 +1,14 @@
 package com.minecade.core.data;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.bukkit.Bukkit;
+
 import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.i18n.Translatable;
 
@@ -10,23 +19,26 @@ public enum Rank implements Translatable {
 	VIP,
 	PRO(VIP),
 	ELITE(PRO),
-	LEGENDARY, // obsolete, replaced by TITAN
-	TITAN(LEGENDARY, ELITE),
+	TITAN(ELITE),
+	LEGENDARY(TITAN), // obsolete - replaced by TITAN
 	YT(TITAN),
-	CHAMP, // this is a per-game rank, so it's loaded along with game data
 	GM(TITAN),
 	MGM(GM),
 	ADMIN(MGM),
 	DEV(ADMIN, TITAN),
 	OWNER(DEV); 
 
-	private final Rank[] includes;
-
+	private final Set<Rank> included = Collections.synchronizedSet(new HashSet<>());
+ 
 	// these is configurable/translatable
 	private String displayName;
 
 	private Rank(Rank... includes) {
-		this.includes = includes;
+		if (includes != null) {
+			includeRanks(Arrays.asList(includes));
+		}
+		includeRank(this);
+		Bukkit.getLogger().severe(String.format("Rank: %s includes: [%s]", this, included));
 	}
 
 	public String getColumnName() {
@@ -47,8 +59,22 @@ public enum Rank implements Translatable {
 		return displayName;
 	}
 
-	public Rank[] getIncludes() {
-		return includes;
+	private void includeRanks(Iterable<Rank> ranks) {
+		if (ranks == null) {
+			return;
+		}
+		for (Rank included : ranks) {
+			includeRank(included);
+		}
+	}
+
+	private void includeRank(Rank rank) {
+		checkNotNull(rank);
+		if (included.contains(rank)){
+			return;
+		}
+		included.add(rank);
+		includeRanks(rank.included);
 	}
 
 	@Override
@@ -73,6 +99,10 @@ public enum Rank implements Translatable {
 	@Override
 	public void setDisplayName(String displayName) {
 		this.displayName = displayName;
+	}
+
+	public boolean includes(Rank rank) {
+		return this == rank || included.contains(rank);
 	}
 
 }

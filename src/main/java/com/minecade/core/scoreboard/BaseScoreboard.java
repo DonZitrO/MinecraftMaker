@@ -37,7 +37,8 @@ public abstract class BaseScoreboard implements Tickable {
 			String prefix = rank.getDisplayName();
 			if (prefix.length() >= 15) {
 				prefix = prefix.substring(0, 15) + " ";
-			} else {
+			}
+			if (!StringUtils.isBlank(prefix)) {
 				prefix += " ";
 			}
 			scoreboard.registerNewTeam(rank.name()).setPrefix(prefix);

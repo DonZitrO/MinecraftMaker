@@ -142,6 +142,9 @@ public class MakerDatabaseAdapter {
 			int affected = deleteLevelSt.executeUpdate();
 			final int finalLevelCount = loadPublishedLevelsCount();
 			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().deleteLevelBySerialCallback(levelSerial, affected > 0, finalLevelCount, playerId));
+			if (playerId != null) {
+				loadPlayerLevelsCountAsync(playerId);
+			}
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.deleteLevelBySerial - error while deleting level: %s", e.getMessage()));
 			e.printStackTrace();
@@ -422,7 +425,7 @@ public class MakerDatabaseAdapter {
 					continue;
 				}
 				if (result.getBoolean(rank.getColumnName())) {
-					account.addRank(rank);
+					account.setHighestRank(rank);
 				}
 			} catch (SQLException e) {
 				Bukkit.getLogger().warning(String.format("Rank column not found: %s - %s", rank.getColumnName(), e.getMessage()));
@@ -497,8 +500,9 @@ public class MakerDatabaseAdapter {
 	 * This loads specific MCMaker Account data or creates it
 	 */
 	protected synchronized void loadAdditionalData(MakerPlayerData data) throws SQLException {
+		loadPlayerLevelsCounts(data);
 		// FIXME: review this
-		this.loadPlayerLevelsCleared(data);
+		loadPlayerLevelsCleared(data);
 		//this.loadPlayerLevelsLikes(data);
 	}
 
@@ -727,6 +731,48 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
+	private synchronized int[] loadPlayerLevelsCount(UUID authorId, boolean callback) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		checkNotNull(authorId);
+		String uniqueId = authorId.toString().replace("-", "");
+		String query =  "SELECT " +
+							"SUM(CASE WHEN `levels`.`date_published` IS NOT NULL AND `levels`.`unpublished` = 0 THEN 1 ELSE 0 END) as published, " +
+							"SUM(CASE WHEN `levels`.`date_published` IS NULL THEN 1 ELSE 0 END) as unpublished " +
+						"FROM `mcmaker`.`levels` " +
+						"WHERE `levels`.`author_id` = UNHEX(?) AND `levels`.`deleted` = 0 " +
+						"GROUP BY `levels`.`author_id` ";
+		int[] results = new int[2];
+		try (PreparedStatement levelCountsSt = getConnection().prepareStatement(query)) {
+			levelCountsSt.setString(1, uniqueId);
+			ResultSet resultSet = levelCountsSt.executeQuery();
+			if (resultSet.next()) {
+				results[0] = resultSet.getInt("published");
+				results[1] = resultSet.getInt("unpublished");
+			}
+			if (callback) {
+				Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().playerLevelsCountCallback(authorId, results[0], results[1]));
+			}
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadPlayerLevelsCounts - player id: [%s] - published: [%s] - unpublished: [%s]", authorId, results[0], results[1]));
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("loadPlayerLevelsCounts - error while getting player levels counts: %s", e.getMessage()));
+			e.printStackTrace();
+		}
+		return results;
+	}
+
+	private synchronized void loadPlayerLevelsCounts(MakerPlayerData data) {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should NOT be called from the main thread");
+		}
+		int[] levelCounts = loadPlayerLevelsCount(data.getUniqueId(), false);
+		data.setPublishedLevelsCount(levelCounts[0]);
+		data.setUnpublishedLevelsCount(levelCounts[1]);
+	}
+
 	private synchronized void loadPublishedLevelByLevelId(String levelId) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
@@ -895,10 +941,13 @@ public class MakerDatabaseAdapter {
 				getPublishedDateSt.setString(1, levelId);
 				ResultSet resultSet = getPublishedDateSt.executeQuery();
 				if (!resultSet.next()) {
-					throw new DataException(String.format("Unable to find level published date for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+					level.disable(String.format("Unable to find level published date for level: [%s<%s>]", level.getLevelName(), level.getLevelId()));
+					return;
 				}
 				level.setDatePublished(resultSet.getTimestamp("date_published"));
 			}
+			loadPlayerLevelsCount(level.getAuthorId(), true);
+			updateLevelTrendingScore(level.getLevelId(), calculateTrendingScore(0, 0, level.getDatePublished()));
 			level.tryStatusTransition(LevelStatus.PUBLISHING, LevelStatus.PUBLISHED);
 			loadPublishedLevelByLevelId(levelId);
 			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
@@ -934,6 +983,7 @@ public class MakerDatabaseAdapter {
 					if (level.getClipboard() != null) {
 						insertClipboard(levelId, level.getClipboard());
 					}
+					loadPlayerLevelsCountAsync(level.getAuthorId());
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -947,6 +997,10 @@ public class MakerDatabaseAdapter {
 			e.printStackTrace();
 			level.disable(e.getMessage(), e);
 		}
+	}
+
+	private void loadPlayerLevelsCountAsync(UUID authorId) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadPlayerLevelsCount(authorId, true));
 	}
 
 	public void renameLevelAsync(MakerPlayableLevel level, String newName) {
@@ -1108,9 +1162,10 @@ public class MakerDatabaseAdapter {
 		}
 		try {
 			String levelIdString = levelId.toString().replace("-", "");
-			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `author_cleared` = LEAST(`author_cleared`, ?) WHERE `level_id` = UNHEX(?)")) {
+			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `author_cleared` = CASE WHEN `author_cleared` = 0 THEN ? ELSE LEAST(`author_cleared`, ?) END WHERE `level_id` = UNHEX(?)")) {
 				updateLevelSt.setLong(1, clearTimeMillis);
-				updateLevelSt.setString(2, levelIdString);
+				updateLevelSt.setLong(2, clearTimeMillis);
+				updateLevelSt.setString(3, levelIdString);
 				updateLevelSt.executeUpdate();
 			}
 			if (plugin.isDebugMode()) {

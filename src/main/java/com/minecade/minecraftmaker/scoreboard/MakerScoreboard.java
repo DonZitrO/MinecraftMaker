@@ -7,6 +7,7 @@ import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.scoreboard.DisplaySlot;
 
+import com.minecade.core.data.Rank;
 import com.minecade.core.scoreboard.BaseScoreboard;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -106,7 +107,11 @@ public class MakerScoreboard extends BaseScoreboard {
 		this.updateSidebarText(5, plugin.getMessage("scoreboard.level-clear.name", makerPlayer.getData().getLevelsClear().size()));
 		// TODO: put some stuff there
 		this.updateSidebarText(3, plugin.getMessage("scoreboard.rank.title"));
-		this.updateSidebarText(2, makerPlayer.getDisplayRank().getDisplayName());
+		if (!makerPlayer.getHighestRank().equals(Rank.GUEST)) {
+			this.updateSidebarText(2, makerPlayer.getDisplayRank().getDisplayName());
+		} else {
+			this.updateSidebarText(2, plugin.getMessage("upgrade.rank.at"));
+		}
 	}
 
 	private void updatePlayLevelTexts() {

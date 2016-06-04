@@ -28,11 +28,10 @@ import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelBrowserMenu extends AbstractMakerMenu {
+public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 
-	private static final int LEVELS_PER_PAGE = 28;
+	private static final Map<UUID, ItemStack> levelItems = new HashMap<>();
 
-	private static Map<UUID, ItemStack> levelItems = new HashMap<>();
 	private static Map<UUID, MakerDisplayableLevel> byIdMap = new HashMap<>();
 	private static Map<Long, MakerDisplayableLevel> bySerialMap = new HashMap<>();
 	private static Map<UUID, LevelBrowserMenu> userLevelBrowserMenuMap = new HashMap<>();
@@ -51,7 +50,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 
 	private static int levelCount;
 
-	private static void addLevelItemToPages(Internationalizable plugin, MakerDisplayableLevel level) {
+	private static void addLevelItem(Internationalizable plugin, MakerDisplayableLevel level) {
 		levelItems.put(level.getLevelId(), getLevelItem(plugin, level));
 	}
 
@@ -59,7 +58,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		addLevelItemToPages(plugin, level);
+		addLevelItem(plugin, level);
 		MakerDisplayableLevel former = byIdMap.put(level.getLevelId(), level);
 		if (former != null) {
 			bySerialMap.remove(former.getLevelSerial());
@@ -81,19 +80,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		levelsByPublishDate.add(level);
 		levelsByRank.add(level);
 		levelsByTrendingScore.add(level);
-	}
-
-	private static int compareTrendingAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
-		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
-		if (diff == 0) {
-			// avoid duplicated levels
-			return diff;
-		}
-		diff = Long.valueOf(l1.getTrendingScore()).compareTo(Long.valueOf(l2.getTrendingScore()));
-		if (diff != 0) {
-			return diff;
-		}
-		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
 	}
 
 	private static int compareAuthorNameAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
@@ -174,6 +160,19 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
 	}
 
+	private static int compareTrendingAndSerial(MakerDisplayableLevel l1, MakerDisplayableLevel l2) {
+		int diff = Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+		if (diff == 0) {
+			// avoid duplicated levels
+			return diff;
+		}
+		diff = Long.valueOf(l1.getTrendingScore()).compareTo(Long.valueOf(l2.getTrendingScore()));
+		if (diff != 0) {
+			return diff;
+		}
+		return Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial()));
+	}
+
 	public static LevelBrowserMenu getInstance(MinecraftMakerPlugin plugin, UUID viewerId) {
 		checkNotNull(plugin);
 		checkNotNull(viewerId);
@@ -247,12 +246,12 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			levelsByPublishDate.remove(former);
 			levelsByRank.remove(former);
 			levelsByTrendingScore.remove(former);
-			removeLevelItemToPages(former.getLevelId());
+			removeLevelItem(former.getLevelId());
 		}
 		// TODO: update all menus?
 	}
 
-	private static void removeLevelItemToPages(UUID levelId) {
+	private static void removeLevelItem(UUID levelId) {
 		levelItems.remove(levelId);
 	}
 
@@ -282,7 +281,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		levelsByLikes.add(level);
 		levelsByDislikes.add(level);
 		levelsByTrendingScore.add(level);
-		addLevelItemToPages(plugin, level);
+		addLevelItem(plugin, level);
 	}
 
 	public static void updatePlayerMenu(UUID playerId) {
@@ -353,6 +352,11 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		return allLevels.stream().skip(getPageOffset(currentPage)).limit(LEVELS_PER_PAGE).collect(Collectors.toList());
 	}
 
+	@Override
+	protected ItemStack getLevelItem(MakerDisplayableLevel level) {
+		return levelItems.get(level.getLevelId());
+	}
+
 	private int getTotalPages() {
 		return Math.max(1, (levelCount + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE);
 	}
@@ -367,7 +371,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 
 		items[2] = GeneralMenuItem.SEARCH.getItem();
-		items[5] = GeneralMenuItem.SORT.getItem();
+		items[6] = GeneralMenuItem.SORT.getItem();
 		updateSortDirectionItem();
 		items[18] = GeneralMenuItem.PREVIOUS_PAGE.getItem();
 		items[26] = GeneralMenuItem.NEXT_PAGE.getItem();
@@ -441,15 +445,6 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		}
 	}
 
-	private void sortAscending() {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | LevelBrowserMenu.sortAscending - reversed: [%s]", reverseSortBy));
-		}
-		reverseSortBy = false;
-		currentPage = 1;
-		update();
-	}
-
 //	public void sortBy(LevelSortBy sortBy) {
 //		checkNotNull(sortBy);
 //		if (sortBy.equals(this.sortBy)) {
@@ -459,6 +454,15 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 //		reverseSortBy = false;
 //		update();
 //	}
+
+	private void sortAscending() {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | LevelBrowserMenu.sortAscending - reversed: [%s]", reverseSortBy));
+		}
+		reverseSortBy = false;
+		currentPage = 1;
+		update();
+	}
 
 	private void sortByNext() {
 		sortBy = cycleSortBy.next();
@@ -495,38 +499,9 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 		plugin.getController().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, getViewerId());
 	}
 
-	private void update(List<MakerDisplayableLevel> currentPageLevels) {
-
+	protected void update(List<MakerDisplayableLevel> currentPageLevels) {
 		updatePaginationItems();
-
-		for (int j = 10; j < 44; j++) {
-			if (isLevelSlot(j)) {
-				items[j] = getGlassPane();
-			}
-		}
-
-		int i = 10;
-		levelSlots: for (MakerDisplayableLevel level : currentPageLevels) {
-			while (!isLevelSlot(i)) {
-				i++;
-				if (i >= items.length) {
-					break levelSlots;
-				}
-			}
-			ItemStack item = levelItems.get(level.getLevelId());
-			if (item != null) {
-				items[i] = item;
-			} else {
-				items[i] = getGlassPane();
-			}
-			i++;
-		}
-		for (; i < items.length; i++) {
-			if (isLevelSlot(i)) {
-				items[i] = getGlassPane();
-			}
-		}
-		inventory.setContents(items);
+		super.update(currentPageLevels);
 	}
 
 	private void updateCurrentPageItem() {
@@ -570,15 +545,15 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 	}
 
 	private void updateSortDirectionItem() {
-		items[6] = this.sortBy.isReversible() ? this.reverseSortBy ? GeneralMenuItem.SORT_DIRECTION_DOWN.getItem() : GeneralMenuItem.SORT_DIRECTION_UP.getItem() : getGlassPane();
+		items[7] = this.sortBy.isReversible() ? this.reverseSortBy ? GeneralMenuItem.SORT_DIRECTION_DOWN.getItem() : GeneralMenuItem.SORT_DIRECTION_UP.getItem() : getGlassPane();
 	}
 
 	private void updateSortItem() {
-		if (items[5] == null) {
-			items[5] = GeneralMenuItem.SORT.getItem();
+		if (items[6] == null) {
+			items[6] = GeneralMenuItem.SORT.getItem();
 		}
 
-		ItemMeta sortMeta = items[5].getItemMeta();
+		ItemMeta sortMeta = items[6].getItemMeta();
 		List<String> lore = sortMeta.getLore();
 		if (lore == null) {
 			lore = new ArrayList<>();
@@ -593,7 +568,7 @@ public class LevelBrowserMenu extends AbstractMakerMenu {
 			}
 		}
 		sortMeta.setLore(lore);
-		items[5].setItemMeta(sortMeta);
+		items[6].setItemMeta(sortMeta);
 	}
 
 }
