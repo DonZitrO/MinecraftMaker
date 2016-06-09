@@ -43,10 +43,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
-import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -87,39 +87,44 @@ public class MakerController implements Runnable, Tickable {
 
 	private static final int FAST_RELOGIN_DELAY_SECONDS = 5;
 	private static final int DOUBLE_LOGIN_DELAY_SECONDS = 2;
-	private static final int DEFAULT_MAX_PLAYERS = 40;
+	//private static final int DEFAULT_MAX_PLAYERS = 40;
 	//private static final int DEFAULT_MAX_LEVELS = 50;
-	private static final int MAX_ACCOUNT_DATA_ENTRIES = 20;
+	private static final int MAX_ACCOUNT_DATA_ENTRIES = 40;
 	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
+
 	private static final int MIN_STEVE_LEVELS = 16;
 
 	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.0d, 35.0d, 78.5d);
 	private static final float DEFAULT_SPAWN_YAW = 90.0f;
 	private static final float DEFAULT_SPAWN_PITCH = -15.0f;
+	private static final int DEFAULT_PLAYERS_EXTRA_SLOTS = 10;
+	private static final String DEFAULT_WORLD_NAME = "mcmaker";
 
 	private final MinecraftMakerPlugin plugin;
+	private final int maxPlayers;
 
 	private BukkitTask globalTickerTask;
-	private String mainWorldName;
 	private World mainWorld;
-
+	// configurable fields (config.yml)
+	private String mainWorldName;
 	private Vector spawnVector;
 	private float spawnYaw;
 	private float spawnPitch;
-
+	private int premiumPlayersExtraSlots;
+	// tick related fields
 	private long currentTick;
 	private boolean disabled;
 	private boolean initialized;
-	private int maxPlayers;
+
 	//private short maxLevels;
 
 	private final Set<String> entriesToRemoveFromScoreboardTeams = new HashSet<>();
 	private final Set<UUID> entriesToAddToScoreboardTeams = new HashSet<>();
 
 	// keeps track of every player on the server
-	private Map<UUID, MakerPlayer> playerMap;
+	private Map<UUID, MakerPlayer> playerMap = new ConcurrentHashMap<>();
 	// keeps track of every arena on the server
-	private Map<Short, MakerPlayableLevel> levelMap;
+	private Map<Short, MakerPlayableLevel> levelMap= new ConcurrentHashMap<>();
 	// steve level serials
 	private final Set<Long> steveLevelSerials = new HashSet<>();
 	// an async thread loads the data to this map, then the main thread process it
@@ -143,12 +148,14 @@ public class MakerController implements Runnable, Tickable {
 
 	public MakerController(MinecraftMakerPlugin plugin, ConfigurationSection config) {
 		this.plugin = plugin;
-		this.mainWorldName = config != null ? config.getString("main-world", "world") : "world";
-		this.maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
+		this.maxPlayers = Bukkit.getMaxPlayers();
+		this.mainWorldName = config != null ? config.getString("main-world", DEFAULT_WORLD_NAME) : DEFAULT_WORLD_NAME;
+		//this.maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
 		//this.maxLevels = config != null ? (short)config.getInt("max-levels", DEFAULT_MAX_LEVELS) : DEFAULT_MAX_LEVELS;
 		this.spawnVector = config != null ? config.getVector("spawn-vector", DEFAULT_SPAWN_VECTOR) : DEFAULT_SPAWN_VECTOR;
 		this.spawnYaw = config != null ? (float)config.getDouble("spawn-yaw", DEFAULT_SPAWN_YAW) : DEFAULT_SPAWN_YAW;
 		this.spawnPitch = config != null ? (float)config.getDouble("spawn-pitch", DEFAULT_SPAWN_PITCH) : DEFAULT_SPAWN_PITCH;
+		this.premiumPlayersExtraSlots = config != null ? config.getInt("premium-extra-slots", DEFAULT_PLAYERS_EXTRA_SLOTS) : DEFAULT_PLAYERS_EXTRA_SLOTS;
 	}
 
 	private void addMakerPlayer(Player player, MakerPlayerData data) {
@@ -163,7 +170,7 @@ public class MakerController implements Runnable, Tickable {
 		// add the player to the lobby
 		addPlayerToMainLobby(mPlayer);
 		// welcome message
-		sendBruteForceWelcomeMessage(mPlayer);
+		Bukkit.getScheduler().runTaskLater(plugin, ()->sendBruteForceWelcomeMessage(mPlayer), 100);
 	}
 
 	public void addPlayerToMainLobby(MakerPlayer mPlayer) {
@@ -191,7 +198,7 @@ public class MakerController implements Runnable, Tickable {
 	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
 		if (playerMap.containsKey(event.getUniqueId())) {
 			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlDoubleLoginHack - possible double login detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
-			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.too-fast-relogin"));
+			event.disallow(org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.KICK_OTHER, plugin.getMessage("server.error.too-fast-relogin"));
 		}
 	}
 
@@ -199,7 +206,7 @@ public class MakerController implements Runnable, Tickable {
 		Long nextAllowedLogin = nextAllowedLogins.get(event.getUniqueId());
 		if (nextAllowedLogin != null && System.currentTimeMillis() < nextAllowedLogin.longValue()) {
 			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlFastReloginHack - possible too fast relogin detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
-			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.too-fast-relogin"));
+			event.disallow(org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.KICK_OTHER, plugin.getMessage("server.error.too-fast-relogin"));
 		} else {
 			nextAllowedLogins.put(event.getUniqueId(), System.currentTimeMillis() + (FAST_RELOGIN_DELAY_SECONDS * 1000));
 		}
@@ -376,13 +383,6 @@ public class MakerController implements Runnable, Tickable {
 		if (initialized) {
 			throw new IllegalStateException("This controller is already initialized");
 		}
-		playerMap =  Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayer>(maxPlayers * 4, .75f, true) {
-			private static final long serialVersionUID = 1L;
-			protected boolean removeEldestEntry(Map.Entry<UUID, MakerPlayer> eldest) {
-				return size() > (maxPlayers * 2);
-			}
-		});
-		levelMap = new ConcurrentHashMap<>();
 		Bukkit.getScheduler().runTask(plugin, () -> MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld()));
 		globalTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, this, 0, 0);
 		initialized = true;
@@ -507,39 +507,45 @@ public class MakerController implements Runnable, Tickable {
 
 	public void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
 		// allow vanilla white-list logic to work
-		if (Result.KICK_WHITELIST.equals(event.getLoginResult())) {
+		if (org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST.equals(event.getLoginResult())) {
 			return;
 		}
-
-		// login hacks
+		// login hack prevention
 		controlDoubleLoginHack(event);
 		controlFastReloginHack(event);
-		if (Result.KICK_OTHER.equals(event.getLoginResult())) {
+		if (org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.KICK_OTHER.equals(event.getLoginResult())) {
 			return;
 		}
 
 		// this code is not run by the main thread
 		final MakerPlayerData data = plugin.getDatabaseAdapter().loadAccountData(event.getUniqueId(), event.getName());
 		if (null == data) {
-			event.disallow(Result.KICK_OTHER, plugin.getMessage("server.error.missing-data"));
+			event.disallow(org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.KICK_OTHER, plugin.getMessage("server.error.missing-data"));
 			return;
 		}
-
-		// allows YTs and staff to join full servers
-		if (Result.KICK_FULL.equals(event.getLoginResult())) {
+		// as this is async code, we get this from our own concurrent map, not from the internal bukkit entity collections!
+		int currentPlayerCount = getPlayerCount();
+		if (currentPlayerCount >= maxPlayers || org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.KICK_FULL.equals(event.getLoginResult())) {
 			if (data.hasRank(Rank.GM) || data.hasRank(Rank.YT)) {
+				// allows YTs and staff to join full servers
 				event.allow();
-			} else if (data.hasRank(Rank.VIP) && getPlayerCount() < Bukkit.getMaxPlayers() + 10) {
-				event.allow();
+			} else if (data.hasRank(Rank.VIP)) {
+				// allows ranked players to use some extra slots
+				if (getPlayerCount() < maxPlayers + premiumPlayersExtraSlots) {
+					data.setAllowedInFullServer(true);
+					event.allow();
+				} else {
+					event.disallow(org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.KICK_OTHER, plugin.getMessage("server.error.no-free-premium-slots"));
+				}
 			} else {
-				event.setKickMessage(plugin.getMessage("server.error.max-player-capacity"));
-				return;
+				event.disallow(org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.KICK_OTHER, plugin.getMessage("server.error.full.upgrade"));
 			}
 		}
-		if (!Result.ALLOWED.equals(event.getLoginResult())) {
+		if (!org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.ALLOWED.equals(event.getLoginResult())) {
 			return;
 		}
 		accountDataMap.put(event.getUniqueId(), data);
+		// this event call is not very useful until this code gets integrated to the core
 		Bukkit.getPluginManager().callEvent(new AsyncAccountDataLoadEvent(data));
 	}
 
@@ -1092,6 +1098,20 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void onPlayerLogin(PlayerLoginEvent event) {
+		// allow vanilla white-list logic to work
+		if (org.bukkit.event.player.PlayerLoginEvent.Result.KICK_WHITELIST.equals(event.getResult())) {
+			event.setKickMessage(plugin.getMessage("server.login.error.whitelist"));
+			accountDataMap.remove(event.getPlayer().getUniqueId());
+			return;
+		}
+		if (!accountDataMap.containsKey(event.getPlayer().getUniqueId())) {
+			event.disallow(org.bukkit.event.player.PlayerLoginEvent.Result.KICK_OTHER, plugin.getMessage("server.error.missing-data"));
+			return;
+		}
+		event.allow();
+	}
+
 	public void onPlayerMove(PlayerMoveEvent event) {
 		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
 		if (mPlayer == null) {
@@ -1229,11 +1249,26 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void playerLevelsCountCallback(UUID authorId, int publishedCount, int unpublishedCount) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.playerLevelsCountCallback - maker: [%s] - published count: [%s] - unpublished count: [%s]", authorId, publishedCount, unpublishedCount));
+		}
+		MakerPlayer mPlayer = getPlayer(authorId);
+		if (mPlayer == null) {
+			return;
+		}
+		mPlayer.setPublishedLevelsCount(publishedCount);
+		mPlayer.setUnblishedLevelsCount(unpublishedCount);
+	}
+	
 	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
 		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
 		levelMap.remove(makerLevel.getChunkZ());
 	}
-	
+
 	public void renameLevel(MakerPlayer mPlayer, String newName) {
 		// needs to be editing that level
 		if (!mPlayer.isEditingLevel()) {
@@ -1299,18 +1334,23 @@ public class MakerController implements Runnable, Tickable {
 
 	@Deprecated // seriously?
 	private void sendBruteForceWelcomeMessage(final MakerPlayer mPlayer) {
-		mPlayer.getPlayer().sendMessage(new String[]{
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome1"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome2"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome3"),
-				this.plugin.getMessage("player.welcome4"), this.plugin.getMessage("player.welcome5"),
-				this.plugin.getMessage("player.welcome6"), this.plugin.getMessage("player.welcome7"),
-				this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome8")});
+		if (mPlayer.getPlayer().isOnline()) {
+			mPlayer.getPlayer().sendMessage(new String[]{
+					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.new-line"),
+					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome1"),
+					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome2"),
+					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome3"),
+					this.plugin.getMessage("player.welcome4"), this.plugin.getMessage("player.welcome5"),
+					this.plugin.getMessage("player.welcome6"), this.plugin.getMessage("player.welcome7"),
+					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome8")});
+			if (mPlayer.getData().isAllowedInFullServer()) {
+				mPlayer.sendMessage(plugin, "server.full.player.allowed");
+			}
+		}
 	}
 
 	public void sendMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {
@@ -1385,21 +1425,6 @@ public class MakerController implements Runnable, Tickable {
 		for (String playerName : entriesToRemoveFromScoreboardTeams) {
 			mPlayer.removeTeamEntryFromScoreboard(playerName);
 		}
-	}
-
-	public void playerLevelsCountCallback(UUID authorId, int publishedCount, int unpublishedCount) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.playerLevelsCountCallback - maker: [%s] - published count: [%s] - unpublished count: [%s]", authorId, publishedCount, unpublishedCount));
-		}
-		MakerPlayer mPlayer = getPlayer(authorId);
-		if (mPlayer == null) {
-			return;
-		}
-		mPlayer.setPublishedLevelsCount(publishedCount);
-		mPlayer.setUnblishedLevelsCount(unpublishedCount);
 	}
 
 }

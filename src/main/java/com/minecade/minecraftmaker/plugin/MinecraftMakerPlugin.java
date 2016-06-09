@@ -133,7 +133,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 			databaseAdapter.fixTrendingScoresAsync();
 		}
 		// TODO: remove this after rabbit
-		if (getServerId() > 5) {
+		if (getServerId() > 20) {
 			return;
 		}
 		new AsyncPlayerCounterUpdaterTask(this).runTaskTimerAsynchronously(this, 100L, 100L);

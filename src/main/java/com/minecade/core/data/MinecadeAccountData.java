@@ -16,6 +16,7 @@ public class MinecadeAccountData {
 	private Rank displayRank;
 
 	private boolean newPlayer;
+	private boolean allowedInFullServer;
 
 	protected MinecadeAccountData(UUID uniqueId, String username) {
 		if (null == uniqueId || null == username) {
@@ -26,13 +27,13 @@ public class MinecadeAccountData {
 		this.highestRank = Rank.GUEST;
 	}
 
-	public void addPurchase(Sellable purchase) {
-		purchases.add(purchase);
-	}
-
 	public long addOrRemoveCoins(long amount) {
 		coins += amount;
 		return coins;
+	}
+
+	public void addPurchase(Sellable purchase) {
+		purchases.add(purchase);
 	}
 
 	public long getCoins() {
@@ -58,19 +59,19 @@ public class MinecadeAccountData {
 		return username;
 	}
 
-	public boolean isNewPlayer() {
-		return newPlayer;
-	}
-
-	public void setNewPlayer(boolean newPlayer) {
-		this.newPlayer = newPlayer;
-	}
-
 	public boolean hasRank(Rank rank) {
 		if (rank == null) {
 			return false;
 		}
 		return highestRank.includes(rank);
+	}
+
+	public boolean isAllowedInFullServer() {
+		return allowedInFullServer;
+	}
+
+	public boolean isNewPlayer() {
+		return newPlayer;
 	}
 
 	public boolean ownsItem(Sellable item) {
@@ -79,6 +80,10 @@ public class MinecadeAccountData {
 
 	public void removePurchase(Sellable item) {
 		purchases.remove(item);
+	}
+
+	public void setAllowedInFullServer(boolean allowedInFullServer) {
+		this.allowedInFullServer = allowedInFullServer;
 	}
 
 	public void setCoins(long coins) {
@@ -95,6 +100,10 @@ public class MinecadeAccountData {
 
 	public void setHighestRank(Rank rank) {
 		this.highestRank = rank;
+	}
+
+	public void setNewPlayer(boolean newPlayer) {
+		this.newPlayer = newPlayer;
 	}
 
 }

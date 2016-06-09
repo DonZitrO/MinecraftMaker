@@ -34,6 +34,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -69,11 +70,18 @@ public class MakerListener implements Listener {
 		plugin.getController().onAsyncPlayerChat(event);
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST)
+	@EventHandler(priority = EventPriority.MONITOR)
 	public final void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
 		Bukkit.getLogger().info(String.format("MakerListener.onAsyncPlayerPreLogin - Starting... - Player: [%s<%s>] - Initial result: [%s]", event.getName(), event.getUniqueId(), event.getLoginResult()));
 		plugin.getController().onAsyncPlayerPreLogin(event);
 		Bukkit.getLogger().info(String.format("MakerListener.onAsyncPlayerPreLogin - Finished - Player: [%s<%s>] - Result: [%s]", event.getName(), event.getUniqueId(), event.getLoginResult()));
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public final void onPlayerLogin(PlayerLoginEvent event) {
+		Bukkit.getLogger().info(String.format("MakerListener.onPlayerLogin - Starting... - Player: [%s<%s>] - Initial result: [%s]", event.getPlayer().getName(), event.getPlayer().getUniqueId(), event.getResult()));
+		plugin.getController().onPlayerLogin(event);
+		Bukkit.getLogger().info(String.format("MakerListener.onPlayerLogin - Finished - Player: [%s<%s>] - Result: [%s]", event.getPlayer().getName(), event.getPlayer().getUniqueId(), event.getResult()));
 	}
 
 	@EventHandler
