@@ -114,7 +114,7 @@ public class LevelUtils {
 	public static Clipboard createLevelRemainingWidthEmptyClipboard(short chunkZ, int regionWidth) {
 		CuboidRegion remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH, MakerPlayableLevel.MAX_LEVEL_HEIGHT);
 		remainingRegion.contract(new Vector(regionWidth, 0, 0));
-		Bukkit.getLogger().severe(String.format("createLevelRemainingHeightEmptyClipboard - 1: [%s] - 2: [%s]", remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
+		Bukkit.getLogger().severe(String.format("createLevelRemainingWidthEmptyClipboard - 1: [%s] - 2: [%s]", remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
 		return createEmptyClipboard(remainingRegion);
 	}
 
@@ -149,18 +149,15 @@ public class LevelUtils {
 	}
 
 	public static short getLocationSlot(org.bukkit.Location location) {
-		if (location.getY() > MakerPlayableLevel.HIGHEST_LEVEL_Y) {
+		if (location.getY() >= MakerPlayableLevel.MAX_LEVEL_HEIGHT) {
 			return -1;
 		}
 		if (location.getBlockX() < 0 || location.getBlockX() > MakerPlayableLevel.MAX_LEVEL_WIDTH - 1) {
 			return -1;
 		}
-		if (location.getBlockZ() < 0) {
+		int slot = (location.getBlockZ() >> 4);
+		if (slot < 0 || slot > Short.MAX_VALUE) {
 			return -1;
-		}
-		int slot = (location.getBlockZ() / 16);
-		if (slot != location.getBlockZ() >> 4) {
-			Bukkit.getLogger().severe("XXXXXXXXXXXXXXXXXXXXXXX");
 		}
 		return (short) slot;
 	}

@@ -14,6 +14,7 @@ public enum MakerLobbyItem implements TranslatableItem {
 	CREATE_LEVEL(Material.EMPTY_MAP),
 	PLAYER_LEVELS(Material.NAME_TAG),
 	LEVEL_BROWSER(Material.BOOKSHELF),
+	SPECTATE(Material.EYE_OF_ENDER),
 	QUIT(Material.TNT);
 
 	private final ItemStackBuilder builder;

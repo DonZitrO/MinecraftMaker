@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -172,7 +173,7 @@ public class MakerController implements Runnable, Tickable {
 		// add the player to the lobby
 		addPlayerToMainLobby(mPlayer);
 		// welcome message
-		Bukkit.getScheduler().runTaskLater(plugin, ()->sendBruteForceWelcomeMessage(mPlayer), 100);
+		Bukkit.getScheduler().runTask(plugin, () -> sendBruteForceWelcomeMessage(mPlayer));
 	}
 
 	public void addPlayerToMainLobby(MakerPlayer mPlayer) {
@@ -899,6 +900,13 @@ public class MakerController implements Runnable, Tickable {
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
 				mPlayer.openLevelBrowserMenu(plugin);
 				return MenuClickResult.CANCEL_UPDATE;
+			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SPECTATE.getDisplayName())) {
+				if (!mPlayer.hasRank(Rank.VIP)) {
+					mPlayer.sendMessage(plugin, "upgrade.rank.spectate");
+				} else {
+					plugin.getController().startSpectating(mPlayer);
+				}
+				return MenuClickResult.CANCEL_CLOSE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.QUIT.getDisplayName())) {
 				BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), "l1", plugin.getMessage("server.quit.connecting", "Lobby1"));
 				return MenuClickResult.CANCEL_UPDATE;
@@ -1429,6 +1437,17 @@ public class MakerController implements Runnable, Tickable {
 		for (String playerName : entriesToRemoveFromScoreboardTeams) {
 			mPlayer.removeTeamEntryFromScoreboard(playerName);
 		}
+	}
+
+	private void startSpectating(MakerPlayer mPlayer) {
+		mPlayer.sendMessage(plugin, "player.spectate.menu");
+		mPlayer.sendMessage(plugin, "player.spectate.exit.command");
+		mPlayer.spectate();
+	}
+
+	public void stopSpectating(MakerPlayer mPlayer) {
+		mPlayer.teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN);
+		mPlayer.setGameMode(GameMode.ADVENTURE);
 	}
 
 }

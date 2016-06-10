@@ -285,7 +285,7 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public boolean isInLobby() {
-		return this.currentLevel == null;
+		return this.currentLevel == null && !isSpectating();
 	}
 
 	public boolean isInSteve() {
@@ -421,6 +421,7 @@ public class MakerPlayer implements Tickable {
 		player.getInventory().addItem(MakerLobbyItem.CREATE_LEVEL.getItem());
 		player.getInventory().addItem(MakerLobbyItem.PLAYER_LEVELS.getItem());
 		player.getInventory().addItem(MakerLobbyItem.LEVEL_BROWSER.getItem());
+		player.getInventory().addItem(MakerLobbyItem.SPECTATE.getItem());
 		// leave item
 		player.getInventory().setItem(8, MakerLobbyItem.QUIT.getItem());
 		player.getInventory().setHeldItemSlot(4);
@@ -538,6 +539,14 @@ public class MakerPlayer implements Tickable {
 
 	public void setUnblishedLevelsCount(int unpublishedCount) {
 		data.setUnpublishedLevelsCount(unpublishedCount);
+	}
+
+	public void spectate() {
+		player.setGameMode(GameMode.SPECTATOR);
+	}
+
+	public boolean isSpectating() {
+		return player.getGameMode().equals(GameMode.SPECTATOR);
 	}
 
 }

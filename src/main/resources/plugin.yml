@@ -4,6 +4,10 @@ version: '${project.version}'
 authors: [SethBling, tux2, DonZitrO]
 load: startup
 commands:
+  makerlobby:
+    description: Used by spectators to return to maker lobby
+    usage: 'Usage: /makerlobby'
+    permission-message: '§4You are not allowed to use this command!'
   level:
     description: Used by players to manipulate levels
     usage: 'Usage: /level <action> <params>'

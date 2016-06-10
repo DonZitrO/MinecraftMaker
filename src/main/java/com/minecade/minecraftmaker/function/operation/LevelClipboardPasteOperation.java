@@ -28,6 +28,11 @@ public class LevelClipboardPasteOperation implements Operation {
 			Bukkit.getLogger().info(String.format("LevelClipboardPasteOperation.resume - operation cancelled because level was disabled: [%s]", level.getDescription()));
 			return null;
 		}
+		// player left before the operation was resumed/completed
+		if (!level.hasActivePlayer()) {
+			Bukkit.getLogger().info(String.format("LevelClipboardPasteOperation.resume - operation cancelled because level player left: [%s]", level.getDescription()));
+			return null;
+		}
 		if (firstRun) {
 			firstRun = false;
 			startNanoTime = System.nanoTime();

@@ -72,7 +72,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	public static final short MAX_LEVELS_PER_WORLD = 50;
 	public static final short MAX_LEVEL_WIDTH = 160;
 	public static final short MAX_LEVEL_HEIGHT = 80;
-	public static final short HIGHEST_LEVEL_Y = 96;
 	public static final short FLOOR_LEVEL_Y = 16;
 
 	private static final MakerRelativeLocationData RELATIVE_START_LOCATION = new MakerRelativeLocationData(2.5, 17, 6.5, -90f, 0);
@@ -345,7 +344,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	private int getLevelHeight() {
-		return clipboard != null ? clipboard.getDimensions().getBlockY() : MAX_LEVEL_HEIGHT;
+		return clipboard != null ? clipboard.getDimensions().getBlockY() + 1 : MAX_LEVEL_HEIGHT;
 	}
 
 	public CuboidRegion getLevelRegion() {
@@ -353,7 +352,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	public int getLevelWidth() {
-		return clipboard != null ? clipboard.getDimensions().getBlockX() : MAX_LEVEL_WIDTH;
+		return clipboard != null ? clipboard.getDimensions().getBlockX() + 1 : MAX_LEVEL_WIDTH;
 	}
 
 	private MakerPlayer getPlayerIsInThisLevel(UUID playerId) {
@@ -767,7 +766,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	private void removeEntities() {
 		removeEntities(true);
 	}
-	
+
 	private void removeEntities(boolean all) {
 
 		for (org.bukkit.entity.Entity entity : getEntities()) {
@@ -956,7 +955,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		Vector mp = getLevelRegion().getMinimumPoint();
 		Block startLocation = BukkitUtil.toLocation(getWorld(), mp.add(2, FLOOR_LEVEL_Y, 6)).getBlock();
 		startLocation.setType(Material.BEACON);
-		startLocation.getState().update(true, false);
+		startLocation.getState().update(true, true);
 		Block aboveStart = startLocation.getRelative(BlockFace.UP);
 		aboveStart.setType(Material.AIR);
 		aboveStart.getState().update(true, false);
@@ -1348,12 +1347,18 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	public void waitForBusyLevel(MakerPlayer mPlayer, boolean showMessage) {
-		mPlayer.setGameMode(GameMode.SPECTATOR);
+		mPlayer.clearInventory();
 		mPlayer.setCurrentLevel(this);
 		mPlayer.teleportOnNextTick(getStartLocation());
 		if (showMessage) {
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.busy.title"), plugin.getMessage("level.busy.subtitle"));
 		}
+	}
+
+	public boolean hasActivePlayer() {
+		UUID activePlayerId = currentPlayerId != null ? currentPlayerId : authorId;
+		MakerPlayer activePlayer = getPlayerIsInThisLevel(activePlayerId);
+		return (activePlayer != null && activePlayer.getPlayer().isOnline());
 	}
 
 }

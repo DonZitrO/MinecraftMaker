@@ -15,6 +15,7 @@ import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.util.BungeeUtils;
 import com.minecade.core.util.EmptyGenerator;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
+import com.minecade.minecraftmaker.cmd.MakerLobbyCommandExecutor;
 import com.minecade.minecraftmaker.cmd.ReportCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
@@ -111,6 +112,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		// register commands
 		getCommand("level").setExecutor(new LevelCommandExecutor(this));
 		getCommand("report").setExecutor(new ReportCommandExecutor(this));
+		getCommand("makerlobby").setExecutor(new MakerLobbyCommandExecutor(this));
 		databaseAdapter = new MakerDatabaseAdapter(this);
 		// async player data saver
 		asyncLevelSaver = new AsyncLevelSaverTask(this);
@@ -133,7 +135,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 			databaseAdapter.fixTrendingScoresAsync();
 		}
 		// TODO: remove this after rabbit
-		if (getServerId() > 20) {
+		if (getServerId() > 100) {
 			return;
 		}
 		new AsyncPlayerCounterUpdaterTask(this).runTaskTimerAsynchronously(this, 100L, 100L);

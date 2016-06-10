@@ -65,7 +65,9 @@ public class MakerScoreboard extends BaseScoreboard {
 		}
 		if (getCurrentTick() % 20 == 11) {
 			updateCommonTexts();
-			if (makerPlayer.isInLobby() || makerPlayer.isInBusyLevel()) {
+			if (makerPlayer.isSpectating()) {
+				updateSpectatorTexts();
+			} else if (makerPlayer.isInLobby()/* || makerPlayer.isInBusyLevel()*/) {
 				updatePlayerTexts();
 			} else if (makerPlayer.isInSteve()) {
 				updateSteveTexts();
@@ -112,6 +114,17 @@ public class MakerScoreboard extends BaseScoreboard {
 		} else {
 			this.updateSidebarText(2, plugin.getMessage("upgrade.rank.at"));
 		}
+	}
+
+	private void updateSpectatorTexts() {
+		this.updateSidebarText(12, plugin.getMessage("scoreboard.server.title"));
+		this.updateSidebarText(11, plugin.getMessage("scoreboard.server.name", plugin.getServerId()));
+		this.updateSidebarText(9, plugin.getMessage("scoreboard.coins.title"));
+		this.updateSidebarText(8, plugin.getMessage("scoreboard.coins.name", makerPlayer.getData().getCoins()));
+		this.updateSidebarText(6, plugin.getMessage("scoreboard.level-clear.title"));
+		this.updateSidebarText(5, plugin.getMessage("scoreboard.level-clear.name", makerPlayer.getData().getLevelsClear().size()));
+		this.updateSidebarText(3, plugin.getMessage("scoreboard.spectator.exit.title"));
+		this.updateSidebarText(2, plugin.getMessage("scoreboard.spectator.exit.command"));
 	}
 
 	private void updatePlayLevelTexts() {
