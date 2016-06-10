@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.controller;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -363,10 +365,12 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public MakerPlayer getPlayer(Player player) {
+		checkNotNull(player);
 		return getPlayer(player.getUniqueId());
 	}
 
 	public MakerPlayer getPlayer(UUID playerId) {
+		checkNotNull(playerId);
 		return playerMap.get(playerId);
 	}
 

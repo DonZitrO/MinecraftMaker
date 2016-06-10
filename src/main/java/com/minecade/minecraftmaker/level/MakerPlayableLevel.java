@@ -357,6 +357,9 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	private MakerPlayer getPlayerIsInThisLevel(UUID playerId) {
+		if (playerId == null) {
+			return null;
+		}
 		MakerPlayer mPlayer = plugin.getController().getPlayer(playerId);
 		if (mPlayer != null && playerIsInThisLevel(mPlayer)) {
 			return mPlayer;
