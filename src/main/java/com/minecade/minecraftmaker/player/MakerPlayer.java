@@ -35,7 +35,6 @@ import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
 import com.minecade.minecraftmaker.inventory.SteveLevelOptionsMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
-import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
@@ -50,8 +49,8 @@ public class MakerPlayer implements Tickable {
 
 	private static final int MIN_TIME_BETWEEN_SEARCHES_MILLIS = 3000;
 
+	private final MinecraftMakerPlugin plugin;
 	private final Player player;
-
 	private final MakerPlayerData data;
 
 	private MakerSteveData steveData;
@@ -75,10 +74,8 @@ public class MakerPlayer implements Tickable {
 
 	private long nextAllowedSearchMillis;
 
-	@Deprecated
-	private LevelSortBy levelSortBy = LevelSortBy.LIKES;
-
-	public MakerPlayer(Player player, MakerPlayerData data) {
+	public MakerPlayer(MinecraftMakerPlugin plugin, Player player, MakerPlayerData data) {
+		this.plugin = plugin;
 		this.player = player;
 		this.data = data;
 	} 
@@ -118,8 +115,8 @@ public class MakerPlayer implements Tickable {
 
 	@Override
 	public void disable() {
-		// TODO: player disable logic (kick, probably)
 		disabled = true;
+		player.kickPlayer(plugin.getMessage("server.error.internal"));
 	}
 
 	private void executeRequestedInventoryOperations() {
@@ -186,19 +183,15 @@ public class MakerPlayer implements Tickable {
 		return data.getHighestRank();
 	}
 
-	public LevelSortBy getLevelSortBy(){
-		return this.levelSortBy;
-	}
-
 	public long getLevelToDeleteSerial() {
 		return levelToDeleteSerial;
 	}
 
-    public String getName() {
+	public String getName() {
 		return player.getName();
 	}
 
-    public Player getPlayer() {
+	public Player getPlayer() {
 		return this.player;
 	}
 
@@ -304,6 +297,10 @@ public class MakerPlayer implements Tickable {
 		return this.currentLevel != null && LevelStatus.PLAYING.equals(this.currentLevel.getStatus());
 	}
 
+	public boolean isOnLevel() {
+		return this.currentLevel != null;
+	}
+
 	public MenuClickResult onInventoryClick(Inventory inventory, int slot) {
 		if (personalMenus.containsKey(inventory.getName())) {
 			return personalMenus.get(inventory.getName()).onClick(this, slot);
@@ -338,7 +335,7 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
-	public void openLevelBrowserMenu(MinecraftMakerPlugin plugin) {
+	public void openLevelBrowserMenu() {
 		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
 		if (menu == null) {
 			menu = LevelBrowserMenu.getInstance(plugin, this.getUniqueId());
@@ -348,7 +345,7 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
-	public void openLevelSearchMenu(MinecraftMakerPlugin plugin, Set<MakerDisplayableLevel> levels) {
+	public void openLevelSearchMenu(Set<MakerDisplayableLevel> levels) {
 		LevelSearchMenu menu = (LevelSearchMenu) personalMenus.get(plugin.getMessage(LevelSearchMenu.getTitleKey()));
 		if (menu == null) {
 			menu = LevelSearchMenu.getInstance(plugin, this.getUniqueId());
@@ -367,7 +364,7 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
-	public void openPlayerLevelsMenu(MinecraftMakerPlugin plugin, boolean update) {
+	public void openPlayerLevelsMenu(boolean update) {
 		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
 		if (menu == null) {
 			menu = PlayerLevelsMenu.getInstance(plugin, this.getUniqueId());
@@ -429,9 +426,12 @@ public class MakerPlayer implements Tickable {
 		dirtyInventory = true;
 	}
 
+	public void resetPlayer(GameMode gamemode) {
+		PlayerUtils.resetPlayer(getPlayer(), gamemode);
+	}
+
 	public void resetPlayer() {
-		// reset bukkit player
-		PlayerUtils.resetPlayer(getPlayer(), GameMode.ADVENTURE);
+		resetPlayer(player.getGameMode());
 	}
 
 	public void sendActionMessage(Internationalizable plugin, String key, Object... args) {
@@ -471,6 +471,10 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void setCurrentLevel(MakerPlayableLevel level) {
+		Bukkit.getLogger().severe(String.format("level: %s", level));
+		if (level != null) {
+			Bukkit.getLogger().severe(String.format("level hash: %s", level.hashCode()));
+		}
 		this.currentLevel = level;
 	}
 
@@ -542,11 +546,20 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void spectate() {
+		clearInventory();
 		player.setGameMode(GameMode.SPECTATOR);
 	}
 
 	public boolean isSpectating() {
 		return player.getGameMode().equals(GameMode.SPECTATOR);
+	}
+
+	public void setInvulnerable(boolean invulnerable) {
+		player.setInvulnerable(invulnerable);
+	}
+
+	public void setFireTicks(int fireTicks) {
+		player.setFireTicks(fireTicks);
 	}
 
 }

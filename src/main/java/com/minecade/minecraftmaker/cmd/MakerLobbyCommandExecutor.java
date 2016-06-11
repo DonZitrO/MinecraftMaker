@@ -25,7 +25,7 @@ public class MakerLobbyCommandExecutor extends AbstractCommandExecutor {
 			sender.sendMessage(plugin.getMessage("command.error.spectator-only"));
 			return true;
 		}
-		plugin.getController().stopSpectating(mPlayer);
+		plugin.getController().addPlayerToMainLobby(mPlayer);
 		return true;
 	}
 

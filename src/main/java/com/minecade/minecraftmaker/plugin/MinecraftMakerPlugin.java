@@ -124,7 +124,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
 		controller.init();
 		// load the first page of the server browser
-		controller.requestLevelPageUpdate(LevelSortBy.LIKES, LevelSortBy.LIKES.isReversedDefault(), 1, null);
+		controller.requestLevelPageUpdate(LevelSortBy.TRENDING_SCORE, LevelSortBy.TRENDING_SCORE.isReversedDefault(), 1, null);
 		// start builder task
 		levelOperatorTask = new LevelOperatorTask(this);
 		levelOperatorTask.runTaskTimer(this, 0, 0);

@@ -39,6 +39,7 @@ public final class PlayerUtils {
 		player.setFoodLevel(100);
 		player.getInventory().clear();
 		player.getInventory().setArmorContents(null);
+		player.setFireTicks(0);
 		player.setHealth(player.getMaxHealth());
 		player.setFlying(false);
 		for (final PotionEffect effect : player.getActivePotionEffects()) {

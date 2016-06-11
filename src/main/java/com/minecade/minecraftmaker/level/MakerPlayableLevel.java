@@ -109,11 +109,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
-	public void checkLevelVoidBorder(Location to) {
-		if (to.getBlockY() < -1) {
-			restartPlaying();
-		}
-	}
+//	public void checkLevelVoidBorder(Location to) {
+//		if (to.getBlockY() < -1) {
+//			restartPlaying();
+//		}
+//	}
 
 	private void clearBlocksAboveEndBeacon() throws MinecraftMakerException {
 		if (relativeEndLocation == null) {
@@ -819,10 +819,15 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	public void restartPlaying() {
-		if (!isBusy()) {
+		if (LevelStatus.RESTART_PLAY_READY.equals(getStatus())) {
+			return;
+		}
+		MakerPlayer mPlayer = getPlayerIsInThisLevel(currentPlayerId);
+		if (mPlayer != null && !isBusy()) {
+			waitForBusyLevel(mPlayer, false);
 			status = LevelStatus.RESTART_PLAY_READY;
 		} else {
-			disable(String.format("failed to restart a busy level: [%s], - player: [%s]", getLevelName(), getStatus()), null);
+			disable(String.format("Unable to restart a level: [%s] for player: [%s]", getDescription(), mPlayer));
 		}
 	}
 
@@ -1055,9 +1060,10 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			for (PotionEffect effect :mPlayer.getPlayer().getActivePotionEffects()) {
 				mPlayer.getPlayer().removePotionEffect(effect.getType());;
 			}
+			mPlayer.resetPlayer();
+			mPlayer.setInvulnerable(false);
 			mPlayer.setFlying(false);
 			mPlayer.setAllowFlight(false);
-			mPlayer.clearInventory();
 			// FIXME: re-think this control
 			if (isPublished()) {
 				if (isSteve()) {
@@ -1347,7 +1353,8 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	public void waitForBusyLevel(MakerPlayer mPlayer, boolean showMessage) {
-		mPlayer.clearInventory();
+		mPlayer.setInvulnerable(true);
+		mPlayer.resetPlayer();
 		mPlayer.setCurrentLevel(this);
 		mPlayer.teleportOnNextTick(getStartLocation());
 		if (showMessage) {
@@ -1357,8 +1364,24 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	public boolean hasActivePlayer() {
 		UUID activePlayerId = currentPlayerId != null ? currentPlayerId : authorId;
+		Bukkit.getLogger().severe(String.format("activePlayerId: %s", activePlayerId));
 		MakerPlayer activePlayer = getPlayerIsInThisLevel(activePlayerId);
+		Bukkit.getLogger().severe(String.format("activePlayer: %s", activePlayer));
+		if (activePlayer != null) {
+			Bukkit.getLogger().severe(String.format("online: %s", activePlayer.getPlayer().isOnline()));
+		}
 		return (activePlayer != null && activePlayer.getPlayer().isOnline());
 	}
+
+	public boolean isPlayable() {
+		return currentPlayerId != null;
+	}
+
+//	public boolean isActivePlayer(UUID uniqueId) {
+//		if (uniqueId == null) {
+//			return false;
+//		}
+//		return uniqueId.equals(currentPlayerId);
+//	}
 
 }

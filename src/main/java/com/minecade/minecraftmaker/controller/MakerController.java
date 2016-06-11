@@ -162,7 +162,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	private void addMakerPlayer(Player player, MakerPlayerData data) {
-		final MakerPlayer mPlayer = new MakerPlayer(player, data);
+		final MakerPlayer mPlayer = new MakerPlayer(plugin, player, data);
 		// add the player to the player map
 		playerMap.put(mPlayer.getUniqueId(), mPlayer);
 		// TODO: notify player joined
@@ -178,7 +178,7 @@ public class MakerController implements Runnable, Tickable {
 
 	public void addPlayerToMainLobby(MakerPlayer mPlayer) {
 		// reset player
-		mPlayer.resetPlayer();
+		mPlayer.resetPlayer(GameMode.ADVENTURE);
 		// teleport to spawn point
 		if (!mPlayer.getPlayer().getLocation().getWorld().equals(getMainWorld()) || mPlayer.getPlayer().getLocation().distanceSquared(getDefaultSpawnLocation()) > 4d) {
 			if (!mPlayer.getPlayer().teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN)) {
@@ -895,10 +895,10 @@ public class MakerController implements Runnable, Tickable {
 				mPlayer.openLevelTemplateMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.PLAYER_LEVELS.getDisplayName())) {
-				mPlayer.openPlayerLevelsMenu(plugin, true);
+				mPlayer.openPlayerLevelsMenu(true);
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.LEVEL_BROWSER.getDisplayName())) {
-				mPlayer.openLevelBrowserMenu(plugin);
+				mPlayer.openLevelBrowserMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SPECTATE.getDisplayName())) {
 				if (!mPlayer.hasRank(Rank.VIP)) {
@@ -954,7 +954,10 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
-
+		if (mPlayer.isInBusyLevel()) {
+			event.setCancelled(true);
+			return;
+		}
 		// level creator back to spawn from void
 		if (mPlayer.isEditingLevel()) {
 			if (event.getCause() == DamageCause.VOID) {
@@ -1150,7 +1153,10 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		if (mPlayer.isPlayingLevel()) {
-			mPlayer.getCurrentLevel().checkLevelVoidBorder(event.getTo());
+			if (isVoidLocation(event.getTo())) {
+				mPlayer.getCurrentLevel().restartPlaying();
+				return;
+			}
 			mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
 			return;
 		}
@@ -1212,21 +1218,22 @@ public class MakerController implements Runnable, Tickable {
 			Bukkit.getLogger().warning(String.format("MakerController.onPlayerRespawn - untracked player: [%s]", event.getPlayer().getName()));
 			return;
 		}
-		if (mPlayer.isPlayingLevel()) {
-			event.setRespawnLocation(mPlayer.getCurrentLevel().getStartLocation());
-			mPlayer.getCurrentLevel().restartPlaying();
-			return;
-		}
 		if (mPlayer.hasClearedLevel()) {
 			event.setRespawnLocation(mPlayer.getCurrentLevel().getEndLocation());
 			return;
 		}
-		if (mPlayer.isEditingLevel()) {
+		if (mPlayer.isOnLevel()) {
 			event.setRespawnLocation(mPlayer.getCurrentLevel().getStartLocation());
+			if (mPlayer.getCurrentLevel().isPlayable() && !mPlayer.getCurrentLevel().isBusy()) {
+				mPlayer.getCurrentLevel().restartPlaying();
+			}
 			return;
 		}
 		event.setRespawnLocation(getDefaultSpawnLocation());
-		Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
+		if (mPlayer.isInLobby()) {
+			Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
+		}
+
 	}
 
 	public void onPlayerTeleport(PlayerTeleportEvent event) {
@@ -1256,9 +1263,17 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		if (mPlayer.isPlayingLevel()) {
-			mPlayer.getCurrentLevel().checkLevelVoidBorder(event.getTo());
+			if (isVoidLocation(event.getTo())) {
+				mPlayer.getCurrentLevel().restartPlaying();
+				return;
+			}
 			mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
+			return;
 		}
+	}
+
+	private boolean isVoidLocation(Location location) {
+		return location.getBlockY() < -1;
 	}
 
 	public void playerLevelsCountCallback(UUID authorId, int publishedCount, int unpublishedCount) {
@@ -1334,7 +1349,7 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.sendActionMessage(plugin, "level.search.error.too-many-results", levelCount, searchString);
 			return;
 		}
-		mPlayer.openLevelSearchMenu(plugin, levels);
+		mPlayer.openLevelSearchMenu(levels);
 	}
 
 	public void sendActionMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {
@@ -1443,11 +1458,6 @@ public class MakerController implements Runnable, Tickable {
 		mPlayer.sendMessage(plugin, "player.spectate.menu");
 		mPlayer.sendMessage(plugin, "player.spectate.exit.command");
 		mPlayer.spectate();
-	}
-
-	public void stopSpectating(MakerPlayer mPlayer) {
-		mPlayer.teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN);
-		mPlayer.setGameMode(GameMode.ADVENTURE);
 	}
 
 }
