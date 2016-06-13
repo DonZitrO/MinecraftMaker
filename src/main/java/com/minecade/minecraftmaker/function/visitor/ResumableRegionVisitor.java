@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import com.minecade.minecraftmaker.function.RegionFunction;
 import com.minecade.minecraftmaker.function.operation.LimitedTimeRunContext;
 import com.minecade.minecraftmaker.function.operation.Operation;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
 import com.minecade.minecraftmaker.schematic.world.BlockVector;
 import com.minecade.minecraftmaker.schematic.world.Region;
@@ -53,8 +54,9 @@ public class ResumableRegionVisitor implements Operation {
 		if (regionIterator.hasNext()) {
 			return this;
 		}
-
-		Bukkit.getLogger().info(String.format("ResumableRegionVisitor.resume - finished on: [%s] ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanoTime)));
+		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableRegionVisitor.resume - finished on: [%s] ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanoTime)));
+		}
 		return null;
 	}
 

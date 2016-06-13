@@ -110,6 +110,7 @@ public class MakerDatabaseAdapter {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
 		try {
+			level.tryStatusTransition(LevelStatus.LEVEL_COPY_READY, LevelStatus.LEVEL_COPYING);
 			UUID[] result = loadLevelIdAndEndLocationIdBySerial(copyFromSerial);
 			UUID copyFromLevelId = result[0];
 			if (copyFromLevelId == null) {
@@ -120,6 +121,7 @@ public class MakerDatabaseAdapter {
 			if (copyFromLocationId != null) {
 				level.setRelativeEndLocation(copyEndLocationByLevelId(copyFromLocationId));
 			}
+			level.tryStatusTransition(LevelStatus.LEVEL_COPYING, LevelStatus.CLIPBOARD_LOAD_READY);
 			loadLevelClipboard(level, copyFromLevelId);
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.copyLevelBySerial - error while copying level from serial: [%s] and slot [%s] - %s", copyFromSerial, level.getChunkZ(), e.getMessage()));
@@ -521,7 +523,7 @@ public class MakerDatabaseAdapter {
 		checkNotNull(level);
 		checkNotNull(copyFrom);
 		try {
-			level.tryStatusTransition(LevelStatus.BLANK, LevelStatus.CLIPBOARD_LOADING);
+			level.tryStatusTransition(LevelStatus.CLIPBOARD_LOAD_READY, LevelStatus.CLIPBOARD_LOADING);
 			String levelId = copyFrom.toString().replace("-", "");
 			try (PreparedStatement testQuery = getConnection().prepareStatement(
 			        String.format("SELECT * FROM `mcmaker`.`schematics` where `level_id` = UNHEX(?) order by `updated` desc limit 1"))) {
@@ -682,6 +684,8 @@ public class MakerDatabaseAdapter {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
+		try {
+			level.tryStatusTransition(LevelStatus.LEVEL_LOAD_READY, LevelStatus.LEVEL_LOADING);
 		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
 				SELECT_ALL_FROM_LEVELS, "WHERE `levels`.`level_serial` = ? AND `levels`.`deleted` = 0","");
 		try (PreparedStatement loadLevelQuery = getConnection().prepareStatement(String.format(query))) {
@@ -690,10 +694,12 @@ public class MakerDatabaseAdapter {
 			if (resultSet.next()) {
 				loadLevelFromResult(level, resultSet);
 				loadLevelRecords(level);
+				level.tryStatusTransition(LevelStatus.LEVEL_LOADING, LevelStatus.CLIPBOARD_LOAD_READY);
 				loadLevelClipboard(level);
 			} else {
 				level.disable(String.format("Unable to find level with serial: [%s]", level.getLevelSerial()), null);
 			}
+		}
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPlayableLevelBySerial - error while loading level: %s", e.getMessage()));
 			e.printStackTrace();

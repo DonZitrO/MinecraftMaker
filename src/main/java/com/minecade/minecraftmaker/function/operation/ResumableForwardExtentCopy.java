@@ -238,7 +238,9 @@ public class ResumableForwardExtentCopy implements Operation {
 				return new DelegateOperation(this, entityVisitor);
 			}
 		} 
-		Bukkit.getLogger().info(String.format("ResumableForwardExtentCopy.resume - finished on: [%s] ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanoTime)));
+		if (MinecraftMakerPlugin.getInstance().isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | ResumableForwardExtentCopy.resume - finished on: [%s] ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanoTime)));
+		}
 		return null;
 	}
 

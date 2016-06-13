@@ -43,6 +43,20 @@ public class LevelUtils {
 		return new ResumableRegionVisitor(faces, replace);
 	}
 
+	public static Clipboard createLevelStartClipboard(short chunkZ) {
+		Vector levelOrigin = getLevelOrigin(chunkZ);
+		Vector startOrigin = levelOrigin.add(2, MakerPlayableLevel.FLOOR_LEVEL_Y, 6);
+		CuboidRegion startRegion = new CuboidRegion(startOrigin, startOrigin.add(0, 2, 0));
+		BlockArrayClipboard clipboard = new BlockArrayClipboard(startRegion);
+		clipboard.setOrigin(startOrigin);
+		BaseBlock beacon = new BaseBlock(BlockID.BEACON);
+		BaseBlock air = new BaseBlock(BlockID.AIR);
+		clipboard.setBlock(startOrigin, beacon);
+		clipboard.setBlock(startOrigin.add(0, 1, 0), air);
+		clipboard.setBlock(startOrigin.add(0, 2, 0), air);
+		return clipboard;
+	}
+
 	public static Clipboard createEmptyLevelClipboard(short chunkZ, int floorBlockId) {
 		Region region = getLevelRegion(chunkZ, MakerPlayableLevel.DEFAULT_LEVEL_WIDTH, MakerPlayableLevel.DEFAULT_LEVEL_HEIGHT);
 
@@ -113,6 +127,10 @@ public class LevelUtils {
 
 	public static Clipboard createLevelRemainingWidthEmptyClipboard(short chunkZ, int regionWidth) {
 		CuboidRegion remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH, MakerPlayableLevel.MAX_LEVEL_HEIGHT);
+		if (regionWidth >= remainingRegion.getWidth()) {
+			return null;
+		}
+		Bukkit.getLogger().severe(String.format("createLevelRemainingWidthEmptyClipboard - 1: [%s] - 2: [%s]", remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
 		remainingRegion.contract(new Vector(regionWidth, 0, 0));
 		Bukkit.getLogger().severe(String.format("createLevelRemainingWidthEmptyClipboard - 1: [%s] - 2: [%s]", remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
 		return createEmptyClipboard(remainingRegion);
@@ -120,6 +138,10 @@ public class LevelUtils {
 
 	public static Clipboard createLevelRemainingHeightEmptyClipboard(short chunkZ, int regionHeight) {
 		CuboidRegion remainingRegion = getLevelRegion(chunkZ, MakerPlayableLevel.MAX_LEVEL_WIDTH, MakerPlayableLevel.MAX_LEVEL_HEIGHT);
+		if (regionHeight >= remainingRegion.getHeight()) {
+			return null;
+		}
+		Bukkit.getLogger().severe(String.format("createLevelRemainingHeightEmptyClipboard - 1: [%s] - 2: [%s]", remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
 		remainingRegion.contract(new Vector(0, regionHeight, 0));
 		Bukkit.getLogger().severe(String.format("createLevelRemainingHeightEmptyClipboard - 1: [%s] - 2: [%s]", remainingRegion.getMinimumPoint(), remainingRegion.getMaximumPoint()));
 		return createEmptyClipboard(remainingRegion);
@@ -129,6 +151,7 @@ public class LevelUtils {
 		BlockTransformExtent extent = new BlockTransformExtent(clipboard, IDENTITY_TRANSFORM, worldData.getBlockRegistry());
 		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(extent, clipboard.getRegion(), destination, clipboard.getOrigin());
 		copy.setTransform(IDENTITY_TRANSFORM);
+		// FIXME: review this at some point
 		//copy.setSourceMask(Masks.negate(new RegionBorderMask(clipboard.getRegion())));
 		return copy;
 	}
@@ -207,7 +230,7 @@ public class LevelUtils {
 		if (region == null) {
 			return false;
 		}
-		if (location.getBlockY() < 2 || location.getBlockY() + 2 >= region.getMaximumPoint().getBlockY()) {
+		if (location.getBlockY() < 2 || location.getBlockY() + 4 >= region.getMaximumPoint().getBlockY()) {
 			return false;
 		}
 		if (location.getBlockX() - 3 <= region.getMinimumPoint().getBlockX()|| location.getBlockX() + 3 >= region.getMaximumPoint().getBlockX()) {

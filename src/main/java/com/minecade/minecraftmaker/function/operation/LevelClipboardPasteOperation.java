@@ -31,6 +31,7 @@ public class LevelClipboardPasteOperation implements Operation {
 		// player left before the operation was resumed/completed
 		if (!level.hasActivePlayer()) {
 			Bukkit.getLogger().info(String.format("LevelClipboardPasteOperation.resume - operation cancelled because level player left: [%s]", level.getDescription()));
+			level.disable("LevelClipboardPasteOperation.resume - player left");
 			return null;
 		}
 		if (firstRun) {

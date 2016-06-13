@@ -1,13 +1,11 @@
 package com.minecade.minecraftmaker.schematic.world;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
-import com.minecade.minecraftmaker.schematic.exception.RegionOperationException;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * An axis-aligned cuboid. It can be defined using two corners of the cuboid.
@@ -255,7 +253,7 @@ public class CuboidRegion extends AbstractRegion implements FlatRegion {
 	}
 
 	@Override
-	public void shift(Vector change) throws RegionOperationException {
+	public void shift(Vector change) {
 		pos1 = pos1.add(change);
 		pos2 = pos2.add(change);
 

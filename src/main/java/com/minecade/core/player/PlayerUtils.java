@@ -33,12 +33,13 @@ public final class PlayerUtils {
 	}
 
 	public static void resetPlayer(Player player, GameMode gameMode) {
-		player.setGameMode(gameMode);
+		if (!player.getGameMode().equals(gameMode)) {
+			player.setGameMode(gameMode);
+		}
 		player.setLevel(0);
 		player.setExp(0);
 		player.setFoodLevel(100);
 		player.getInventory().clear();
-		player.getInventory().setArmorContents(null);
 		player.setFireTicks(0);
 		player.setHealth(player.getMaxHealth());
 		player.setFlying(false);

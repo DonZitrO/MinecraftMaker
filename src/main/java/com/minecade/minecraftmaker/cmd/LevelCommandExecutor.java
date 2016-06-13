@@ -53,6 +53,10 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 				sender.sendMessage(plugin.getMessage("level.rename.error.empty-name"));
 				return true;
 			}
+			if (name.length() < 3) {
+				sender.sendMessage(plugin.getMessage("level.rename.error.too-short"));
+				return true;
+			}
 			if (name.length() > 30) {
 				sender.sendMessage(plugin.getMessage("level.rename.error.too-long"));
 				return true;

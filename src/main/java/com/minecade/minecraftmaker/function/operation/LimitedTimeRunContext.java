@@ -32,4 +32,8 @@ public class LimitedTimeRunContext {
 		return false;
 	}
 
+	public long getOvertime() {
+		return Math.max(0, System.nanoTime() - endNanoTime);
+	}
+
 }

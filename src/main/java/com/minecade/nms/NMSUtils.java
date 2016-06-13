@@ -12,6 +12,8 @@ import net.minecraft.server.v1_9_R1.EntitySpider;
 import net.minecraft.server.v1_9_R1.IChatBaseComponent;
 import net.minecraft.server.v1_9_R1.NBTTagCompound;
 import net.minecraft.server.v1_9_R1.NBTTagList;
+import net.minecraft.server.v1_9_R1.PacketPlayInClientCommand;
+import net.minecraft.server.v1_9_R1.PacketPlayInClientCommand.EnumClientCommand;
 import net.minecraft.server.v1_9_R1.IChatBaseComponent.ChatSerializer;
 import net.minecraft.server.v1_9_R1.PacketPlayOutChat;
 import net.minecraft.server.v1_9_R1.PathfinderGoalMeleeAttack;
@@ -32,6 +34,7 @@ import org.bukkit.craftbukkit.v1_9_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -117,6 +120,19 @@ public class NMSUtils {
 			playerConnection.getClass().getMethod("sendPacket", getNMSClass("Packet")).invoke(playerConnection, packet);
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+
+	public static void respawnOnNextTick(JavaPlugin plugin, final Player player) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> respawn(player));
+	}
+
+	private static void respawn(Player player){
+		try {
+			((CraftPlayer) player).getHandle().playerConnection.a(new PacketPlayInClientCommand(EnumClientCommand.PERFORM_RESPAWN));
+		} catch (Exception e) {
+			// CancelledPacketHandleException: we don't care
+			Bukkit.getLogger().warning(String.format("NMSUtils.respawn - %s: - %s ", e.getClass().getSimpleName(), e.getMessage()));
 		}
 	}
 

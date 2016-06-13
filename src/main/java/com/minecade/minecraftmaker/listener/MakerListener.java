@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.listener;
 
+import java.util.concurrent.TimeUnit;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -153,6 +155,7 @@ public class MakerListener implements Listener {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerListener.onChunkUnload - chunk: [%s,%s]", event.getChunk().getX(), event.getChunk().getZ()));
 		}
+		event.setCancelled(true);
 	}
 
 	@EventHandler
@@ -235,9 +238,13 @@ public class MakerListener implements Listener {
 		plugin.getController().onPlayerDamage(event);
 	}
 
-	@EventHandler (priority = EventPriority.LOW)
+	@EventHandler (priority = EventPriority.MONITOR)
 	public void onPlayerDeath(PlayerDeathEvent event) {
+		long startNanoTime = System.nanoTime();
 		plugin.getController().onPlayerDeath(event);
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onPlayerDeath - Player: [%s] - took: [%s] ms", event.getEntity().getName(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanoTime)));
+		}
 	}
 
 	@EventHandler

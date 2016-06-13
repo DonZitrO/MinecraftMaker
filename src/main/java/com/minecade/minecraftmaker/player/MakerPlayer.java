@@ -471,10 +471,10 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void setCurrentLevel(MakerPlayableLevel level) {
-		Bukkit.getLogger().severe(String.format("level: %s", level));
-		if (level != null) {
-			Bukkit.getLogger().severe(String.format("level hash: %s", level.hashCode()));
-		}
+		//Bukkit.getLogger().severe(String.format("level: %s", level));
+		//if (level != null) {
+		//	Bukkit.getLogger().severe(String.format("level hash: %s", level.hashCode()));
+		//}
 		this.currentLevel = level;
 	}
 
@@ -555,6 +555,9 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void setInvulnerable(boolean invulnerable) {
+		if (player.isInvulnerable() == invulnerable) {
+			return;
+		}
 		player.setInvulnerable(invulnerable);
 	}
 

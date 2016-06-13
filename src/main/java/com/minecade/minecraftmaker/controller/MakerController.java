@@ -74,7 +74,6 @@ import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
-import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
@@ -85,6 +84,7 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.MakerWorldUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
+import com.minecade.nms.NMSUtils;
 
 public class MakerController implements Runnable, Tickable {
 
@@ -229,9 +229,8 @@ public class MakerController implements Runnable, Tickable {
 		level.setAuthorId(mPlayer.getUniqueId());
 		level.setAuthorName(mPlayer.getName());
 		level.setAuthorRank(mPlayer.getData().getHighestRank());
-		level.setupStartLocation();
-		level.waitForBusyLevel(mPlayer, true);
-		plugin.getDatabaseAdapter().copyLevelBySerialAsync(level, copyFromSerial);
+		level.setCopyFromSerial(copyFromSerial);
+		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
 	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
@@ -257,16 +256,8 @@ public class MakerController implements Runnable, Tickable {
 		level.setAuthorId(author.getUniqueId());
 		level.setAuthorName(author.getName());
 		level.setAuthorRank(author.getData().getHighestRank());
-		level.setupStartLocation();
-		level.waitForBusyLevel(author, true);
-		try {
-			level.setClipboard(LevelUtils.createEmptyLevelClipboard(level.getChunkZ(), floorBlockId));
-			level.tryStatusTransition(LevelStatus.BLANK, LevelStatus.CLIPBOARD_LOADED);
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerController.createEmptyLevel - error while creating and empty level: %s", e.getMessage()));
-			e.printStackTrace();
-			level.disable(e.getMessage(), e);
-		}
+		level.setFloorBlockId(floorBlockId);
+		level.waitForBusyLevel(author, true, false, true);
 	}
 
 	public void createEmptyLevel(UUID authorId, short widthChunks, int floorBlockId) {
@@ -448,9 +439,8 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		level.setLevelSerial(levelSerial);
-		level.setupStartLocation();
-		level.waitForBusyLevel(mPlayer, true);
-		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(level);
+		level.setAuthorId(mPlayer.getUniqueId());
+		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
 	public void loadLevelForPlayingBySerial(MakerPlayer mPlayer, Long levelSerial) {
@@ -464,10 +454,8 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		level.setLevelSerial(levelSerial);
-		level.setupStartLocation();
-		level.waitForBusyLevel(mPlayer, true);
 		level.setCurrentPlayerId(mPlayer.getUniqueId());
-		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(level);
+		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
 	public void loadPublishedLevelCallback(MakerDisplayableLevel level, int levelCount) {
@@ -992,9 +980,12 @@ public class MakerController implements Runnable, Tickable {
 
 	public void onPlayerDeath(PlayerDeathEvent event) {
 		event.setDeathMessage("");
+		event.setKeepInventory(false);
+		event.setKeepLevel(false);
 		event.getDrops().clear();
 		event.setDroppedExp(0);
-		event.getEntity().spigot().respawn();
+		NMSUtils.respawnOnNextTick(plugin, event.getEntity());
+		// event.getEntity().spigot().respawn();
 	}
 
 	public void onPlayerDropItem(PlayerDropItemEvent event) {
@@ -1091,6 +1082,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void onPlayerJoin(Player player) {
+		player.setInvulnerable(true);
 		Bukkit.getLogger().info(String.format("MakerController.onPlayerJoin - Player: [%s<%s>]", player.getName(), player.getUniqueId()));
 		MakerPlayerData data = accountDataMap.remove(player.getUniqueId());
 		if (null == data && !playerMap.containsKey(player.getUniqueId())) {
@@ -1135,6 +1127,24 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		if (mPlayer.isInLobby()) {
+			return;
+		}
+		if (mPlayer.isSpectating()) {
+			if (event.getTo().getBlockX() < -48 || event.getTo().getBlockX() > 186) {
+				event.setTo(event.getFrom());
+				mPlayer.sendActionMessage(plugin, "spectator.off-limits");
+				return;
+			}
+			if (event.getTo().getBlockY() < -16 || event.getTo().getBlockY() > 80) {
+				event.setTo(event.getFrom());
+				mPlayer.sendActionMessage(plugin, "spectator.off-limits");
+				return;
+			}
+			if (event.getTo().getBlockZ() < -16 || event.getTo().getBlockZ() > 16000) {
+				event.setTo(event.getFrom());
+				mPlayer.sendActionMessage(plugin, "spectator.off-limits");
+				return;
+			}
 			return;
 		}
 		if (mPlayer.isInBusyLevel()) {
@@ -1213,6 +1223,7 @@ public class MakerController implements Runnable, Tickable {
 //	}
 
 	public void onPlayerRespawn(PlayerRespawnEvent event) {
+		event.getPlayer().setInvulnerable(true);
 		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
 		if (mPlayer == null) {
 			Bukkit.getLogger().warning(String.format("MakerController.onPlayerRespawn - untracked player: [%s]", event.getPlayer().getName()));
@@ -1254,7 +1265,7 @@ public class MakerController implements Runnable, Tickable {
 
 	public void onVehicleMove(VehicleMoveEvent event) {
 		Entity passenger = event.getVehicle().getPassenger();
-		if (passenger == null || !(passenger instanceof Player)) {
+		if (passenger == null || !(passenger instanceof Player) || ((Player) passenger).isDead()) {
 			return;
 		}
 		final MakerPlayer mPlayer = getPlayer((Player)passenger);
@@ -1402,14 +1413,12 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.sendActionMessage(plugin, "level.error.full");
 			return;
 		}
-		level.setupStartLocation();
-		level.waitForBusyLevel(mPlayer, false);
 		level.setCurrentPlayerId(mPlayer.getUniqueId());
 		MakerSteveData steveData = new MakerSteveData(levels);
 		level.setSteveData(steveData);
 		mPlayer.setSteveData(steveData);
 		level.setLevelSerial(steveData.getRandomLevel());
-		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(level);
+		level.waitForBusyLevel(mPlayer, false, true, false);
 		mPlayer.sendTitleAndSubtitle(plugin.getMessage("steve.start.title"), plugin.getMessage("steve.start.subtitle"));
 	}
 
