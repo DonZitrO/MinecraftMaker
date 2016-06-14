@@ -14,12 +14,20 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class LevelOperatorTask extends BukkitRunnable {
 
-	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 20000000; // 20ms to build per tick
+	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 25000000; // 25ms to build per tick
 	private static final long MIN_TIME_PER_TICK_NANOSECONDS =  5000000; // 5ms to guarantee no task will stall forever
 
+	private static final long HIGHEST_PRIORITY_DIVISOR = 4;
+	private static final long HIGH_PRIORITY_DIVISOR = 3;
+	private static final long NORMAL_PRIORITY_DIVISOR = 2;
+	private static final long LOW_PRIORITY_DIVISOR = 1;
+
 	private final MinecraftMakerPlugin plugin;
+	private final ResumableOperationQueue lowPriorityOperationQueue = new ResumableOperationQueue();
 	private final ResumableOperationQueue operationQueue = new ResumableOperationQueue();
-	private final ResumableOperationQueue priorityOperationQueue = new ResumableOperationQueue();
+	private final ResumableOperationQueue highPriorityoperationQueue = new ResumableOperationQueue();
+	private final ResumableOperationQueue highestPriorityoperationQueue = new ResumableOperationQueue();
+
 	private long lastTickCompleteTime;
 
 	public LevelOperatorTask(MinecraftMakerPlugin plugin) {
@@ -28,82 +36,128 @@ public class LevelOperatorTask extends BukkitRunnable {
 
 	public void offerLowPriority(Operation operation) {
 		checkNotNull(operation);
-		operationQueue.offer(operation);
+		lowPriorityOperationQueue.offer(operation);
 	}
 
 	public void offer(Operation operation) {
 		checkNotNull(operation);
-		operationQueue.offerFirst(operation);
+		operationQueue.offer(operation);
 	}
 
 	public void offerHighPriority(Operation operation) {
 		checkNotNull(operation);
-		priorityOperationQueue.offer(operation);
+		highPriorityoperationQueue.offer(operation);
 	}
 
 	public void offerHighestPriority(Operation operation) {
 		checkNotNull(operation);
-		priorityOperationQueue.offerFirst(operation);
+		highestPriorityoperationQueue.offer(operation);
 	}
 
 	@Override
 	public void run() {
-		long timeAvailable = MAX_TIME_PER_TICK_NANOSECONDS;
+		long totalTimeAvailable = MAX_TIME_PER_TICK_NANOSECONDS;
 		if (lastTickCompleteTime > 0) {
 			long timeBetweenRuns = System.nanoTime() - lastTickCompleteTime;
 			if (timeBetweenRuns < MIN_TIME_PER_TICK_NANOSECONDS) {
-				Bukkit.getLogger().info(String.format("LevelOperatorTask.run - server is too busy, let's give it a break - time between runs: [%s] ms", TimeUnit.NANOSECONDS.toMillis(timeBetweenRuns)));
+				Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - server is too busy, let's give it a break - time between runs: [%s] ms", TimeUnit.NANOSECONDS.toMillis(timeBetweenRuns)));
 				lastTickCompleteTime = System.nanoTime();
 				return;
 			}
 			if (timeBetweenRuns < MAX_TIME_PER_TICK_NANOSECONDS) {
-				timeAvailable = timeBetweenRuns;
+				totalTimeAvailable = timeBetweenRuns;
 			}
 		}
-		if (priorityOperationQueue.isEmpty() && operationQueue.isEmpty()) {
+		long totalDivisor = calculateTotalDivisor();
+		if (totalDivisor == 0) {
+			// no pending tasks
 			lastTickCompleteTime = System.nanoTime();
 			return;
 		}
 		long startNanoTime = System.nanoTime();
-		long divisor = priorityOperationQueue.isEmpty() ^ operationQueue.isEmpty() ? 1 : 2;
-		//Bukkit.getLogger().severe(String.format("priority empty: [%s] - normal empty: [%s] - divisor: [%s]",priorityOperationQueue.isEmpty(), operationQueue.isEmpty(), divisor));
-		LimitedTimeRunContext runContext = null;
-		try {
-			if (!priorityOperationQueue.isEmpty()) {
-				runContext = new LimitedTimeRunContext(timeAvailable / divisor);
-				priorityOperationQueue.resume(runContext);
+		long availableTime = totalTimeAvailable;
+		long overtime = 0;
+		if (!highestPriorityoperationQueue.isEmpty()) {
+			availableTime = calculateAvailableTime(HIGHEST_PRIORITY_DIVISOR, totalTimeAvailable, totalDivisor, overtime);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | LevelOperatorTask.run - available time for highest priority operation: [%s] ms", TimeUnit.NANOSECONDS.toMillis(availableTime)));
 			}
-		} catch (Exception e) {
-			priorityOperationQueue.cancelCurrentOperation();
-			Bukkit.getLogger().severe(String.format("MakerBuilderTask.run - a severe exception occurred on the Builder Task: %s", e.getMessage()));
-			e.printStackTrace();
-		}
-		long spentNanoTime = System.nanoTime() - startNanoTime; 
-		if (plugin.isDebugMode()) {
-			if (spentNanoTime > timeAvailable / divisor) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | MakerBuilderTask.run - high priority operation took: [%s] ms", TimeUnit.NANOSECONDS.toMillis(spentNanoTime)));
+			overtime = resumeQueue(highestPriorityoperationQueue, availableTime);
+			if (overtime > 0) {
+				Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - highest priority queue overtime: [%s] ms", TimeUnit.NANOSECONDS.toMillis(overtime)));
 			}
 		}
-		try {
-			if (!operationQueue.isEmpty()) {
-				long overtime = runContext != null ? runContext.getOvertime() : 0;
-				long availableTime = Math.max(MIN_TIME_PER_TICK_NANOSECONDS, (timeAvailable / divisor) - overtime);
-				//Bukkit.getLogger().severe(String.format("available time for low priority task: [%s]", availableTime));
-				runContext = new LimitedTimeRunContext(availableTime);
-				operationQueue.resume(runContext);
+		if (!highPriorityoperationQueue.isEmpty()) {
+			availableTime = calculateAvailableTime(HIGH_PRIORITY_DIVISOR, totalTimeAvailable, totalDivisor, overtime);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | LevelOperatorTask.run - available time for high priority operation: [%s] ms", TimeUnit.NANOSECONDS.toMillis(availableTime)));
 			}
-		} catch (Exception e) {
-			operationQueue.cancelCurrentOperation();
-			Bukkit.getLogger().severe(String.format("MakerBuilderTask.run - a severe exception occurred on the Builder Task: %s", e.getMessage()));
-			e.printStackTrace();
+			overtime = resumeQueue(highPriorityoperationQueue, availableTime);
+			if (overtime > 0) {
+				Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - high priority queue overtime: [%s] ms", TimeUnit.NANOSECONDS.toMillis(overtime)));
+			}
 		}
-		spentNanoTime = System.nanoTime() - startNanoTime; 
-		if (plugin.isDebugMode()) {
-			if (spentNanoTime > MAX_TIME_PER_TICK_NANOSECONDS) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | MakerBuilderTask.run - all operations took: [%s] ms", TimeUnit.NANOSECONDS.toMillis(spentNanoTime)));
+		if (!operationQueue.isEmpty()) {
+			availableTime = calculateAvailableTime(NORMAL_PRIORITY_DIVISOR, totalTimeAvailable, totalDivisor, overtime);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | LevelOperatorTask.run - available time for normal priority operation: [%s] ms", TimeUnit.NANOSECONDS.toMillis(availableTime)));
 			}
+			overtime = resumeQueue(operationQueue, availableTime);
+			if (overtime > 0) {
+				Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - normal priority queue overtime: [%s] ms", TimeUnit.NANOSECONDS.toMillis(overtime)));
+			}
+		}
+		if (!lowPriorityOperationQueue.isEmpty()) {
+			availableTime = calculateAvailableTime(LOW_PRIORITY_DIVISOR, totalTimeAvailable, totalDivisor, overtime);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().warning(String.format("[DEBUG] | LevelOperatorTask.run - available time for low priority operation: [%s] ms", TimeUnit.NANOSECONDS.toMillis(availableTime)));
+			}
+			overtime = resumeQueue(lowPriorityOperationQueue, availableTime);
+			if (overtime > 0) {
+				Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - low priority queue overtime: [%s] ms", TimeUnit.NANOSECONDS.toMillis(overtime)));
+			}
+		}
+		long totalTimeSpent = System.nanoTime() - startNanoTime;
+		if (totalTimeSpent > totalTimeAvailable) {
+			Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - all queues took: [%s] ms", TimeUnit.NANOSECONDS.toMillis(totalTimeSpent)));
 		}
 		lastTickCompleteTime = System.nanoTime();
+	}
+
+	private long resumeQueue(ResumableOperationQueue queue, long nanoTimeAvailable) {
+		if (queue.isEmpty()) {
+			return 0;
+		}
+		LimitedTimeRunContext runContext = new LimitedTimeRunContext(nanoTimeAvailable);
+		try {
+			queue.resume(runContext);
+		} catch (Exception e) {
+			queue.cancelCurrentOperation();
+			Bukkit.getLogger().severe(String.format("MakerBuilderTask.proccessQueue - a severe exception occurred: %s", e.getMessage()));
+			e.printStackTrace();
+		}
+		return runContext.getOvertime();
+	}
+
+	private long calculateAvailableTime(long divisor, long totalTimeAvailable, long totalDivisor, long overtime) {
+		return Math.max(MIN_TIME_PER_TICK_NANOSECONDS, ((divisor * totalTimeAvailable) / totalDivisor) - overtime);
+	}
+
+	private long calculateTotalDivisor() {
+		long divisor = 0;
+		if (!highestPriorityoperationQueue.isEmpty()) {
+			divisor += HIGHEST_PRIORITY_DIVISOR;
+		}
+		if (!highPriorityoperationQueue.isEmpty()) {
+			divisor += HIGH_PRIORITY_DIVISOR;
+		}
+		if (!operationQueue.isEmpty()) {
+			divisor += NORMAL_PRIORITY_DIVISOR;
+		}
+		if (!lowPriorityOperationQueue.isEmpty()) {
+			divisor += LOW_PRIORITY_DIVISOR;
+		}
+		return divisor;
 	}
 
 }

@@ -880,8 +880,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			return;
 		}
 		this.currentPlayerId = authorId;
-		waitForBusyLevel(mPlayer, true, false, true);
-		this.status = LevelStatus.EDITED;
+		saveLevel(mPlayer);
 	}
 
 	public synchronized void saveLevel() {
@@ -894,7 +893,13 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			mPlayer.sendActionMessage(plugin, "level.create.rename");
 			return;
 		}
-		waitForBusyLevel(mPlayer, true, false, true);
+		saveLevel(mPlayer);
+	}
+
+	private void saveLevel(MakerPlayer author) {
+		this.authorName = author.getName();
+		this.authorRank = author.getHighestRank();
+		waitForBusyLevel(author, true, false, true);
 		this.status = LevelStatus.EDITED;
 	}
 
@@ -943,7 +948,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
-	private void setupLobbySign() {
+	private void setupLevelInfoSign() {
 		Block signBlock = BukkitUtil.toLocation(getWorld(), getLevelRegion().getMinimumPoint().add(-4, FLOOR_LEVEL_Y + 2, 6)).getBlock();
 		signBlock.setType(Material.WALL_SIGN);
 		Sign sign = (Sign) signBlock.getState();
@@ -1018,7 +1023,9 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			disable(e.getMessage(), e);
 			return;
 		}
-
+		// sync the level info with the latest from author
+		this.authorRank = mPlayer.getHighestRank();
+		this.authorName= mPlayer.getName();
 		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.CREATIVE);
 			mPlayer.getPlayer().setHealth(mPlayer.getPlayer().getMaxHealth());
@@ -1122,7 +1129,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 				fixClipboard();
 			}
 			setupCliboardFloor();
-			setupLobbySign();
 		} catch (Exception e) {
 			disable(e.getMessage(), e);
 			return;
@@ -1153,7 +1159,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	private void tickClipboardPasted() {
-//		restoreRedstoneInteractions();
+		// restoreRedstoneInteractions();
+		try {
+			setupLevelInfoSign();
+		} catch (Exception e) {
+			Bukkit.getLogger().warning(String.format("MakerPlayableLevel.tickClipboardPasted - unable to setup level info wall sign: %s", e.getMessage()));
+		}
 		if (currentPlayerId != null) {
 			status = LevelStatus.PLAY_READY;
 		} else {
@@ -1263,19 +1274,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	private void tickSaved() {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(authorId);
 		if (mPlayer != null) {
-			if (currentPlayerId != null) {
-				this.status = LevelStatus.CLIPBOARD_LOADED;
-			} else {
-				this.status = LevelStatus.EDIT_READY;
-			}
+			this.status = LevelStatus.CLIPBOARD_LOADED;
+			mPlayer.sendActionMessage(plugin, "level.save.success");
 		} else {
 			this.status = LevelStatus.DISABLE_READY;
 			mPlayer = plugin.getController().getPlayer(authorId);
-		}
-		if (mPlayer != null) {
-			// FIXME:
-			//mPlayer.updateSavedLevelOnPlayerLevelsMenu(plugin, this);
-			mPlayer.sendActionMessage(plugin, "level.save.success");
 		}
 	}
 

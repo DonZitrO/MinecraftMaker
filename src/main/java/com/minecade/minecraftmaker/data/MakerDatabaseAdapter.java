@@ -1026,7 +1026,7 @@ public class MakerDatabaseAdapter {
 					endLocationUUID = insertOrUpdateRelativeLocation(level.getRelativeEndLocation()).toString().replace("-", "");
 				}
 				// after every save the author needs to clear the level again in order to publish it
-				String updateBase = "UPDATE `mcmaker`.`levels` SET `author_cleared` = 0%s WHERE `level_id` = UNHEX(?)";
+				String updateBase = "UPDATE `mcmaker`.`levels` SET `author_rank` = ?, `author_name` = ?, `author_cleared` = 0%s WHERE `level_id` = UNHEX(?)";
 				String updateStatement = null;
 				if (endLocationUUID != null) {
 					updateStatement = String.format(updateBase, ", `end_location_id` = UNHEX(?)");
@@ -1035,12 +1035,13 @@ public class MakerDatabaseAdapter {
 				}
 				int changed = 0;
 				try (PreparedStatement updateLevelSt = getConnection().prepareStatement(updateStatement)) {
-					updateLevelSt.setString(1, level.getLevelName());
+					updateLevelSt.setString(1, level.getAuthorRank() != null ? level.getAuthorRank().name() : Rank.GUEST.name());
+					updateLevelSt.setString(2, level.getAuthorName());
 					if (endLocationUUID != null) {
-						updateLevelSt.setString(1, endLocationUUID);
-						updateLevelSt.setString(2, levelId);
+						updateLevelSt.setString(3, endLocationUUID);
+						updateLevelSt.setString(4, levelId);
 					} else {
-						updateLevelSt.setString(1, levelId);
+						updateLevelSt.setString(3, levelId);
 					}
 					changed = updateLevelSt.executeUpdate();
 				}
