@@ -16,6 +16,7 @@ public class LevelOperatorTask extends BukkitRunnable {
 
 	private static final long MAX_TIME_PER_TICK_NANOSECONDS = 25000000; // 25ms to build per tick
 	private static final long MIN_TIME_PER_TICK_NANOSECONDS =  5000000; // 5ms to guarantee no task will stall forever
+	private static final long MILLISECOND_NANOS = 1000000;
 
 	private static final long HIGHEST_PRIORITY_DIVISOR = 4;
 	private static final long HIGH_PRIORITY_DIVISOR = 3;
@@ -83,7 +84,7 @@ public class LevelOperatorTask extends BukkitRunnable {
 				Bukkit.getLogger().warning(String.format("[DEBUG] | LevelOperatorTask.run - available time for highest priority operation: [%s] ms", TimeUnit.NANOSECONDS.toMillis(availableTime)));
 			}
 			overtime = resumeQueue(highestPriorityoperationQueue, availableTime);
-			if (overtime > 0) {
+			if (overtime > MILLISECOND_NANOS) {
 				Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - highest priority queue overtime: [%s] ms", TimeUnit.NANOSECONDS.toMillis(overtime)));
 			}
 		}
@@ -93,7 +94,7 @@ public class LevelOperatorTask extends BukkitRunnable {
 				Bukkit.getLogger().warning(String.format("[DEBUG] | LevelOperatorTask.run - available time for high priority operation: [%s] ms", TimeUnit.NANOSECONDS.toMillis(availableTime)));
 			}
 			overtime = resumeQueue(highPriorityoperationQueue, availableTime);
-			if (overtime > 0) {
+			if (overtime > MILLISECOND_NANOS) {
 				Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - high priority queue overtime: [%s] ms", TimeUnit.NANOSECONDS.toMillis(overtime)));
 			}
 		}
@@ -103,7 +104,7 @@ public class LevelOperatorTask extends BukkitRunnable {
 				Bukkit.getLogger().warning(String.format("[DEBUG] | LevelOperatorTask.run - available time for normal priority operation: [%s] ms", TimeUnit.NANOSECONDS.toMillis(availableTime)));
 			}
 			overtime = resumeQueue(operationQueue, availableTime);
-			if (overtime > 0) {
+			if (overtime > MILLISECOND_NANOS) {
 				Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - normal priority queue overtime: [%s] ms", TimeUnit.NANOSECONDS.toMillis(overtime)));
 			}
 		}
@@ -113,12 +114,12 @@ public class LevelOperatorTask extends BukkitRunnable {
 				Bukkit.getLogger().warning(String.format("[DEBUG] | LevelOperatorTask.run - available time for low priority operation: [%s] ms", TimeUnit.NANOSECONDS.toMillis(availableTime)));
 			}
 			overtime = resumeQueue(lowPriorityOperationQueue, availableTime);
-			if (overtime > 0) {
+			if (overtime > MILLISECOND_NANOS) {
 				Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - low priority queue overtime: [%s] ms", TimeUnit.NANOSECONDS.toMillis(overtime)));
 			}
 		}
 		long totalTimeSpent = System.nanoTime() - startNanoTime;
-		if (totalTimeSpent > totalTimeAvailable) {
+		if (totalTimeSpent + MILLISECOND_NANOS > totalTimeAvailable) {
 			Bukkit.getLogger().warning(String.format("LevelOperatorTask.run - all queues took: [%s] ms", TimeUnit.NANOSECONDS.toMillis(totalTimeSpent)));
 		}
 		lastTickCompleteTime = System.nanoTime();
