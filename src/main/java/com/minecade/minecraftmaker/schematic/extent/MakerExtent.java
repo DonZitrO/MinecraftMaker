@@ -6,6 +6,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.bukkit.Bukkit;
+
 import com.minecade.minecraftmaker.function.operation.Operation;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
@@ -80,6 +82,10 @@ public class MakerExtent implements Extent {
 	@Override
 	public @Nullable Operation commit() throws MinecraftMakerException {
 		if (level != null) {
+			if (level.isDisabled()) {
+				Bukkit.getLogger().warning(String.format("MakerExtent.commit - cancelled commit because level is disabled: {%s}", level.getDescription()));
+				return null;
+			}
 			try {
 				level.tryStatusTransition(LevelStatus.CLIPBOARD_PASTING, LevelStatus.CLIPBOARD_PASTE_COMMITTING);
 			} catch (DataException e) {

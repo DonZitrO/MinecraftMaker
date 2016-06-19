@@ -402,7 +402,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 		mPlayer.sendActionMessage(plugin, dislike ? "level.dislike.success" : "level.like.success");
 		MakerPlayableLevel level = mPlayer.getCurrentLevel();
-		if (level == null || !level.getLevelId().equals(levelId)) {
+		if (level == null || !levelId.equals(level.getLevelId())) {
 			return;
 		}
 		level.setLikes(totalDislikes);
@@ -1082,8 +1082,8 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void onPlayerJoin(Player player) {
-		player.setInvulnerable(true);
 		Bukkit.getLogger().info(String.format("MakerController.onPlayerJoin - Player: [%s<%s>]", player.getName(), player.getUniqueId()));
+		player.setInvulnerable(true);
 		MakerPlayerData data = accountDataMap.remove(player.getUniqueId());
 		if (null == data && !playerMap.containsKey(player.getUniqueId())) {
 			Bukkit.getLogger().info(String.format("MakerController.onPlayerJoin - No data available yet for Player: [%s<%s>]", player.getName(), player.getUniqueId()));
