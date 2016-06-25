@@ -36,15 +36,15 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 		this.material = material;
 		this.amount = amount;
 		this.data = data;
-    }
+	}
 
-    public ItemBuilder(String uniqueId, String texture){
-        this.material = Material.SKULL_ITEM;
-        this.amount = 1;
-        this.data = (short)3;
-        this.uniqueId = uniqueId;
-        this.texture = texture;
-    }
+	public ItemBuilder(String uniqueId, String texture) {
+		this.material = Material.SKULL_ITEM;
+		this.amount = 1;
+		this.data = (short) 3;
+		this.uniqueId = uniqueId;
+		this.texture = texture;
+	}
 
 	@SuppressWarnings("deprecation")
 	public ItemBuilder(MaterialData materialData) {
@@ -74,12 +74,10 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 				item.addUnsafeEnchantment(ench.getEnchantment(), ench.getLevel());
 			}
 		}
-
 		// Skull
 		if (StringUtils.isNotBlank(this.uniqueId) && StringUtils.isNotBlank(this.texture)) {
 			return NMSUtils.createSkull(item, this.uniqueId, this.texture);
 		}
-
 		return item;
 	}
 

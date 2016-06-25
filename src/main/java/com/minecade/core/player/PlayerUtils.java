@@ -21,17 +21,6 @@ public final class PlayerUtils {
 		return null;
 	}
 
-	public static boolean isOpInCreativeMode(Player player) {
-		if (player.isOp() && GameMode.CREATIVE.equals(player.getGameMode())) {
-			return true;
-		}
-		return false;
-	}
-
-	public static void resetPlayer(Player player) {
-		resetPlayer(player, GameMode.ADVENTURE);
-	}
-
 	public static void resetPlayer(Player player, GameMode gameMode) {
 		if (!player.getGameMode().equals(gameMode)) {
 			player.setGameMode(gameMode);

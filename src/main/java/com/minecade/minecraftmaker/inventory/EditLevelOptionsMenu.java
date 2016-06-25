@@ -61,6 +61,14 @@ public class EditLevelOptionsMenu extends AbstractMakerMenu {
 				return MenuClickResult.CANCEL_CLOSE;
 			}
 			mPlayer.getCurrentLevel().publishLevel();
+		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.TOOLS.getDisplayName())) {
+			if(!mPlayer.hasRank(Rank.VIP)){
+				mPlayer.sendMessage(plugin, "upgrade.rank.build.tools");
+				return MenuClickResult.CANCEL_CLOSE;
+			} else {
+				mPlayer.updateInventory();
+				mPlayer.openLevelToolsMenu();
+			}
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.EXIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().exitEditing();
 		}

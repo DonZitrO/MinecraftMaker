@@ -29,12 +29,18 @@ import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
+import com.minecade.minecraftmaker.inventory.LevelTimeMenu;
+import com.minecade.minecraftmaker.inventory.LevelToolsMenu;
+import com.minecade.minecraftmaker.inventory.LevelWeatherMenu;
 import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
 import com.minecade.minecraftmaker.inventory.SteveLevelOptionsMenu;
+import com.minecade.minecraftmaker.inventory.ToolsSkullMenu;
+import com.minecade.minecraftmaker.inventory.ToolsSkullTypeMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
+import com.minecade.minecraftmaker.items.SkullTypeItem;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
@@ -195,7 +201,7 @@ public class MakerPlayer implements Tickable {
 		return this.player;
 	}
 
-    public String getPlayerRecordTime(){
+	public String getPlayerRecordTime(){
         if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null){
             for(MakerLevelClearData makerLevelClear : this.currentLevel.getLevelsClear()){
                 if(makerLevelClear.getUniqueId().equals(this.getUniqueId())){
@@ -207,7 +213,7 @@ public class MakerPlayer implements Tickable {
         return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
     }
 
-	public int getPublishedLevelsCount() {
+    public int getPublishedLevelsCount() {
 		return data.getPublishedLevelsCount();
 	}
 
@@ -285,6 +291,10 @@ public class MakerPlayer implements Tickable {
 		return steveData != null;
 	}
 
+	public boolean isOnLevel() {
+		return this.currentLevel != null;
+	}
+
 	public boolean isOnPublishedLevel() {
 		return this.currentLevel != null && currentLevel.getDatePublished() != null;
 	}
@@ -297,8 +307,8 @@ public class MakerPlayer implements Tickable {
 		return this.currentLevel != null && LevelStatus.PLAYING.equals(this.currentLevel.getStatus());
 	}
 
-	public boolean isOnLevel() {
-		return this.currentLevel != null;
+	public boolean isSpectating() {
+		return player.getGameMode().equals(GameMode.SPECTATOR);
 	}
 
 	public MenuClickResult onInventoryClick(Inventory inventory, int slot) {
@@ -364,6 +374,34 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
+	public void openLevelTimeMenu() {
+		AbstractMakerMenu menu = personalMenus.get(LevelTimeMenu.getInstance().getName());
+		if (menu == null) {
+			menu = LevelTimeMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
+	public void openLevelToolsMenu(){
+		AbstractMakerMenu menu = personalMenus.get(LevelToolsMenu.getInstance().getName());
+		if (menu == null) {
+			menu = LevelToolsMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		
+		inventoryToOpen = menu;
+	}
+
+	public void openLevelWeatherMenu() {
+		AbstractMakerMenu menu = personalMenus.get(LevelWeatherMenu.getInstance().getName());
+		if (menu == null) {
+			menu = LevelWeatherMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
 	public void openPlayerLevelsMenu(boolean update) {
 		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
 		if (menu == null) {
@@ -403,6 +441,24 @@ public class MakerPlayer implements Tickable {
 		inventoryToOpen = menu;
 	}
 
+	public void openToolsSkullMenu(SkullTypeItem skullTypeItem) {
+		AbstractMakerMenu menu = personalMenus.get(ToolsSkullMenu.getInstance(skullTypeItem).getName());
+		if (menu == null) {
+			menu = ToolsSkullMenu.getInstance(skullTypeItem);
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
+	public void openToolsSkullTypeMenu() {
+		AbstractMakerMenu menu = personalMenus.get(ToolsSkullTypeMenu.getInstance().getName());
+		if (menu == null) {
+			menu = ToolsSkullTypeMenu.getInstance();
+			personalMenus.put(menu.getName(), menu);
+		}
+		inventoryToOpen = menu;
+	}
+
 	public void removeTeamEntryFromScoreboard(String playerName) {
 		if (makerScoreboard != null && !makerScoreboard.isDisabled()) {
 			makerScoreboard.removeEntryFromTeam(playerName);
@@ -426,12 +482,12 @@ public class MakerPlayer implements Tickable {
 		dirtyInventory = true;
 	}
 
-	public void resetPlayer(GameMode gamemode) {
-		PlayerUtils.resetPlayer(getPlayer(), gamemode);
-	}
-
 	public void resetPlayer() {
 		resetPlayer(player.getGameMode());
+	}
+
+	public void resetPlayer(GameMode gamemode) {
+		PlayerUtils.resetPlayer(getPlayer(), gamemode);
 	}
 
 	public void sendActionMessage(Internationalizable plugin, String key, Object... args) {
@@ -478,6 +534,10 @@ public class MakerPlayer implements Tickable {
 		this.currentLevel = level;
 	}
 
+	public void setFireTicks(int fireTicks) {
+		player.setFireTicks(fireTicks);
+	}
+
 	public void setFlying(boolean flying) {
 		player.setAllowFlight(true);
 		player.setFlying(flying);
@@ -487,8 +547,19 @@ public class MakerPlayer implements Tickable {
 		player.setGameMode(mode);
 	}
 
+	public void setInvulnerable(boolean invulnerable) {
+		if (player.isInvulnerable() == invulnerable) {
+			return;
+		}
+		player.setInvulnerable(invulnerable);
+	}
+
 	public void setLevelToDeleteSerial(long levelToDeleteSerial) {
 		this.levelToDeleteSerial = levelToDeleteSerial;
+	}
+
+	public void setPublishedLevelsCount(int publishedCount) {
+		data.setPublishedLevelsCount(publishedCount);
 	}
 
 	public void setScoreboard(Scoreboard scoreboard) {
@@ -499,6 +570,15 @@ public class MakerPlayer implements Tickable {
 
 	public void setSteveData(MakerSteveData steveData) {
 		this.steveData = steveData;
+	}
+
+	public void setUnblishedLevelsCount(int unpublishedCount) {
+		data.setUnpublishedLevelsCount(unpublishedCount);
+	}
+
+	public void spectate() {
+		clearInventory();
+		player.setGameMode(GameMode.SPECTATOR);
 	}
 
 	public boolean teleport(Location location, TeleportCause cause) {
@@ -535,34 +615,6 @@ public class MakerPlayer implements Tickable {
 		if (makerScoreboard != null && !makerScoreboard.isDisabled()) {
 			makerScoreboard.addEntryToTeam(rank.name(), playerName);
 		}
-	}
-
-	public void setPublishedLevelsCount(int publishedCount) {
-		data.setPublishedLevelsCount(publishedCount);
-	}
-
-	public void setUnblishedLevelsCount(int unpublishedCount) {
-		data.setUnpublishedLevelsCount(unpublishedCount);
-	}
-
-	public void spectate() {
-		clearInventory();
-		player.setGameMode(GameMode.SPECTATOR);
-	}
-
-	public boolean isSpectating() {
-		return player.getGameMode().equals(GameMode.SPECTATOR);
-	}
-
-	public void setInvulnerable(boolean invulnerable) {
-		if (player.isInvulnerable() == invulnerable) {
-			return;
-		}
-		player.setInvulnerable(invulnerable);
-	}
-
-	public void setFireTicks(int fireTicks) {
-		player.setFireTicks(fireTicks);
 	}
 
 }

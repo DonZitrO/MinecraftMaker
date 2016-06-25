@@ -1,7 +1,6 @@
 package com.minecade.minecraftmaker.inventory;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -56,11 +55,27 @@ public abstract class AbstractMakerMenu {
 		}
 	}
 
+	protected static void loadGlassPanes(ItemStack[] items) {
+		if (items == null) {
+			return;
+		}
+		if (glassPane == null) {
+			ItemStack itemStack = new ItemStack(Material.STAINED_GLASS_PANE);
+			ItemMeta itemMeta = itemStack.getItemMeta();
+			itemMeta.setDisplayName(" ");
+			itemStack.setItemMeta(itemMeta);
+			glassPane = itemStack;
+		}
+		for (int i = 0; i < items.length; i++) {
+			items[i] = glassPane;
+		}
+	}
+
 	protected static ItemStack getGlassPane() {
 		if (glassPane == null) {
 			ItemStack itemStack = new ItemStack(Material.STAINED_GLASS_PANE);
 			ItemMeta itemMeta = itemStack.getItemMeta();
-			itemMeta.setDisplayName(ChatColor.RESET + "");
+			itemMeta.setDisplayName(" ");
 			itemStack.setItemMeta(itemMeta);
 			glassPane = itemStack;
 		}
@@ -71,7 +86,7 @@ public abstract class AbstractMakerMenu {
 		if (blackGlassPane == null) {
 			ItemStack itemStack = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short)15);
 			ItemMeta itemMeta = itemStack.getItemMeta();
-			itemMeta.setDisplayName(ChatColor.RESET + "");
+			itemMeta.setDisplayName(" ");
 			itemStack.setItemMeta(itemMeta);
 			blackGlassPane = itemStack;
 		}

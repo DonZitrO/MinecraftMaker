@@ -17,6 +17,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.WeatherType;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -38,7 +39,6 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.potion.PotionEffect;
 
 import com.minecade.core.data.Rank;
 import com.minecade.core.item.ItemUtils;
@@ -55,7 +55,6 @@ import com.minecade.minecraftmaker.schematic.block.BlockID;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
-import com.minecade.minecraftmaker.schematic.extent.MakerExtent;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.world.CuboidRegion;
 import com.minecade.minecraftmaker.schematic.world.Region;
@@ -519,9 +518,10 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	public void onBlockPhysics(BlockPhysicsEvent event) {
 		if (!isPhysicsAllowed()) {
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().warning(String.format("MakerLevel.onBlockPhysics - cancelled physics interaction - block type: [%s] - location: [%s] on level: {%s}", event.getBlock().getType(), event.getBlock().getLocation().toVector(), getDescription()));
-			}
+			// intensive log - uncomment for specific debug only
+			//if (plugin.isDebugMode()) {
+			//	Bukkit.getLogger().warning(String.format("MakerLevel.onBlockPhysics - cancelled physics interaction - block type: [%s] - location: [%s] on level: {%s}", event.getBlock().getType(), event.getBlock().getLocation().toVector(), getDescription()));
+			//}
 			event.setCancelled(true);
 			return;
 		}
@@ -948,6 +948,17 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
+	public void setupEffects(MakerPlayer mPlayer) {
+		// Time
+		mPlayer.getPlayer().setPlayerTime(getLevelTime(), false);
+		// Weather
+		if(getLevelWeather() != null){
+			mPlayer.getPlayer().setPlayerWeather(getLevelWeather());
+		} else {
+			mPlayer.getPlayer().setPlayerWeather(WeatherType.CLEAR);
+		}
+	}
+
 	private void setupLevelInfoSign() {
 		Block signBlock = BukkitUtil.toLocation(getWorld(), getLevelRegion().getMinimumPoint().add(-4, FLOOR_LEVEL_Y + 2, 6)).getBlock();
 		signBlock.setType(Material.WALL_SIGN);
@@ -1028,10 +1039,8 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		this.authorName= mPlayer.getName();
 		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.CREATIVE);
-			mPlayer.getPlayer().setHealth(mPlayer.getPlayer().getMaxHealth());
-			for (PotionEffect effect :mPlayer.getPlayer().getActivePotionEffects()) {
-				mPlayer.getPlayer().removePotionEffect(effect.getType());;
-			}
+			mPlayer.resetPlayer();
+			setupEffects(mPlayer);
 			mPlayer.setAllowFlight(true);
 			mPlayer.setFlying(true);
 			mPlayer.clearInventory();
@@ -1071,11 +1080,8 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.ADVENTURE);
-			mPlayer.getPlayer().setHealth(mPlayer.getPlayer().getMaxHealth());
-			for (PotionEffect effect :mPlayer.getPlayer().getActivePotionEffects()) {
-				mPlayer.getPlayer().removePotionEffect(effect.getType());;
-			}
 			mPlayer.resetPlayer();
+			setupEffects(mPlayer);
 			mPlayer.setInvulnerable(false);
 			mPlayer.setFlying(false);
 			mPlayer.setAllowFlight(false);
@@ -1150,11 +1156,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 		Clipboard remainingWidth = LevelUtils.createLevelRemainingWidthEmptyClipboard(getChunkZ(), getLevelWidth());
 		if (remainingWidth != null) {
-			plugin.getLevelOperatorTask().offerLowPriority(LevelUtils.createPasteOperation(remainingWidth, new MakerExtent(getWorld()), getWorldData()));
+			plugin.getLevelOperatorTask().offerLowPriority(LevelUtils.createPasteOperation(remainingWidth, BukkitUtil.toWorld(getWorld()), getWorldData()));
 		}
 		Clipboard remainingHeight = LevelUtils.createLevelRemainingHeightEmptyClipboard(getChunkZ(), getLevelHeight());
 		if (remainingHeight != null) {
-			plugin.getLevelOperatorTask().offerLowPriority(LevelUtils.createPasteOperation(remainingHeight, new MakerExtent(getWorld()), getWorldData()));
+			plugin.getLevelOperatorTask().offerLowPriority(LevelUtils.createPasteOperation(remainingHeight, BukkitUtil.toWorld(getWorld()), getWorldData()));
 		}
 	}
 

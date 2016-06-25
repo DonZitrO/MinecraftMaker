@@ -23,9 +23,14 @@ import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.EditorPlayLevelOptionItem;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
+import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
+import com.minecade.minecraftmaker.items.SkullItem;
+import com.minecade.minecraftmaker.items.SkullTypeItem;
 import com.minecade.minecraftmaker.items.SteveLevelOptionItem;
+import com.minecade.minecraftmaker.items.TimeItem;
+import com.minecade.minecraftmaker.items.WeatherItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
@@ -34,7 +39,7 @@ import com.minecade.minecraftmaker.task.AsyncLevelBrowserUpdaterTask;
 import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
 import com.minecade.minecraftmaker.task.AsyncPlayerCounterUpdaterTask;
 import com.minecade.minecraftmaker.task.LevelOperatorTask;
-import com.minecade.nms.Spigot_v1_9_2_R1;
+import com.minecade.nms.Spigot_v1_9_R2;
 
 public class MinecraftMakerPlugin extends JavaPlugin implements Internationalizable {
 
@@ -155,7 +160,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		// server specific config
 		getServer().setDefaultGameMode(GameMode.ADVENTURE);
 		try {
-			this.bukkitImplAdapter = new Spigot_v1_9_2_R1();
+			this.bukkitImplAdapter = new Spigot_v1_9_R2();
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MinecraftMaker.onLoad - Unable to initialize specific Spigot version's NBT tags adapter - %s", e.getMessage()));
 			e.printStackTrace();
@@ -163,7 +168,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 			Bukkit.shutdown();
 		}
 		// i18n config
-		messages = ResourceBundle.getBundle("text", new Locale(getConfig().getString("locale", "en")));
+		messages = ResourceBundle.getBundle("messages", new Locale(getConfig().getString("locale", "en")));
 		// translate
 		translateGeneralStuff();
 		// debug mode
@@ -210,6 +215,26 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		// translate level order by options
 		for (LevelSortBy sortBy : LevelSortBy.values()) {
 			sortBy.translate(this);
+		}
+		// translate level tools options
+		for (LevelToolsItem item : LevelToolsItem.values()) {
+			item.translate(this);
+		}
+		// translate skull items
+		for (SkullItem item : SkullItem.values()) {
+			item.translate(this);
+		}
+		// translate skull type items
+		for (SkullTypeItem item : SkullTypeItem.values()) {
+			item.translate(this);
+		}
+		// translate time items
+		for (TimeItem item : TimeItem.values()) {
+			item.translate(this);
+		}
+		// translate weather items
+		for (WeatherItem item : WeatherItem.values()) {
+			item.translate(this);
 		}
 	}
 

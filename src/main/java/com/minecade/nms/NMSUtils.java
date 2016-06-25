@@ -3,34 +3,34 @@ package com.minecade.nms;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 
-import net.minecraft.server.v1_9_R1.Entity;
-import net.minecraft.server.v1_9_R1.EntityCaveSpider;
-import net.minecraft.server.v1_9_R1.EntityHuman;
-import net.minecraft.server.v1_9_R1.EntityInsentient;
-import net.minecraft.server.v1_9_R1.EntityItem;
-import net.minecraft.server.v1_9_R1.EntitySpider;
-import net.minecraft.server.v1_9_R1.IChatBaseComponent;
-import net.minecraft.server.v1_9_R1.NBTTagCompound;
-import net.minecraft.server.v1_9_R1.NBTTagList;
-import net.minecraft.server.v1_9_R1.PacketPlayInClientCommand;
-import net.minecraft.server.v1_9_R1.PacketPlayInClientCommand.EnumClientCommand;
-import net.minecraft.server.v1_9_R1.IChatBaseComponent.ChatSerializer;
-import net.minecraft.server.v1_9_R1.PacketPlayOutChat;
-import net.minecraft.server.v1_9_R1.PathfinderGoalMeleeAttack;
-import net.minecraft.server.v1_9_R1.PathfinderGoalNearestAttackableTarget;
-import net.minecraft.server.v1_9_R1.WorldServer;
+import net.minecraft.server.v1_9_R2.Entity;
+import net.minecraft.server.v1_9_R2.EntityCaveSpider;
+import net.minecraft.server.v1_9_R2.EntityHuman;
+import net.minecraft.server.v1_9_R2.EntityInsentient;
+import net.minecraft.server.v1_9_R2.EntityItem;
+import net.minecraft.server.v1_9_R2.EntitySpider;
+import net.minecraft.server.v1_9_R2.IChatBaseComponent;
+import net.minecraft.server.v1_9_R2.NBTTagCompound;
+import net.minecraft.server.v1_9_R2.NBTTagList;
+import net.minecraft.server.v1_9_R2.PacketPlayInClientCommand;
+import net.minecraft.server.v1_9_R2.PacketPlayInClientCommand.EnumClientCommand;
+import net.minecraft.server.v1_9_R2.IChatBaseComponent.ChatSerializer;
+import net.minecraft.server.v1_9_R2.PacketPlayOutChat;
+import net.minecraft.server.v1_9_R2.PathfinderGoalMeleeAttack;
+import net.minecraft.server.v1_9_R2.PathfinderGoalNearestAttackableTarget;
+import net.minecraft.server.v1_9_R2.WorldServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.v1_9_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_9_R1.entity.CraftCaveSpider;
-import org.bukkit.craftbukkit.v1_9_R1.entity.CraftEntity;
-import org.bukkit.craftbukkit.v1_9_R1.entity.CraftItem;
-import org.bukkit.craftbukkit.v1_9_R1.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_9_R1.entity.CraftSpider;
-import org.bukkit.craftbukkit.v1_9_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_9_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_9_R2.entity.CraftCaveSpider;
+import org.bukkit.craftbukkit.v1_9_R2.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_9_R2.entity.CraftItem;
+import org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_9_R2.entity.CraftSpider;
+import org.bukkit.craftbukkit.v1_9_R2.inventory.CraftItemStack;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -88,7 +88,7 @@ public class NMSUtils {
 	public static ItemStack createSkull(ItemStack item, String uniqueId, String value) {
 		if(!Material.SKULL_ITEM.equals(item.getType())) return null;
 
-		net.minecraft.server.v1_9_R1.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
+		net.minecraft.server.v1_9_R2.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
 
 		// Set textures
 		NBTTagCompound texture = new NBTTagCompound();
@@ -236,7 +236,7 @@ public class NMSUtils {
 			if (mob instanceof EntityInsentient) {
 				EntityInsentient insentient = (EntityInsentient) mob;
 				// NoAI tag - in an ideal world this should be enough
-				insentient.m(disable);
+				insentient.setAI(disable);
 				// Silent tag
 				insentient.c(disable);
 				// clear general goal and target selectors (old method not useful for some entities like bats)

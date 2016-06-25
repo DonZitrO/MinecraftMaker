@@ -24,6 +24,7 @@ import java.util.logging.Level;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.WeatherType;
 import org.bukkit.configuration.ConfigurationSection;
 
 import com.minecade.core.data.DatabaseException;
@@ -260,7 +261,7 @@ public class MakerDatabaseAdapter {
 		if (level.getRelativeEndLocation() != null) {
 			endLocationUUID = insertOrUpdateRelativeLocation(level.getRelativeEndLocation()).toString().replace("-", "");
 		}
-		String insertBase = "INSERT INTO `mcmaker`.`levels` (level_id, author_id, level_name, author_name, author_rank%s) VALUES (UNHEX(?), UNHEX(?), ?, ?, ?%s)";
+		String insertBase = "INSERT INTO `mcmaker`.`levels` (level_id, author_id, level_name, level_time, level_weather, author_name, author_rank%s) VALUES (UNHEX(?), UNHEX(?), ?, ?, ?, ?, ?%s)";
 		String insertStatement = null;
 		if (endLocationUUID != null) {
 			insertStatement = String.format(insertBase, ", end_location_id", ", UNHEX(?)");
@@ -272,10 +273,12 @@ public class MakerDatabaseAdapter {
 			insertLevelSt.setString(1, levelId);
 			insertLevelSt.setString(2, authorId);
 			insertLevelSt.setString(3, level.getLevelName());
-			insertLevelSt.setString(4, level.getAuthorName());
-			insertLevelSt.setString(5, level.getAuthorRank() != null ? level.getAuthorRank().name() : null);
+			insertLevelSt.setLong(4, level.getLevelTime());
+			insertLevelSt.setString(5, level.getLevelWeather() != null ? level.getLevelWeather().name() : WeatherType.CLEAR.name());
+			insertLevelSt.setString(6, level.getAuthorName());
+			insertLevelSt.setString(7, level.getAuthorRank() != null ? level.getAuthorRank().name() : Rank.GUEST.name());
 			if (endLocationUUID != null) {
-				insertLevelSt.setString(6, endLocationUUID);
+				insertLevelSt.setString(8, endLocationUUID);
 			}
 			insertLevelSt.executeUpdate();
 		}
@@ -582,6 +585,8 @@ public class MakerDatabaseAdapter {
 		level.setLevelId(new UUID(levelIdBytes.getLong(), levelIdBytes.getLong()));
 		level.setLevelSerial(result.getLong("level_serial"));
 		level.setLevelName(result.getString("level_name"));
+		level.setLevelTime(result.getLong("level_time"));
+		level.setLevelWeather(loadWeather(result));
 		level.setAuthorId(new UUID(authorIdBytes.getLong(), authorIdBytes.getLong()));
 		level.setAuthorName(result.getString("author_name"));
 		level.setAuthorRank(loadRank(result));
@@ -876,12 +881,22 @@ public class MakerDatabaseAdapter {
 		return serials;
 	}
 
+	private WeatherType loadWeather(ResultSet result) {
+		WeatherType weather = WeatherType.CLEAR;
+		try {
+			weather = WeatherType.valueOf(result.getString("level_weather"));
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadWeather - unable to load level author rank - %s", e.getMessage()));
+		}
+		return weather;
+	}
+
 	private Rank loadRank(ResultSet result) {
 		Rank rank = Rank.GUEST;
 		try {
 			rank = Rank.valueOf(result.getString("author_rank"));
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadAuthorRank - unable to load level author rank - %s", e.getMessage()));
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadRank - unable to load level author rank - %s", e.getMessage()));
 		}
 		return rank;
 	}
@@ -1026,7 +1041,7 @@ public class MakerDatabaseAdapter {
 					endLocationUUID = insertOrUpdateRelativeLocation(level.getRelativeEndLocation()).toString().replace("-", "");
 				}
 				// after every save the author needs to clear the level again in order to publish it
-				String updateBase = "UPDATE `mcmaker`.`levels` SET `author_rank` = ?, `author_name` = ?, `author_cleared` = 0%s WHERE `level_id` = UNHEX(?)";
+				String updateBase = "UPDATE `mcmaker`.`levels` SET `level_time` = ?, `level_weather` = ?, `author_rank` = ?, `author_name` = ?, `author_cleared` = 0%s WHERE `level_id` = UNHEX(?)";
 				String updateStatement = null;
 				if (endLocationUUID != null) {
 					updateStatement = String.format(updateBase, ", `end_location_id` = UNHEX(?)");
@@ -1035,13 +1050,15 @@ public class MakerDatabaseAdapter {
 				}
 				int changed = 0;
 				try (PreparedStatement updateLevelSt = getConnection().prepareStatement(updateStatement)) {
-					updateLevelSt.setString(1, level.getAuthorRank() != null ? level.getAuthorRank().name() : Rank.GUEST.name());
-					updateLevelSt.setString(2, level.getAuthorName());
+					updateLevelSt.setLong(1, level.getLevelTime());
+					updateLevelSt.setString(2, level.getLevelWeather() != null ? level.getLevelWeather().name() : WeatherType.CLEAR.name());
+					updateLevelSt.setString(3, level.getAuthorRank() != null ? level.getAuthorRank().name() : Rank.GUEST.name());
+					updateLevelSt.setString(4, level.getAuthorName());
 					if (endLocationUUID != null) {
-						updateLevelSt.setString(3, endLocationUUID);
-						updateLevelSt.setString(4, levelId);
+						updateLevelSt.setString(5, endLocationUUID);
+						updateLevelSt.setString(6, levelId);
 					} else {
-						updateLevelSt.setString(3, levelId);
+						updateLevelSt.setString(5, levelId);
 					}
 					changed = updateLevelSt.executeUpdate();
 				}

@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.bukkit.WeatherType;
+
 import com.minecade.core.data.Rank;
 import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
@@ -27,6 +29,9 @@ public class AbstractMakerLevel {
 	protected long likes;
 	protected MakerRelativeLocationData relativeEndLocation;
 	protected long trendingScore;
+
+	protected long levelTime = 6000;
+	protected WeatherType levelWeather = WeatherType.CLEAR;
 
 	protected List<MakerLevelClearData> levelsClear = new ArrayList<MakerLevelClearData>();;
 
@@ -76,6 +81,14 @@ public class AbstractMakerLevel {
 
 	public long getLevelSerial() {
 		return levelSerial;
+	}
+
+	public long getLevelTime() {
+		return levelTime;
+	}
+
+	public WeatherType getLevelWeather() {
+		return levelWeather;
 	}
 
 	public long getLikes() {
@@ -153,6 +166,14 @@ public class AbstractMakerLevel {
 
 	public void setLevelSerial(long levelSerial) {
 		this.levelSerial = levelSerial;
+	}
+
+	public void setLevelTime(long levelTime) {
+		this.levelTime = levelTime;
+	}
+
+	public void setLevelWeather(WeatherType levelWeather) {
+		this.levelWeather = levelWeather;
 	}
 
 	public void setLikes(long likes) {

@@ -1,6 +1,4 @@
-/*
 package com.minecade.minecraftmaker.items;
-
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -9,22 +7,24 @@ import com.minecade.core.i18n.TranslatableItem;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemStackBuilder;
 
-public enum LevelSortByItem implements TranslatableItem {
+public enum LevelToolsItem implements TranslatableItem {
 
-	LIKES(Material.DIAMOND),
-	OWNED(Material.SKULL_ITEM, 1, (short) 3);
+	EXIT(Material.ARROW),
+	SKULL(Material.SKULL_ITEM),
+	TIME(Material.WATCH),
+	WEATHER(Material.DOUBLE_PLANT);
 
 	private final ItemStackBuilder builder;
 
-	private LevelSortByItem(Material material) {
+	private LevelToolsItem(Material material) {
 		this(material, 1);
 	}
 
-	private LevelSortByItem(Material material, int amount) {
+	private LevelToolsItem(Material material, int amount) {
 		this(material, amount, (short) 0);
 	}
 
-	private LevelSortByItem(Material material, int amount, short data) {
+	private LevelToolsItem(Material material, int amount, short data) {
 		this.builder = new ItemBuilder(material, amount, data);
 	}
 
@@ -38,7 +38,7 @@ public enum LevelSortByItem implements TranslatableItem {
 
 	@Override
 	public String getTranslationKeyBase() {
-		return "menu.level-sortby";
+		return "menu.level-tools";
 	}
 
 	@Override
@@ -57,4 +57,3 @@ public enum LevelSortByItem implements TranslatableItem {
 	}
 
 }
-*/

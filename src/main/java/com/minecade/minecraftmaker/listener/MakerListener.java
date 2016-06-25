@@ -169,10 +169,10 @@ public class MakerListener implements Listener {
 		plugin.getController().onCreatureDamageByEntity(event);
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureSpawn - Entity type: [%s] - Reason: [%s] - Location: [%s] - Cancelled: [%s]", event.getEntityType(), event.getSpawnReason(), event.getLocation().toVector(), event.isCancelled()));
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureSpawn - Start... - Entity type: [%s] - Reason: [%s] - Location: [%s] - Cancelled: [%s]", event.getEntityType(), event.getSpawnReason(), event.getLocation().toVector(), event.isCancelled()));
 		}
 		// disable naturally spawning creatures
 		if (event.getSpawnReason() == SpawnReason.NATURAL) {
@@ -181,6 +181,9 @@ public class MakerListener implements Listener {
 		}
 		event.getEntity().setRemoveWhenFarAway(false);
 		plugin.getController().onCreatureSpawn(event);
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onCreatureSpawn - Result - Entity type: [%s] - Reason: [%s] - Location: [%s] - Cancelled: [%s]", event.getEntityType(), event.getSpawnReason(), event.getLocation().toVector(), event.isCancelled()));
+		}
 	}
 
 	@EventHandler

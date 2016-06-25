@@ -19,10 +19,10 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.BlockState;
-import org.bukkit.craftbukkit.v1_9_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_9_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_9_R1.block.CraftBlock;
-import org.bukkit.craftbukkit.v1_9_R1.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_9_R2.CraftServer;
+import org.bukkit.craftbukkit.v1_9_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_9_R2.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_9_R2.entity.CraftEntity;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 
 import com.minecade.minecraftmaker.schematic.block.BaseBlock;
@@ -44,28 +44,28 @@ import com.minecade.minecraftmaker.schematic.jnbt.ShortTag;
 import com.minecade.minecraftmaker.schematic.jnbt.StringTag;
 import com.minecade.minecraftmaker.schematic.jnbt.Tag;
 
-import net.minecraft.server.v1_9_R1.BiomeBase;
-import net.minecraft.server.v1_9_R1.BlockPosition;
-import net.minecraft.server.v1_9_R1.Entity;
-import net.minecraft.server.v1_9_R1.EntityTypes;
-import net.minecraft.server.v1_9_R1.NBTBase;
-import net.minecraft.server.v1_9_R1.NBTTagByte;
-import net.minecraft.server.v1_9_R1.NBTTagByteArray;
-import net.minecraft.server.v1_9_R1.NBTTagCompound;
-import net.minecraft.server.v1_9_R1.NBTTagDouble;
-import net.minecraft.server.v1_9_R1.NBTTagEnd;
-import net.minecraft.server.v1_9_R1.NBTTagFloat;
-import net.minecraft.server.v1_9_R1.NBTTagInt;
-import net.minecraft.server.v1_9_R1.NBTTagIntArray;
-import net.minecraft.server.v1_9_R1.NBTTagList;
-import net.minecraft.server.v1_9_R1.NBTTagLong;
-import net.minecraft.server.v1_9_R1.NBTTagShort;
-import net.minecraft.server.v1_9_R1.NBTTagString;
-import net.minecraft.server.v1_9_R1.TileEntity;
-import net.minecraft.server.v1_9_R1.World;
-import net.minecraft.server.v1_9_R1.WorldServer;
+import net.minecraft.server.v1_9_R2.BiomeBase;
+import net.minecraft.server.v1_9_R2.BlockPosition;
+import net.minecraft.server.v1_9_R2.Entity;
+import net.minecraft.server.v1_9_R2.EntityTypes;
+import net.minecraft.server.v1_9_R2.NBTBase;
+import net.minecraft.server.v1_9_R2.NBTTagByte;
+import net.minecraft.server.v1_9_R2.NBTTagByteArray;
+import net.minecraft.server.v1_9_R2.NBTTagCompound;
+import net.minecraft.server.v1_9_R2.NBTTagDouble;
+import net.minecraft.server.v1_9_R2.NBTTagEnd;
+import net.minecraft.server.v1_9_R2.NBTTagFloat;
+import net.minecraft.server.v1_9_R2.NBTTagInt;
+import net.minecraft.server.v1_9_R2.NBTTagIntArray;
+import net.minecraft.server.v1_9_R2.NBTTagList;
+import net.minecraft.server.v1_9_R2.NBTTagLong;
+import net.minecraft.server.v1_9_R2.NBTTagShort;
+import net.minecraft.server.v1_9_R2.NBTTagString;
+import net.minecraft.server.v1_9_R2.TileEntity;
+import net.minecraft.server.v1_9_R2.World;
+import net.minecraft.server.v1_9_R2.WorldServer;
 
-public final class Spigot_v1_9_2_R1 implements BukkitImplAdapter {
+public final class Spigot_v1_9_R2 implements BukkitImplAdapter {
 
     private final Logger logger = Logger.getLogger(getClass().getCanonicalName());
 
@@ -76,7 +76,7 @@ public final class Spigot_v1_9_2_R1 implements BukkitImplAdapter {
     // Code that may break between versions of Minecraft
     // ------------------------------------------------------------------------
 
-    public Spigot_v1_9_2_R1() throws NoSuchFieldException, NoSuchMethodException {
+    public Spigot_v1_9_R2() throws NoSuchFieldException, NoSuchMethodException {
         // A simple test
         CraftServer.class.cast(Bukkit.getServer());
 

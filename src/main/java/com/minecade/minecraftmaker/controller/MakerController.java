@@ -191,6 +191,9 @@ public class MakerController implements Runnable, Tickable {
 		mPlayer.setCurrentLevel(null);
 		// set lobby inventory
 		mPlayer.resetLobbyInventory();
+		// reset time and weather
+		mPlayer.getPlayer().resetPlayerWeather();
+		mPlayer.getPlayer().resetPlayerTime();
 		// reset display name
 		mPlayer.getPlayer().setDisplayName(mPlayer.getDisplayName());
 		mPlayer.getPlayer().setPlayerListName(mPlayer.getDisplayName());

@@ -1,11 +1,7 @@
 package com.minecade.minecraftmaker.inventory;
 
-import org.bukkit.inventory.ItemStack;
-
-import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
-import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
