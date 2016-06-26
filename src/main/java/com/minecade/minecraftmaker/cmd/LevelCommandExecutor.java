@@ -30,7 +30,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 		}
 		MakerPlayer mPlayer = plugin.getController().getPlayer((Player) sender);
 		if (mPlayer == null) {
-			sender.sendMessage(plugin.getMessage("command.level.error.permissions"));
+			sender.sendMessage(plugin.getMessage("command.error.permissions"));
 			return true;
 		}
 		if (args.length < 1) {
@@ -98,7 +98,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 		}
 		// ADMIN only sub-commands below
 		if (!mPlayer.getData().hasRank(Rank.ADMIN)) {
-			sender.sendMessage(plugin.getMessage("command.level.error.permissions"));
+			sender.sendMessage(plugin.getMessage("command.error.permissions"));
 			sender.sendMessage(plugin.getMessage("command.level.usage"));
 			sender.sendMessage(plugin.getMessage("command.level.actions"));
 			sender.sendMessage(plugin.getMessage("command.level.actions.help"));

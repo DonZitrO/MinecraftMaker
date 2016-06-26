@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -120,6 +121,9 @@ public class MakerController implements Runnable, Tickable {
 	private boolean initialized;
 
 	//private short maxLevels;
+
+	private final Set<UUID> mutedPlayers = Collections.synchronizedSet(new HashSet<UUID>());
+	private final Set<UUID> mutedOtherPlayers = Collections.synchronizedSet(new HashSet<UUID>());
 
 	private final Set<String> entriesToRemoveFromScoreboardTeams = new HashSet<>();
 	private final Set<UUID> entriesToAddToScoreboardTeams = new HashSet<>();
@@ -493,11 +497,24 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
-		MakerPlayer makerPlayer = getPlayer(event.getPlayer().getUniqueId());
-		if (makerPlayer != null) {
-			event.setFormat(String.format("%%s%s: %%s", StringUtils.EMPTY, ChatColor.GRAY, ChatColor.DARK_GRAY));
-		} else {
+		MakerPlayer mPlayer = getPlayer(event.getPlayer().getUniqueId());
+		if (mPlayer == null) {
 			event.setCancelled(true);
+			return;
+		}
+		if (mutedPlayers.contains(mPlayer.getUniqueId())) {
+			Bukkit.getScheduler().runTask(plugin, () -> mPlayer.sendMessage(plugin, "player.muted"));
+			event.setCancelled(true);
+			return;
+		}
+		event.setFormat(String.format("%%s%s: %%s", StringUtils.EMPTY, ChatColor.GRAY, ChatColor.DARK_GRAY));
+		Iterator<Player> iter = event.getRecipients().iterator();
+		while (iter.hasNext()) {
+			Player recipient = iter.next();
+			if (mutedOtherPlayers.contains(recipient.getUniqueId())) {
+				iter.remove();
+				continue;
+			}
 		}
 	}
 
@@ -1470,6 +1487,22 @@ public class MakerController implements Runnable, Tickable {
 		mPlayer.sendMessage(plugin, "player.spectate.menu");
 		mPlayer.sendMessage(plugin, "player.spectate.exit.command");
 		mPlayer.spectate();
+	}
+
+	public void mutePlayer(UUID playerId) {
+		mutedPlayers.add(playerId);
+	}
+
+	public void unmutePlayer(UUID playerId) {
+		mutedPlayers.remove(playerId);
+	}
+
+	public void muteOthers(UUID playerId) {
+		mutedOtherPlayers.add(playerId);
+	}
+
+	public void unmuteOthers(UUID playerId) {
+		mutedOtherPlayers.remove(playerId);
 	}
 
 }
