@@ -17,7 +17,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.WeatherType;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -63,6 +62,7 @@ import com.minecade.minecraftmaker.schematic.world.Vector2D;
 import com.minecade.minecraftmaker.schematic.world.WorldData;
 import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.Tickable;
+import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
 import com.minecade.nms.NMSUtils;
 
 public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
@@ -91,7 +91,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	private boolean firstTimeLoaded = true;
 	private boolean firstTimeEdited = true;
 	private MakerSteveData steveData;
-
 	private Long copyFromSerial;
 	private Integer floorBlockId;
 
@@ -117,6 +116,20 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 //			restartPlaying();
 //		}
 //	}
+
+	@Override
+	public void requestTimeAndWeatherChange(WorldTimeAndWeather timeAndWeather) {
+		checkNotNull(timeAndWeather);
+		if (this.timeAndWeather.equals(timeAndWeather)) {
+			return;
+		}
+		super.requestTimeAndWeatherChange(timeAndWeather);
+		if (LevelStatus.EDITING.equals(getStatus())) {
+			this.status = LevelStatus.CLIPBOARD_COPY_READY;
+			waitForBusyLevel(getActivePlayer(), false, true, true);
+			plugin.getLevelOperatorTask().offerHighPriority(new LevelClipboardCopyOperation(this));
+		}
+	}
 
 	public void setCopyFromSerial(long copyFromSerial) {
 		this.copyFromSerial = copyFromSerial;
@@ -326,7 +339,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			return entities;
 		}
 		for (Vector2D chunkVector : region.getChunks()) {
-			org.bukkit.Chunk chunk = plugin.getController().getMainWorld().getChunkAt(chunkVector.getBlockX(), chunkVector.getBlockZ());
+			org.bukkit.Chunk chunk = getWorld().getChunkAt(chunkVector.getBlockX(), chunkVector.getBlockZ());
 			for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
 				switch (entity.getType()) {
 				case PLAYER:
@@ -386,11 +399,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	public World getWorld() {
-		return plugin.getController().getMainWorld();
+		return plugin.getController().getWorld(timeAndWeather != null ? timeAndWeather : WorldTimeAndWeather.NOON_CLEAR);
 	}
 
 	public WorldData getWorldData() {
-		return plugin.getController().getMainWorldData();
+		return plugin.getController().getWorldData(timeAndWeather != null ? timeAndWeather : WorldTimeAndWeather.NOON_CLEAR);
 	}
 
 	public boolean isBusy() {
@@ -948,16 +961,16 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
-	public void setupEffects(MakerPlayer mPlayer) {
-		// Time
-		mPlayer.getPlayer().setPlayerTime(getLevelTime(), false);
-		// Weather
-		if(getLevelWeather() != null){
-			mPlayer.getPlayer().setPlayerWeather(getLevelWeather());
-		} else {
-			mPlayer.getPlayer().setPlayerWeather(WeatherType.CLEAR);
-		}
-	}
+//	public void setupEffects(MakerPlayer mPlayer) {
+//		// Time
+//		mPlayer.getPlayer().setPlayerTime(getLevelTime(), false);
+//		// Weather
+//		if(getLevelWeather() != null){
+//			mPlayer.getPlayer().setPlayerWeather(getLevelWeather());
+//		} else {
+//			mPlayer.getPlayer().setPlayerWeather(WeatherType.CLEAR);
+//		}
+//	}
 
 	private void setupLevelInfoSign() {
 		Block signBlock = BukkitUtil.toLocation(getWorld(), getLevelRegion().getMinimumPoint().add(-4, FLOOR_LEVEL_Y + 2, 6)).getBlock();
@@ -1040,7 +1053,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.CREATIVE);
 			mPlayer.resetPlayer();
-			setupEffects(mPlayer);
+			//setupEffects(mPlayer);
 			mPlayer.setAllowFlight(true);
 			mPlayer.setFlying(true);
 			mPlayer.clearInventory();
@@ -1081,7 +1094,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
 			mPlayer.setGameMode(GameMode.ADVENTURE);
 			mPlayer.resetPlayer();
-			setupEffects(mPlayer);
+			//setupEffects(mPlayer);
 			mPlayer.setInvulnerable(false);
 			mPlayer.setFlying(false);
 			mPlayer.setAllowFlight(false);
@@ -1124,7 +1137,14 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	private void tickClipboardCopied() {
+		if (timeAndWeatherChangeRequest != null) {
+			timeAndWeather = timeAndWeatherChangeRequest;
+			timeAndWeatherChangeRequest = null;
+			this.status = LevelStatus.BLANK;
+			return;
+		}
 		this.status = LevelStatus.SAVE_READY;
+		this.clearedByAuthorMillis = 0;
 		plugin.saveLevelAsync(this);
 	}
 
@@ -1144,6 +1164,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			if (mPlayer != null) {
 				mPlayer.sendActionMessage(plugin, "steve.level.loading", getLevelName(), getAuthorName());
 			}
+		}
+		if (timeAndWeatherChangeRequest != null) {
+			timeAndWeather = timeAndWeatherChangeRequest;
+			timeAndWeatherChangeRequest = null;
+			this.status = LevelStatus.BLANK;
+			return;
 		}
 		status = LevelStatus.CLIPBOARD_PASTE_READY;
 		if (firstTimeLoaded) {
@@ -1209,7 +1235,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.tickEdited - level: [%s] - status: [%s] - tick: [%s]", getLevelName(), getStatus(), getCurrentTick()));
 		}
-		this.clearedByAuthorMillis = 0;
 		this.status = LevelStatus.CLIPBOARD_COPY_READY;
 		plugin.getLevelOperatorTask().offerHighestPriority(new LevelClipboardCopyOperation(this));
 	}
@@ -1347,6 +1372,10 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			return;
 		}
 		waitForBusyLevel(mPlayer, true, true, false);
+		if (clipboard != null) {
+			status = LevelStatus.CLIPBOARD_LOADED;
+			return;
+		}
 		if (levelSerial > 0) {
 			status = LevelStatus.LEVEL_LOAD_READY;
 			plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(this);
@@ -1446,6 +1475,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	public void setFloorBlockId(int floorBlockId) {
 		this.floorBlockId = floorBlockId;
 	}
+
 
 //	public boolean isActivePlayer(UUID uniqueId) {
 //		if (uniqueId == null) {

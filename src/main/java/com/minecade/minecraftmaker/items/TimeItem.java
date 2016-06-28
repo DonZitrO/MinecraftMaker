@@ -12,20 +12,7 @@ import com.minecade.core.item.ItemStackBuilder;
 
 public enum TimeItem implements TranslatableItem {
 
-	THREE(21000),
-
-	SIX(0),
-
-	NINE(3000),
-
-	TWELVE(6000),
-
-	FIFTEEN(9000),
-
-	EIGHTEEN(12000),
-
-	TWENTYONE(15000),
-
+	NOON(6000),
 	MIDNIGHT(18000);
 
 	private final static Map<String, TimeItem> BY_DISPLAY_NAME = Maps.newHashMap();

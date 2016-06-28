@@ -86,6 +86,7 @@ import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.MakerWorldUtils;
 import com.minecade.minecraftmaker.util.Tickable;
 import com.minecade.minecraftmaker.util.TickableUtils;
+import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
 import com.minecade.nms.NMSUtils;
 
 public class MakerController implements Runnable, Tickable {
@@ -103,15 +104,16 @@ public class MakerController implements Runnable, Tickable {
 	private static final float DEFAULT_SPAWN_YAW = 90.0f;
 	private static final float DEFAULT_SPAWN_PITCH = -15.0f;
 	private static final int DEFAULT_PLAYERS_EXTRA_SLOTS = 10;
-	private static final String DEFAULT_WORLD_NAME = "mcmaker";
+	//private static final String DEFAULT_WORLD_NAME = "mcmaker";
+	private static final WorldTimeAndWeather DEFAULT_TIME_AND_WEATHER = WorldTimeAndWeather.NOON_CLEAR;
 
 	private final MinecraftMakerPlugin plugin;
 	private final int maxPlayers;
 
 	private BukkitTask globalTickerTask;
-	private World mainWorld;
+	//private World mainWorld;
 	// configurable fields (config.yml)
-	private String mainWorldName;
+	// private String mainWorldName;
 	private Vector spawnVector;
 	private float spawnYaw;
 	private float spawnPitch;
@@ -129,6 +131,8 @@ public class MakerController implements Runnable, Tickable {
 	private final Set<String> entriesToRemoveFromScoreboardTeams = new HashSet<>();
 	private final Set<UUID> entriesToAddToScoreboardTeams = new HashSet<>();
 
+	// worlds
+	private Map<WorldTimeAndWeather, World> worlds = new ConcurrentHashMap<>();
 	// keeps track of every player on the server
 	private Map<UUID, MakerPlayer> playerMap = new ConcurrentHashMap<>();
 	// keeps track of every arena on the server
@@ -157,7 +161,7 @@ public class MakerController implements Runnable, Tickable {
 	public MakerController(MinecraftMakerPlugin plugin, ConfigurationSection config) {
 		this.plugin = plugin;
 		this.maxPlayers = Bukkit.getMaxPlayers();
-		this.mainWorldName = config != null ? config.getString("main-world", DEFAULT_WORLD_NAME) : DEFAULT_WORLD_NAME;
+		//this.mainWorldName = config != null ? config.getString("main-world", DEFAULT_WORLD_NAME) : DEFAULT_WORLD_NAME;
 		//this.maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
 		//this.maxLevels = config != null ? (short)config.getInt("max-levels", DEFAULT_MAX_LEVELS) : DEFAULT_MAX_LEVELS;
 		this.spawnVector = config != null ? config.getVector("spawn-vector", DEFAULT_SPAWN_VECTOR) : DEFAULT_SPAWN_VECTOR;
@@ -185,7 +189,7 @@ public class MakerController implements Runnable, Tickable {
 		// reset player
 		mPlayer.resetPlayer(GameMode.ADVENTURE);
 		// teleport to spawn point
-		if (!mPlayer.getPlayer().getLocation().getWorld().equals(getMainWorld()) || mPlayer.getPlayer().getLocation().distanceSquared(getDefaultSpawnLocation()) > 4d) {
+		if (!mPlayer.getPlayer().getLocation().getWorld().equals(getLobbyWorld()) || mPlayer.getPlayer().getLocation().distanceSquared(getDefaultSpawnLocation()) > 4d) {
 			if (!mPlayer.getPlayer().teleport(getDefaultSpawnLocation(), TeleportCause.PLUGIN)) {
 				mPlayer.getPlayer().kickPlayer(plugin.getMessage("lobby.join.error.teleport"));
 			}
@@ -197,8 +201,8 @@ public class MakerController implements Runnable, Tickable {
 		// set lobby inventory
 		mPlayer.resetLobbyInventory();
 		// reset time and weather
-		mPlayer.getPlayer().resetPlayerWeather();
-		mPlayer.getPlayer().resetPlayerTime();
+		// mPlayer.getPlayer().resetPlayerWeather();
+		// mPlayer.getPlayer().resetPlayerTime();
 		// reset display name
 		mPlayer.getPlayer().setDisplayName(mPlayer.getDisplayName());
 		mPlayer.getPlayer().setPlayerListName(mPlayer.getDisplayName());
@@ -344,7 +348,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public Location getDefaultSpawnLocation() {
-		return spawnVector.toLocation(getMainWorld(), spawnYaw, spawnPitch);
+		return spawnVector.toLocation(getLobbyWorld(), spawnYaw, spawnPitch);
 	}
 
 	@Override
@@ -374,16 +378,33 @@ public class MakerController implements Runnable, Tickable {
 		return levelMap.get(slotId);
 	}
 
-	public World getMainWorld() {
-		if (this.mainWorld == null) {
-			this.mainWorld = MakerWorldUtils.createOrLoadWorld(this.plugin, this.mainWorldName, DEFAULT_SPAWN_VECTOR);
+//	public World getMainWorld() {
+//		if (this.mainWorld == null) {
+//			this.mainWorld = MakerWorldUtils.createOrLoadWorld(this.plugin, this.mainWorldName, this.spawnVector);
+//		}
+//		return this.mainWorld;
+//	}
+
+	public World getLobbyWorld() {
+		return getWorld(DEFAULT_TIME_AND_WEATHER);
+	}
+
+	public World getWorld(WorldTimeAndWeather timeAndWeather) {
+		checkNotNull(timeAndWeather);
+		World world = worlds.get(timeAndWeather);
+		if (world == null) {
+			world = MakerWorldUtils.createOrLoadWorld(this.plugin, timeAndWeather.getWorldName(), this.spawnVector);
+			world.setStorm(timeAndWeather.isStorm());
+			world.setTime(timeAndWeather.getTime());
+			worlds.put(timeAndWeather, world);
 		}
-		return this.mainWorld;
+		return world;
 	}
 
 	// FIXME: find a way to reuse the world data object that doesn't mess with multithreading.
-	public WorldData getMainWorldData() {
-		return BukkitUtil.toWorld(getMainWorld()).getWorldData();
+	public WorldData getWorldData(WorldTimeAndWeather timeAndWeather) {
+		checkNotNull(timeAndWeather);
+		return BukkitUtil.toWorld(getWorld(timeAndWeather)).getWorldData();
 	}
 
 	public MakerPlayer getPlayer(Player player) {
@@ -409,7 +430,7 @@ public class MakerController implements Runnable, Tickable {
 		if (initialized) {
 			throw new IllegalStateException("This controller is already initialized");
 		}
-		Bukkit.getScheduler().runTask(plugin, () -> MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getMainWorld()));
+		Bukkit.getScheduler().runTask(plugin, () -> MakerWorldUtils.removeAllLivingEntitiesExceptPlayers(this.getLobbyWorld()));
 		globalTickerTask = Bukkit.getScheduler().runTaskTimer(plugin, this, 0, 0);
 		initialized = true;
 	}

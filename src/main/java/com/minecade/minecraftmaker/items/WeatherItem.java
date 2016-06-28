@@ -14,7 +14,7 @@ import com.minecade.core.item.ItemStackBuilder;
 public enum WeatherItem implements TranslatableItem {
 
 	RAINY(Material.WATER_BUCKET, WeatherType.DOWNFALL),
-	SUNNY(Material.DOUBLE_PLANT, WeatherType.CLEAR);
+	CLEAR(Material.DOUBLE_PLANT, WeatherType.CLEAR);
 
 	private final static Map<Material, WeatherItem> BY_MATERIAL = Maps.newHashMap();
 

@@ -27,14 +27,8 @@ public class LevelTimeMenu extends AbstractMakerMenu {
 
 	private void init() {
 		loadGlassPanes(items);
-		items[18] = TimeItem.THREE.getItem();
-		items[19] = TimeItem.SIX.getItem();
-		items[20] = TimeItem.NINE.getItem();
-		items[21] = TimeItem.TWELVE.getItem();
-		items[23] = TimeItem.FIFTEEN.getItem();
-		items[24] = TimeItem.EIGHTEEN.getItem();
-		items[25] = TimeItem.TWENTYONE.getItem();
-		items[26] = TimeItem.MIDNIGHT.getItem();
+		items[21] = TimeItem.NOON.getItem();
+		items[23] = TimeItem.MIDNIGHT.getItem();
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
 	}
@@ -68,8 +62,14 @@ public class LevelTimeMenu extends AbstractMakerMenu {
 			Bukkit.getLogger().warning(String.format("LevelTimeMenu.onClick - No time item for display name: [%s]", itemStack.getItemMeta().getDisplayName()));
 			return MenuClickResult.CANCEL_UPDATE;
 		}
-		mPlayer.getCurrentLevel().setLevelTime(timeItem.getTime());
-		mPlayer.getPlayer().setPlayerTime(timeItem.getTime(), false);
+		switch (timeItem) {
+		case NOON:
+			mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toNoon());
+			break;
+		case MIDNIGHT:
+			mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toMidnight());
+			break;
+		}
 		return MenuClickResult.CANCEL_CLOSE;
 	}
 

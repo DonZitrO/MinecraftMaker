@@ -1,16 +1,17 @@
 package com.minecade.minecraftmaker.level;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.bukkit.WeatherType;
-
 import com.minecade.core.data.Rank;
 import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
+import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
 
 public class AbstractMakerLevel {
 
@@ -30,8 +31,11 @@ public class AbstractMakerLevel {
 	protected MakerRelativeLocationData relativeEndLocation;
 	protected long trendingScore;
 
-	protected long levelTime = 6000;
-	protected WeatherType levelWeather = WeatherType.CLEAR;
+	protected WorldTimeAndWeather timeAndWeather = WorldTimeAndWeather.NOON_CLEAR;
+	protected WorldTimeAndWeather timeAndWeatherChangeRequest;
+//	protected boolean dirtyTimeAndWeather;
+//	protected long levelTime = 6000;
+//	protected WeatherType levelWeather = WeatherType.CLEAR;
 
 	protected List<MakerLevelClearData> levelsClear = new ArrayList<MakerLevelClearData>();;
 
@@ -83,13 +87,13 @@ public class AbstractMakerLevel {
 		return levelSerial;
 	}
 
-	public long getLevelTime() {
-		return levelTime;
-	}
-
-	public WeatherType getLevelWeather() {
-		return levelWeather;
-	}
+//	public long getLevelTime() {
+//		return levelTime;
+//	}
+//
+//	public WeatherType getLevelWeather() {
+//		return levelWeather;
+//	}
 
 	public long getLikes() {
 		return likes;
@@ -97,6 +101,10 @@ public class AbstractMakerLevel {
 
 	public MakerRelativeLocationData getRelativeEndLocation() {
 		return relativeEndLocation;
+	}
+
+	public WorldTimeAndWeather getTimeAndWeather() {
+		return timeAndWeather;
 	}
 
 	public long getTrendingScore() {
@@ -168,20 +176,24 @@ public class AbstractMakerLevel {
 		this.levelSerial = levelSerial;
 	}
 
-	public void setLevelTime(long levelTime) {
-		this.levelTime = levelTime;
-	}
-
-	public void setLevelWeather(WeatherType levelWeather) {
-		this.levelWeather = levelWeather;
-	}
-
 	public void setLikes(long likes) {
 		this.likes = likes;
 	}
 
+//	public void setLevelTime(long levelTime) {
+//		this.levelTime = levelTime;
+//	}
+//
+//	public void setLevelWeather(WeatherType levelWeather) {
+//		this.levelWeather = levelWeather;
+//	}
+
 	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
 		this.relativeEndLocation = relativeEndLocation;
+	}
+
+	public void requestTimeAndWeatherChange(WorldTimeAndWeather timeAndWeather) {
+		this.timeAndWeatherChangeRequest = timeAndWeather;
 	}
 
 	public void setTrendingScore(long trendingScore) {

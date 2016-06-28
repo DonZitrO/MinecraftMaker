@@ -32,7 +32,7 @@ public class LevelWeatherMenu extends AbstractMakerMenu {
 
 	private void init() {
 		loadGlassPanes(items);
-		items[21] = WeatherItem.SUNNY.getItem();
+		items[21] = WeatherItem.CLEAR.getItem();
 		items[23] = WeatherItem.RAINY.getItem();
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
@@ -63,8 +63,14 @@ public class LevelWeatherMenu extends AbstractMakerMenu {
 			Bukkit.getLogger().warning(String.format("LevelWeatherMenu.onClick - No weather item for type: [%s]", itemStack.getType()));
 			return MenuClickResult.CANCEL_UPDATE;
 		}
-		mPlayer.getCurrentLevel().setLevelWeather(weatherItem.getWeatherType());
-		mPlayer.getPlayer().setPlayerWeather(weatherItem.getWeatherType());
+		switch (weatherItem) {
+		case RAINY:
+			mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toRainy());
+			break;
+		case CLEAR:
+			mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toClear());
+			break;
+		}
 		return MenuClickResult.CANCEL_CLOSE;
 	}
 
