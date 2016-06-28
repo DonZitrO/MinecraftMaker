@@ -66,6 +66,7 @@ import com.minecade.core.event.AsyncAccountDataLoadEvent;
 import com.minecade.core.event.EventUtils;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.core.util.BungeeUtils;
+import com.minecade.minecraftmaker.data.LevelOperationResult;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
@@ -283,24 +284,46 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.sendMessage(plugin, "command.level.delete.confirm1", serial);
 			mPlayer.sendMessage(plugin, "command.level.delete.confirm2", serial);
 		} else {
-			plugin.getDatabaseAdapter().deleteLevelBySerialAsync(serial, mPlayer.getUniqueId());
+			plugin.getDatabaseAdapter().deleteLevelBySerialAsync(serial, mPlayer);
 		}
 	}
 
-	public void deleteLevelBySerialCallback(long levelSerial, boolean deleted, int levelCount, UUID playerId) {
+	public void unpublishLevel(MakerPlayer mPlayer, long serial) {
+		long confirmSerial = mPlayer.getLevelToUnpublishSerial();
+		if (confirmSerial != serial) {
+			mPlayer.setLevelToDeleteSerial(serial);
+			mPlayer.sendMessage(plugin, "command.level.unpublish.confirm1", serial);
+			mPlayer.sendMessage(plugin, "command.level.unpublish.confirm2", serial);
+		} else {
+			plugin.getDatabaseAdapter().unpublishLevelBySerialAsync(serial, mPlayer);
+		}
+	}
+
+	public void deleteLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, UUID authorId, Long levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		if (playerId != null) {
-			if (deleted) {
-				sendMessageToPlayerIfPresent(playerId, "command.level.delete.success", levelSerial);
-			} else {
-				sendMessageToPlayerIfPresent(playerId, "command.level.error.not-found", levelSerial);
-			}
-		}
-		LevelBrowserMenu.updateLevelCount(levelCount);
-		if (deleted) {
+		switch (result) {
+		case SUCCESS:
 			LevelBrowserMenu.removeLevelBySerial(levelSerial);
+			if (authorId != null) {
+				// TODO: remove level from player levels menu (by serial)
+			}
+			sendMessageToPlayerIfPresent(playerId, "command.level.delete.success", levelSerial);
+			break;
+		case NOT_FOUND:
+			sendMessageToPlayerIfPresent(playerId, "command.level.error.not-found", levelSerial);
+			break;
+		case PERMISSION_DENIED:
+			sendMessageToPlayerIfPresent(playerId, "command.level.delete.denied", levelSerial);
+			break;
+		case ERROR:
+			sendMessageToPlayerIfPresent(playerId, "server.error.internal", levelSerial);
+		default:
+			break;
+		}
+		if (levelCount != null) {
+			LevelBrowserMenu.updateLevelCount(levelCount);
 		}
 	}
 
@@ -465,7 +488,7 @@ public class MakerController implements Runnable, Tickable {
 		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
-	public void loadPublishedLevelCallback(MakerDisplayableLevel level, int levelCount) {
+	public void loadPublishedLevelCallback(MakerDisplayableLevel level, long levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}

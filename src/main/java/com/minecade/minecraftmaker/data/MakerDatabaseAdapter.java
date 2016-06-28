@@ -36,6 +36,7 @@ import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
+import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.schematic.exception.DataException;
 import com.minecade.minecraftmaker.schematic.io.Clipboard;
@@ -135,27 +136,58 @@ public class MakerDatabaseAdapter {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> copyLevelBySerial(level, copyFromSerial));
 	}
 
-	private synchronized void deleteLevelBySerial(long levelSerial, UUID playerId) {
+	private synchronized void deleteLevelBySerial(long levelSerial, MakerPlayer mPlayer) {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
 		}
-		String query = "UPDATE `mcmaker`.`levels` SET `levels`.`deleted` = 1 WHERE `levels`.`level_serial` = ? AND `levels`.`deleted` = 0";
-		try (PreparedStatement deleteLevelSt = getConnection().prepareStatement(String.format(query))) {
-			deleteLevelSt.setLong(1, levelSerial);
-			int affected = deleteLevelSt.executeUpdate();
-			final int finalLevelCount = loadPublishedLevelsCount();
-			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().deleteLevelBySerialCallback(levelSerial, affected > 0, finalLevelCount, playerId));
-			if (playerId != null) {
-				loadPlayerLevelsCountAsync(playerId);
+		UUID authorId = null;
+		Long levelCount = null;
+		LevelOperationResult result = LevelOperationResult.ERROR;
+		try {
+			String findQuery = "SELECT `levels`.`author_id` FROM `mcmaker`.`levels` WHERE `levels`.`level_serial` = ? AND `levels`.`deleted` = 0";
+			try (PreparedStatement findAuthorQuery = getConnection().prepareStatement(String.format(findQuery))) {
+				findAuthorQuery.setLong(1, levelSerial);
+				ResultSet resultSet = findAuthorQuery.executeQuery();
+				if (!resultSet.next()) {
+					result = LevelOperationResult.NOT_FOUND;
+					return;
+				}
+				ByteBuffer authorIdBytes = ByteBuffer.wrap(resultSet.getBytes("author_id"));
+				authorId = new UUID(authorIdBytes.getLong(), authorIdBytes.getLong());
+				if (!authorId.equals(mPlayer.getUniqueId()) && !mPlayer.hasRank(Rank.ADMIN)){
+					result = LevelOperationResult.PERMISSION_DENIED;
+					return;
+				}
+			}
+			String deleteQuery = "UPDATE `mcmaker`.`levels` SET `levels`.`deleted` = 1 WHERE `levels`.`level_serial` = ? AND `levels`.`author_id` = UNHEX(?) AND `levels`.`deleted` = 0";
+			try (PreparedStatement deleteLevelSt = getConnection().prepareStatement(String.format(deleteQuery))) {
+				deleteLevelSt.setLong(1, levelSerial);
+				deleteLevelSt.setString(2, authorId.toString().replace("-", ""));
+				deleteLevelSt.executeUpdate();
+				result = LevelOperationResult.SUCCESS;
+				levelCount = loadPublishedLevelsCount();
 			}
 		} catch (Exception e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.deleteLevelBySerial - error while deleting level: %s", e.getMessage()));
 			e.printStackTrace();
+		} finally {
+			final LevelOperationResult finalResult = result;
+			final UUID finalAuthorId = authorId;
+			final Long finalLevelCount = levelCount;
+			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().deleteLevelBySerialCallback(levelSerial, mPlayer.getUniqueId(), finalResult, finalAuthorId, finalLevelCount));
 		}
 	}
 
-	public void deleteLevelBySerialAsync(long levelSerial, UUID uniqueId) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> deleteLevelBySerial(levelSerial, uniqueId));
+	private void unpublishLevelBySerial(long levelSerial, MakerPlayer mPlayer) {
+		return;
+	}
+
+	public void unpublishLevelBySerialAsync(long levelSerial, MakerPlayer mPlayer) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> unpublishLevelBySerial(levelSerial, mPlayer));
+	}
+
+	public void deleteLevelBySerialAsync(long levelSerial, MakerPlayer mPlayer) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> deleteLevelBySerial(levelSerial, mPlayer));
 	}
 
 	public synchronized void disconnect() {
@@ -790,7 +822,7 @@ public class MakerDatabaseAdapter {
 		}
 		checkNotNull(levelId);
 		try {
-			int levelCount = loadPublishedLevelsCount();
+			long levelCount = loadPublishedLevelsCount();
 			String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
 					SELECT_ALL_FROM_LEVELS,
 					"WHERE `levels`.`level_id` = UNHEX(?) AND `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0", "");
@@ -837,11 +869,11 @@ public class MakerDatabaseAdapter {
 		return levels;
 	}
 
-	public int loadPublishedLevelsCount() {
+	public long loadPublishedLevelsCount() {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should NOT be called from the main thread");
 		}
-		int levelCount = 0;
+		long levelCount = 0;
 		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format("SELECT count(1) FROM `mcmaker`.`levels` WHERE `date_published` IS NOT NULL AND `levels`.`deleted` = 0"))) {
 			ResultSet resultSet = levelPageQuery.executeQuery();
 			if (resultSet.next()) {

@@ -6,7 +6,6 @@ import java.util.ResourceBundle;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -15,10 +14,9 @@ import com.minecade.core.data.Rank;
 import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.util.BungeeUtils;
 import com.minecade.core.util.EmptyGenerator;
-import com.minecade.minecraftmaker.cmd.DisabledCommandExecutor;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
+import com.minecade.minecraftmaker.cmd.MakerCommandExecutor;
 import com.minecade.minecraftmaker.cmd.MakerLobbyCommandExecutor;
-import com.minecade.minecraftmaker.cmd.PlayerCommandExecutor;
 import com.minecade.minecraftmaker.cmd.ReportCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
@@ -117,12 +115,9 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	public void onEnable() {
 		// BungeeCord communication
 		getServer().getMessenger().registerOutgoingPluginChannel(this, BungeeUtils.BUNGEECORD_CHANNEL);
-		// disabled commands
-		CommandExecutor disabledExecutor = new DisabledCommandExecutor(this);
-		getCommand("me").setExecutor(disabledExecutor);
 		// register commands
 		getCommand("level").setExecutor(new LevelCommandExecutor(this));
-		getCommand("player").setExecutor(new PlayerCommandExecutor(this));
+		getCommand("maker").setExecutor(new MakerCommandExecutor(this));
 		getCommand("report").setExecutor(new ReportCommandExecutor(this));
 		getCommand("makerlobby").setExecutor(new MakerLobbyCommandExecutor(this));
 		databaseAdapter = new MakerDatabaseAdapter(this);
@@ -164,12 +159,13 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		ServerPropertyFilesConfigurator.configureServerProperties();
 		ServerPropertyFilesConfigurator.configureBukkitYML();
 		ServerPropertyFilesConfigurator.configureSpigotYML();
+		//ServerPropertyFilesConfigurator.configurePermissionsYML();
 		// server specific config
 		getServer().setDefaultGameMode(GameMode.ADVENTURE);
 		try {
 			this.bukkitImplAdapter = new Spigot_v1_9_R2();
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MinecraftMaker.onLoad - Unable to initialize specific Spigot version's NBT tags adapter - %s", e.getMessage()));
+			Bukkit.getLogger().severe(String.format("MinecraftMakerPlugin.onLoad - Unable to initialize specific Spigot version's NBT tags adapter - %s", e.getMessage()));
 			e.printStackTrace();
 			// this is an extreme case, so shut the server down
 			Bukkit.shutdown();

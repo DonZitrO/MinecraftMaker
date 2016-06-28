@@ -48,7 +48,7 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 	// TODO: https://bukkit.org/threads/class-anvilgui-use-the-anvil-gui-to-retrieve-strings.211849/
 	//private static Inventory searchInventory = Bukkit.createInventory(null, InventoryType.ANVIL, MinecraftMakerPlugin.getInstance().getMessage("menu.search-item.title"));
 
-	private static int levelCount;
+	private static long levelCount;
 
 	private static void addLevelItem(Internationalizable plugin, MakerDisplayableLevel level) {
 		levelItems.put(level.getLevelId(), getLevelItem(plugin, level));
@@ -255,7 +255,7 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 		levelItems.remove(levelId);
 	}
 
-	public static void updateLevelCount(int levelCount) {
+	public static void updateLevelCount(long levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
@@ -357,7 +357,7 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 		return levelItems.get(level.getLevelId());
 	}
 
-	private int getTotalPages() {
+	private long getTotalPages() {
 		return Math.max(1, (levelCount + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE);
 	}
 

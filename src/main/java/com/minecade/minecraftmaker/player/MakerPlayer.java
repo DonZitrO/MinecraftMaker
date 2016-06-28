@@ -76,7 +76,9 @@ public class MakerPlayer implements Tickable {
 	private boolean disabled = false;
 
 	private Location teleportDestination;
+
 	private long levelToDeleteSerial;
+	private long levelToUnpublishSerial;
 
 	private long nextAllowedSearchMillis;
 
@@ -193,6 +195,10 @@ public class MakerPlayer implements Tickable {
 		return levelToDeleteSerial;
 	}
 
+	public long getLevelToUnpublishSerial() {
+		return levelToUnpublishSerial;
+	}
+
 	public String getName() {
 		return player.getName();
 	}
@@ -213,11 +219,11 @@ public class MakerPlayer implements Tickable {
         return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
     }
 
-    public int getPublishedLevelsCount() {
+	public int getPublishedLevelsCount() {
 		return data.getPublishedLevelsCount();
 	}
 
-	public String getRecordTime(){
+    public String getRecordTime(){
         if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
                 this.currentLevel.getLevelsClear().size() > 0){
             MakerLevelClearData makerLevelClear = this.currentLevel.getLevelsClear().get(0);
@@ -556,6 +562,10 @@ public class MakerPlayer implements Tickable {
 
 	public void setLevelToDeleteSerial(long levelToDeleteSerial) {
 		this.levelToDeleteSerial = levelToDeleteSerial;
+	}
+
+	public void setLevelToUnpublishSerial(long levelToUnpublishSerial) {
+		this.levelToUnpublishSerial = levelToUnpublishSerial;
 	}
 
 	public void setPublishedLevelsCount(int publishedCount) {

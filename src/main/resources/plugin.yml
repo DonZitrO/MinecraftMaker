@@ -1,7 +1,7 @@
 name: SuperMinecraftMaker
 main: com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin
 version: '${project.version}'
-authors: [SethBling, tux2, DonZitrO]
+authors: [felipepcjr, SethBling, DonZitrO]
 load: startup
 commands:
   makerlobby:
@@ -12,15 +12,11 @@ commands:
     description: Used by players to manipulate levels
     usage: 'Usage: /level <action> <params>'
     permission-message: '§4You are not allowed to use this command!'
-  player:
+  maker:
     description: Used by players to interact with other players
-    usage: 'Usage: /player <action> <params>'
+    usage: 'Usage: /maker <action> <params>'
     permission-message: '§4You are not allowed to use this command!'
   report:
     description: Used by players to report issues
     usage: 'Usage: /report <report>'
     permission-message: '§4You are not allowed to use this command!'
-  me:
-    description: This command is disabled
-    usage: 'This command is disabled'
-    permission-message: '§4This command is disabled!'

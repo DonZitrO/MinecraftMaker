@@ -96,6 +96,34 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 			plugin.getController().searchLevels(mPlayer, searchString);
 			return true;
 		}
+		if (args[0].equalsIgnoreCase("delete")) {
+			if (args.length < 2) {
+				sender.sendMessage(plugin.getMessage("command.level.delete.usage"));
+				sender.sendMessage(plugin.getMessage("command.level.delete.permissions"));
+				return true;
+			}
+			long serial = validateLevelSerial(args, 1);
+			if (serial <= 0) {
+				sender.sendMessage(plugin.getMessage("command.level.error.invalid-serial"));
+				return true;
+			}
+			plugin.getController().deleteLevel(mPlayer, serial);
+			return true;
+		}
+		if (args[0].equalsIgnoreCase("unpublish")) {
+			if (args.length < 2) {
+				sender.sendMessage(plugin.getMessage("command.level.unpublish.usage"));
+				sender.sendMessage(plugin.getMessage("command.level.unpublish.permissions"));
+				return true;
+			}
+			long serial = validateLevelSerial(args, 1);
+			if (serial <= 0) {
+				sender.sendMessage(plugin.getMessage("command.level.error.invalid-serial"));
+				return true;
+			}
+			plugin.getController().unpublishLevel(mPlayer, serial);
+			return true;
+		}
 		// ADMIN only sub-commands below
 		if (!mPlayer.getData().hasRank(Rank.ADMIN)) {
 			sender.sendMessage(plugin.getMessage("command.error.permissions"));
@@ -116,21 +144,6 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 				return true;
 			}
 			plugin.getController().copyLevel(mPlayer, serial);
-			return true;
-		}
-		if (args[0].equalsIgnoreCase("delete")) {
-			if (args.length < 2) {
-				sender.sendMessage(plugin.getMessage("command.level.delete.usage"));
-				sender.sendMessage(plugin.getMessage("command.level.delete.permissions"));
-				// sender.sendMessage(plugin.getMessage("command.level.error.empty-serial"));
-				return true;
-			}
-			long serial = validateLevelSerial(args, 1);
-			if (serial <= 0) {
-				sender.sendMessage(plugin.getMessage("command.level.error.invalid-serial"));
-				return true;
-			}
-			plugin.getController().deleteLevel(mPlayer, serial);
 			return true;
 		}
 		sender.sendMessage(plugin.getMessage("command.level.usage"));

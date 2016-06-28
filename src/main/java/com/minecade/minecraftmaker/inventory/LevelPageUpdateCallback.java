@@ -13,7 +13,7 @@ public class LevelPageUpdateCallback {
 	private Set<Long> toUpdate;
 	private Set<Long> toDelete;
 	private Set<MakerDisplayableLevel> levels;
-	private int levelCount;
+	private long levelCount;
 
 	public LevelPageUpdateCallback(UUID playerId) {
 		players = new HashSet<>();
@@ -44,7 +44,7 @@ public class LevelPageUpdateCallback {
 		this.toUpdate.addAll(toUpdate);
 	}
 
-	public int getLevelCount() {
+	public long getLevelCount() {
 		return levelCount;
 	}
 
@@ -105,7 +105,7 @@ public class LevelPageUpdateCallback {
 		this.toUpdate.removeAll(toUpdate);
 	}
 
-	public void setLevelCount(int levelCount) {
+	public void setLevelCount(long levelCount) {
 		this.levelCount = levelCount;
 	}
 

@@ -13,6 +13,7 @@ public class AsyncPlayerCounterUpdaterTask extends BukkitRunnable {
 		this.plugin = plugin;
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public void run() {
 		if (Bukkit.isPrimaryThread()) {
