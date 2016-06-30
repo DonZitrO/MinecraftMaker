@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.minecade.core.data.Rank;
+import com.minecade.core.item.SkullItemBuilder;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -32,6 +33,29 @@ public class MakerCommandExecutor extends AbstractCommandExecutor {
 			sender.sendMessage(plugin.getMessage("command.maker.usage"));
 			sender.sendMessage(plugin.getMessage("command.maker.actions"));
 			sender.sendMessage(plugin.getMessage("command.maker.actions.help"));
+			return true;
+		}
+		if (args[0].equalsIgnoreCase("head")) {
+			if (args.length < 2) {
+				sender.sendMessage(plugin.getMessage("command.maker.head.usage"));
+				sender.sendMessage(plugin.getMessage("command.maker.head.permissions"));
+				return true;
+			}
+			if (!mPlayer.getData().hasRank(Rank.PRO)) {
+				mPlayer.sendMessage(plugin, "command.error.rank.pro");
+				mPlayer.sendMessage(plugin, "command.error.rank.upgrade");
+				return true;
+			}
+			if (!mPlayer.isEditingLevel()) {
+				mPlayer.sendMessage(plugin, "command.error.edit-only");
+				return true;
+			}
+			String nameError = validatePlayerName(args[1]);
+			if (nameError != null) {
+				mPlayer.sendMessage(plugin, nameError);
+				return true;
+			}
+			mPlayer.getPlayer().getInventory().addItem(new SkullItemBuilder(args[1]).build());
 			return true;
 		}
 		// TITAN only sub-commands below
@@ -66,23 +90,12 @@ public class MakerCommandExecutor extends AbstractCommandExecutor {
 				sender.sendMessage(plugin.getMessage("command.maker.mute.permissions"));
 				return true;
 			}
-			String name = args[1];
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | PlayerCommandExecutor.onCommand - mute request for: [%s]", name));
-			}
-			if (StringUtils.isBlank(name)) {
-				sender.sendMessage(plugin.getMessage("player.error.empty-name"));
+			String nameError = validatePlayerName(args[1]);
+			if (nameError != null) {
+				mPlayer.sendMessage(plugin, nameError);
 				return true;
 			}
-			if (name.length() > 16) {
-				sender.sendMessage(plugin.getMessage("player.error.name-too-long"));
-				return true;
-			}
-			if (!name.matches("^[a-zA-Z0-9_]{2,16}$")) {
-				sender.sendMessage(plugin.getMessage("player.error.invalid-name"));
-				return true;
-			}
-			Player toMute = Bukkit.getPlayerExact(name);
+			Player toMute = Bukkit.getPlayerExact(args[1]);
 			if (toMute == null) {
 				sender.sendMessage(plugin.getMessage("player.error.not-found"));
 				return true;
@@ -97,23 +110,12 @@ public class MakerCommandExecutor extends AbstractCommandExecutor {
 				sender.sendMessage(plugin.getMessage("command.maker.mute.permissions"));
 				return true;
 			}
-			String name = args[1];
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | PlayerCommandExecutor.onCommand - unmute request for: [%s]", name));
-			}
-			if (StringUtils.isBlank(name)) {
-				sender.sendMessage(plugin.getMessage("player.error.empty-name"));
+			String nameError = validatePlayerName(args[1]);
+			if (nameError != null) {
+				mPlayer.sendMessage(plugin, nameError);
 				return true;
 			}
-			if (name.length() > 16) {
-				sender.sendMessage(plugin.getMessage("player.error.name-too-long"));
-				return true;
-			}
-			if (!name.matches("[a-zA-Z0-9_]+")) {
-				sender.sendMessage(plugin.getMessage("player.error.invalid-name"));
-				return true;
-			}
-			Player toUnmute = Bukkit.getPlayerExact(name);
+			Player toUnmute = Bukkit.getPlayerExact(args[1]);
 			if (toUnmute == null) {
 				sender.sendMessage(plugin.getMessage("player.error.not-found"));
 				return true;
@@ -126,6 +128,23 @@ public class MakerCommandExecutor extends AbstractCommandExecutor {
 		sender.sendMessage(plugin.getMessage("command.maker.actions"));
 		sender.sendMessage(plugin.getMessage("command.maker.actions.help"));
 		return true;
+	}
+
+	// TODO: move this to super class
+	private String validatePlayerName(String playerName) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | PlayerCommandExecutor.validatePlayerName - validating player name: [%s]", playerName));
+		}
+		if (StringUtils.isBlank(playerName)) {
+			return "player.error.empty-name";
+		}
+		if (playerName.length() > 16) {
+			return "player.error.name-too-long";
+		}
+		if (!playerName.matches("^[a-zA-Z0-9_]{2,16}$")) {
+			return "player.error.invalid-name";
+		}
+		return null;
 	}
 
 }

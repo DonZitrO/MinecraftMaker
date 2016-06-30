@@ -11,7 +11,7 @@ public enum EditLevelOptionItem implements TranslatableItem {
 
 	SAVE(Material.BOOK_AND_QUILL),
 	PLAY(Material.FIREWORK),
-	TOOLS(Material.ENCHANTMENT_TABLE),
+	TOOLS(Material.END_CRYSTAL),
 	PUBLISH(Material.ITEM_FRAME),
 	EXIT(Material.TRAP_DOOR);
 

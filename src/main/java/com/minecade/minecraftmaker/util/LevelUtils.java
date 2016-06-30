@@ -175,7 +175,7 @@ public class LevelUtils {
 		if (location.getY() >= MakerPlayableLevel.MAX_LEVEL_HEIGHT) {
 			return -1;
 		}
-		if (location.getBlockX() < 0 || location.getBlockX() > MakerPlayableLevel.MAX_LEVEL_WIDTH - 1) {
+		if (location.getBlockX() < 0 || location.getBlockX() > MakerPlayableLevel.MAX_LEVEL_WIDTH) {
 			return -1;
 		}
 		int slot = (location.getBlockZ() >> 4);

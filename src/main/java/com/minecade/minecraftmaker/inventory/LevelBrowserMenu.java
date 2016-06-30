@@ -408,8 +408,7 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 		if (clickedItem.getType().equals(Material.MONSTER_EGG)) {
 			String serial = ItemUtils.getLoreLine(clickedItem, 1);
 			if (StringUtils.isBlank(serial) || !StringUtils.isNumeric(serial)) {
-				Bukkit.getLogger().severe(
-						String.format("LevelBrowserMenu.onClick - unable to get level serial from lore: [%s]", serial));
+				Bukkit.getLogger().severe(String.format("LevelBrowserMenu.onClick - unable to get level serial from lore: [%s]", serial));
 				return MenuClickResult.CANCEL_UPDATE;
 			}
 			plugin.getController().loadLevelForPlayingBySerial(mPlayer, Long.valueOf(serial));

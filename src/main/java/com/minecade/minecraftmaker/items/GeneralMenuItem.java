@@ -6,6 +6,7 @@ import org.bukkit.inventory.ItemStack;
 import com.minecade.core.i18n.TranslatableItem;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemStackBuilder;
+import com.minecade.core.item.SkullItemBuilder;
 
 public enum GeneralMenuItem implements TranslatableItem {
 
@@ -22,9 +23,14 @@ public enum GeneralMenuItem implements TranslatableItem {
 	SORT(Material.HOPPER),
 	SORT_DIRECTION_UP("ff1654b0-10f2-48b6-9c05-483b75f6549e", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDQ4Yjc2OGM2MjM0MzJkZmIyNTlmYjNjMzk3OGU5OGRlYzExMWY3OWRiZDZjZDg4ZjIxMTU1Mzc0YjcwYjNjIn19fQ=="),
 	SORT_DIRECTION_DOWN("9afa272b-ca4a-4502-8073-c4be1b741ebc", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmRhZGQ3NTVkMDg1MzczNTJiZjdhOTNlM2JiN2RkNGQ3MzMxMjFkMzlmMmZiNjcwNzNjZDQ3MWY1NjExOTRkZCJ9fX0="),
-	STEVE_LEVEL_OPTIONS(Material.ENDER_CHEST);
+	STEVE_LEVEL_OPTIONS(Material.ENDER_CHEST),
+	CUSTOM_HEAD;
 
 	private final ItemStackBuilder builder;
+
+	private GeneralMenuItem() {
+		this.builder = new SkullItemBuilder();
+	}
 
 	private GeneralMenuItem(Material material) {
 		this(material, 1);

@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.item.ItemUtils;
+import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.items.SkullTypeItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
@@ -37,6 +38,7 @@ public class ToolsSkullTypeMenu extends AbstractSharedMenu {
 		items[22] = SkullTypeItem.POKEMON.getItem();
 		items[24] = SkullTypeItem.COLORS.getItem();
 		items[26] = SkullTypeItem.HALLOWEEN.getItem();
+		items[31] = GeneralMenuItem.CUSTOM_HEAD.getItem();
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
 	}
@@ -58,6 +60,10 @@ public class ToolsSkullTypeMenu extends AbstractSharedMenu {
 		ItemStack itemStack = inventory.getItem(slot);
 		if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.EXIT.getDisplayName())) {
 			mPlayer.openLevelToolsMenu();
+			return MenuClickResult.CANCEL_CLOSE;
+		}
+		if (ItemUtils.itemNameEquals(itemStack, GeneralMenuItem.CUSTOM_HEAD.getDisplayName())) {
+			mPlayer.sendMessage(plugin, "command.maker.head.usage");
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		SkullTypeItem skullTypeItem = SkullTypeItem.getSkullTypeItemByDisplayName(itemStack.getItemMeta().getDisplayName());
