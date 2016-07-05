@@ -1,4 +1,4 @@
-package com.minecade.minecraftmaker.inventory;
+/*package com.minecade.minecraftmaker.inventory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -571,3 +571,4 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 	}
 
 }
+*/

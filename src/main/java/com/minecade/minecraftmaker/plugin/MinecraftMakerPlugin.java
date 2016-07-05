@@ -36,7 +36,7 @@ import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
-import com.minecade.minecraftmaker.task.AsyncLevelBrowserUpdaterTask;
+import com.minecade.minecraftmaker.task.AlternativeAsyncLevelBrowserUpdaterTask;
 import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
 import com.minecade.minecraftmaker.task.AsyncPlayerCounterUpdaterTask;
 import com.minecade.minecraftmaker.task.LevelOperatorTask;
@@ -55,7 +55,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	private MakerDatabaseAdapter databaseAdapter;
 	private MakerController controller;
 	private AsyncLevelSaverTask asyncLevelSaver;
-	private AsyncLevelBrowserUpdaterTask asyncLevelBrowserUpdater;
+	private AlternativeAsyncLevelBrowserUpdaterTask asyncLevelBrowserUpdater;
 	private LevelOperatorTask levelOperatorTask;
 	private BukkitImplAdapter bukkitImplAdapter;
 	private ResourceBundle messages;
@@ -70,7 +70,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		return bukkitImplAdapter;
 	}
 
-	public AsyncLevelBrowserUpdaterTask getAsyncLevelBrowserUpdater() {
+	public AlternativeAsyncLevelBrowserUpdaterTask getAsyncLevelBrowserUpdater() {
 		return asyncLevelBrowserUpdater;
 	}
 
@@ -125,13 +125,13 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		asyncLevelSaver = new AsyncLevelSaverTask(this);
 		asyncLevelSaver.runTaskTimerAsynchronously(this, 0, 0);
 		// asyc level browser updater
-		asyncLevelBrowserUpdater = new AsyncLevelBrowserUpdaterTask(this);
+		asyncLevelBrowserUpdater = new AlternativeAsyncLevelBrowserUpdaterTask(this);
 		asyncLevelBrowserUpdater.runTaskTimerAsynchronously(this, 0, 0);
 		// instantiate and init main controller
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
 		controller.init();
 		// load the first page of the server browser
-		controller.requestLevelPageUpdate(LevelSortBy.TRENDING_SCORE, LevelSortBy.TRENDING_SCORE.isReversedDefault(), 1, null);
+		// controller.requestLevelPageUpdate(LevelSortBy.TRENDING_SCORE, LevelSortBy.TRENDING_SCORE.isReversedDefault(), 1, null);
 		// start builder task
 		levelOperatorTask = new LevelOperatorTask(this);
 		levelOperatorTask.runTaskTimer(this, 0, 0);

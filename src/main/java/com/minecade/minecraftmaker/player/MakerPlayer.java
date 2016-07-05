@@ -20,13 +20,12 @@ import org.bukkit.scoreboard.Scoreboard;
 import com.minecade.core.data.Rank;
 import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.player.PlayerUtils;
-import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
+import com.minecade.minecraftmaker.inventory.AlternativeLevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
-import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.LevelTimeMenu;
@@ -207,41 +206,39 @@ public class MakerPlayer implements Tickable {
 		return this.player;
 	}
 
-	public String getPlayerRecordTime(){
-        if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null){
-            for(MakerLevelClearData makerLevelClear : this.currentLevel.getLevelsClear()){
-                if(makerLevelClear.getUniqueId().equals(this.getUniqueId())){
-                    return getFormattedTime(makerLevelClear.getTimeCleared());
-                }
-            }
-        }
-
-        return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
-    }
+	public String getCurrentLevelCurrentPlayerBestClearData() {
+		if (getCurrentLevel() == null || getCurrentLevel().getCurrentPlayerBestClearData() == null) {
+			return plugin.getMessage("player.no-time");
+		}
+		if (getCurrentLevel().getCurrentPlayerBestClearData().getBestTimeCleared() > 0) {
+			return getFormattedTime(getCurrentLevel().getCurrentPlayerBestClearData().getBestTimeCleared());
+		}
+		return plugin.getMessage("player.no-time");
+	}
 
 	public int getPublishedLevelsCount() {
 		return data.getPublishedLevelsCount();
 	}
 
-    public String getRecordTime(){
-        if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
-                this.currentLevel.getLevelsClear().size() > 0){
-            MakerLevelClearData makerLevelClear = this.currentLevel.getLevelsClear().get(0);
-            return getFormattedTime(makerLevelClear.getTimeCleared());
-        }
+	public String getCurrentLevelBestClearData() {
+		if (getCurrentLevel() == null || getCurrentLevel().getLevelBestClearData() == null) {
+			return plugin.getMessage("player.no-time");
+		}
+		if (getCurrentLevel().getLevelBestClearData().getBestTimeCleared() > 0) {
+			return getFormattedTime(getCurrentLevel().getLevelBestClearData().getBestTimeCleared());
+		}
+		return plugin.getMessage("player.no-time");
+	}
 
-        return MinecraftMakerPlugin.getInstance().getMessage("player.no-time");
-    }
-
-	public String getRecordUsername(){
-        if(this.currentLevel != null && this.currentLevel.getLevelsClear() != null &&
-                this.currentLevel.getLevelsClear().size() > 0){
-            MakerLevelClearData makerLevelClear = this.currentLevel.getLevelsClear().get(0);
-            return makerLevelClear.getUsername();
-        }
-
-        return MinecraftMakerPlugin.getInstance().getMessage("general.empty");
-    }
+	public String getLevelRecordUsername() {
+		if (getCurrentLevel() == null || getCurrentLevel().getLevelBestClearData() == null) {
+			return plugin.getMessage("general.empty");
+		}
+		if (getCurrentLevel().getLevelBestClearData().getPlayerName() != null) {
+			return getCurrentLevel().getLevelBestClearData().getPlayerName();
+		}
+		return plugin.getMessage("general.empty");
+	}
 
 	public MakerSteveData getSteveData(){
 		return this.steveData;
@@ -352,9 +349,9 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void openLevelBrowserMenu() {
-		LevelBrowserMenu menu = (LevelBrowserMenu) personalMenus.get(plugin.getMessage(LevelBrowserMenu.getTitleKey()));
+		AlternativeLevelBrowserMenu menu = (AlternativeLevelBrowserMenu) personalMenus.get(plugin.getMessage(AlternativeLevelBrowserMenu.getTitleKey()));
 		if (menu == null) {
-			menu = LevelBrowserMenu.getInstance(plugin, this.getUniqueId());
+			menu = AlternativeLevelBrowserMenu.getInstance(plugin, this.getUniqueId());
 			personalMenus.put(menu.getName(), menu);
 		}
 		menu.update();

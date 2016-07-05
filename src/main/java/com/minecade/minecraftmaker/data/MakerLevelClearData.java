@@ -1,4 +1,4 @@
-package com.minecade.minecraftmaker.data;
+/*package com.minecade.minecraftmaker.data;
 
 import java.util.UUID;
 
@@ -41,3 +41,4 @@ public class MakerLevelClearData {
 		this.username = username;
 	}
 }
+*/

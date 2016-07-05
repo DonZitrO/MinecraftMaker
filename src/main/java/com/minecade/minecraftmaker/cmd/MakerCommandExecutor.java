@@ -76,8 +76,7 @@ public class MakerCommandExecutor extends AbstractCommandExecutor {
 			sender.sendMessage(plugin.getMessage("command.maker.unmuteall.success"));
 			return true;
 		}
-		// GM only sub-commands below
-		if (!mPlayer.getData().hasRank(Rank.GM)) {
+		if (!mPlayer.getData().hasRank(Rank.GM) && !mPlayer.getData().hasRank(Rank.YT)) {
 			sender.sendMessage(plugin.getMessage("command.error.permissions"));
 			sender.sendMessage(plugin.getMessage("command.maker.usage"));
 			sender.sendMessage(plugin.getMessage("command.maker.actions"));

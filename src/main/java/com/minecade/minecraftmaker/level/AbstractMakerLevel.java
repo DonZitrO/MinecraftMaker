@@ -1,14 +1,10 @@
 package com.minecade.minecraftmaker.level;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 import com.minecade.core.data.Rank;
-import com.minecade.minecraftmaker.data.MakerLevelClearData;
+import com.minecade.minecraftmaker.data.AlternativeMakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
@@ -30,6 +26,7 @@ public class AbstractMakerLevel {
 	protected long likes;
 	protected MakerRelativeLocationData relativeEndLocation;
 	protected long trendingScore;
+	protected AlternativeMakerLevelClearData levelBestClearData;
 
 	protected WorldTimeAndWeather timeAndWeather = WorldTimeAndWeather.NOON_CLEAR;
 	protected WorldTimeAndWeather timeAndWeatherChangeRequest;
@@ -37,7 +34,7 @@ public class AbstractMakerLevel {
 //	protected long levelTime = 6000;
 //	protected WeatherType levelWeather = WeatherType.CLEAR;
 
-	protected List<MakerLevelClearData> levelsClear = new ArrayList<MakerLevelClearData>();;
+	//protected List<MakerLevelClearData> levelsClear = new ArrayList<MakerLevelClearData>();;
 
 	public AbstractMakerLevel(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
@@ -71,20 +68,28 @@ public class AbstractMakerLevel {
 		return favs;
 	}
 
+	public AlternativeMakerLevelClearData getLevelBestClearData() {
+		return levelBestClearData;
+	}
+
 	public UUID getLevelId() {
 		return levelId;
 	}
+
+//	public List<MakerLevelClearData> getLevelsClear() {
+//		return levelsClear;
+//	}
 
 	public String getLevelName() {
 		return levelName;
 	}
 
-	public List<MakerLevelClearData> getLevelsClear() {
-		return levelsClear;
-	}
-
 	public long getLevelSerial() {
 		return levelSerial;
+	}
+
+	public long getLikes() {
+		return likes;
 	}
 
 //	public long getLevelTime() {
@@ -94,10 +99,6 @@ public class AbstractMakerLevel {
 //	public WeatherType getLevelWeather() {
 //		return levelWeather;
 //	}
-
-	public long getLikes() {
-		return likes;
-	}
 
 	public MakerRelativeLocationData getRelativeEndLocation() {
 		return relativeEndLocation;
@@ -123,6 +124,10 @@ public class AbstractMakerLevel {
 		return datePublished != null;
 	}
 
+	public void requestTimeAndWeatherChange(WorldTimeAndWeather timeAndWeather) {
+		this.timeAndWeatherChangeRequest = timeAndWeather;
+	}
+
 	protected void reset() {
 		authorId = null;
 		authorName = null;
@@ -136,8 +141,6 @@ public class AbstractMakerLevel {
 		levelSerial = 0;
 		likes = 0;
 		relativeEndLocation = null;
-		// FIXME
-		levelsClear.clear();
 	}
 
 	public void setAuthorId(UUID authorId) {
@@ -164,6 +167,10 @@ public class AbstractMakerLevel {
 		this.dislikes = dislikes;
 	}
 
+	public void setLevelBestClearData(AlternativeMakerLevelClearData levelBestClearData) {
+		this.levelBestClearData = levelBestClearData;
+	}
+
 	public void setLevelId(UUID levelId) {
 		this.levelId = levelId;
 	}
@@ -176,10 +183,6 @@ public class AbstractMakerLevel {
 		this.levelSerial = levelSerial;
 	}
 
-	public void setLikes(long likes) {
-		this.likes = likes;
-	}
-
 //	public void setLevelTime(long levelTime) {
 //		this.levelTime = levelTime;
 //	}
@@ -188,12 +191,12 @@ public class AbstractMakerLevel {
 //		this.levelWeather = levelWeather;
 //	}
 
-	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
-		this.relativeEndLocation = relativeEndLocation;
+	public void setLikes(long likes) {
+		this.likes = likes;
 	}
 
-	public void requestTimeAndWeatherChange(WorldTimeAndWeather timeAndWeather) {
-		this.timeAndWeatherChangeRequest = timeAndWeather;
+	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
+		this.relativeEndLocation = relativeEndLocation;
 	}
 
 	public void setTrendingScore(long trendingScore) {

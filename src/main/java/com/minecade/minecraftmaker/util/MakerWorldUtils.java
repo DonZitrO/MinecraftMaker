@@ -38,15 +38,15 @@ public class MakerWorldUtils {
 		world.setDifficulty(Difficulty.HARD);
 		// don't Spawn monster and animals
 		world.setSpawnFlags(true, true);
-		// No storms
-		world.setStorm(false);
-		// no thunders
-		world.setThundering(false);
-		// set day light
-		world.setTime(6000);
-		// forever sunny
-		world.setWeatherDuration(Integer.MAX_VALUE);
-		// Enables/disables text output of command block commands to console
+//		// No storms
+//		world.setStorm(false);
+//		// no thunders
+//		world.setThundering(false);
+//		// set day light
+//		world.setTime(6000);
+//		// forever sunny
+//		world.setWeatherDuration(Integer.MAX_VALUE);
+//		// Enables/disables text output of command block commands to console
 		world.setGameRuleValue("commandBlockOutput", "false");
 		// Enables/disables day/night cycle
 		world.setGameRuleValue("doDaylightCycle", "false");

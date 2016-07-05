@@ -32,6 +32,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -77,13 +78,6 @@ public class MakerListener implements Listener {
 		Bukkit.getLogger().info(String.format("MakerListener.onAsyncPlayerPreLogin - Starting... - Player: [%s<%s>] - Initial result: [%s]", event.getName(), event.getUniqueId(), event.getLoginResult()));
 		plugin.getController().onAsyncPlayerPreLogin(event);
 		Bukkit.getLogger().info(String.format("MakerListener.onAsyncPlayerPreLogin - Finished - Player: [%s<%s>] - Result: [%s]", event.getName(), event.getUniqueId(), event.getLoginResult()));
-	}
-
-	@EventHandler(priority = EventPriority.MONITOR)
-	public final void onPlayerLogin(PlayerLoginEvent event) {
-		Bukkit.getLogger().info(String.format("MakerListener.onPlayerLogin - Starting... - Player: [%s<%s>] - Initial result: [%s]", event.getPlayer().getName(), event.getPlayer().getUniqueId(), event.getResult()));
-		plugin.getController().onPlayerLogin(event);
-		Bukkit.getLogger().info(String.format("MakerListener.onPlayerLogin - Finished - Player: [%s<%s>] - Result: [%s]", event.getPlayer().getName(), event.getPlayer().getUniqueId(), event.getResult()));
 	}
 
 	@EventHandler
@@ -230,6 +224,16 @@ public class MakerListener implements Listener {
 		plugin.getController().onInventoryClick(event);
 	}
 
+	@EventHandler // FIXME: experimental/bleeding - improve or delete
+	public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+		final String message = event.getMessage().substring(1);
+		final String command = message.substring(0, message.indexOf(" ") == -1 ? message.length() : message.indexOf(" ")).toLowerCase();
+		if ("me".equalsIgnoreCase(command) || "bukkit:me".equalsIgnoreCase(command) || "minecraft:me".equalsIgnoreCase(command)) {
+			event.getPlayer().sendMessage(plugin.getMessage("command.error.permissions"));
+			event.setCancelled(true);
+		}
+	}
+
 	@EventHandler
 	public void onPlayerDamage(final EntityDamageEvent event) {
 		if (!(event.getEntity() instanceof Player)) {
@@ -309,6 +313,13 @@ public class MakerListener implements Listener {
 		Bukkit.getLogger().info(String.format("MakerListener.onPlayerJoin - Player: [%s<%s>]", event.getPlayer().getName(), event.getPlayer().getUniqueId()));
 		event.setJoinMessage(null);
 		plugin.getController().onPlayerJoin(event.getPlayer());
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public final void onPlayerLogin(PlayerLoginEvent event) {
+		Bukkit.getLogger().info(String.format("MakerListener.onPlayerLogin - Starting... - Player: [%s<%s>] - Initial result: [%s]", event.getPlayer().getName(), event.getPlayer().getUniqueId(), event.getResult()));
+		plugin.getController().onPlayerLogin(event);
+		Bukkit.getLogger().info(String.format("MakerListener.onPlayerLogin - Finished - Player: [%s<%s>] - Result: [%s]", event.getPlayer().getName(), event.getPlayer().getUniqueId(), event.getResult()));
 	}
 
 	@EventHandler

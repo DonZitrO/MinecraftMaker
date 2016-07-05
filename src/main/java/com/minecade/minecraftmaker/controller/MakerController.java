@@ -69,8 +69,8 @@ import com.minecade.core.util.BungeeUtils;
 import com.minecade.minecraftmaker.data.LevelOperationResult;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
-import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
-import com.minecade.minecraftmaker.inventory.LevelPageUpdateCallback;
+import com.minecade.minecraftmaker.inventory.AlternativeLevelBrowserMenu;
+import com.minecade.minecraftmaker.inventory.LevelPageResult;
 import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
@@ -292,26 +292,16 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void unpublishLevel(MakerPlayer mPlayer, long serial) {
-		long confirmSerial = mPlayer.getLevelToUnpublishSerial();
-		if (confirmSerial != serial) {
-			mPlayer.setLevelToDeleteSerial(serial);
-			mPlayer.sendMessage(plugin, "command.level.unpublish.confirm1", serial);
-			mPlayer.sendMessage(plugin, "command.level.unpublish.confirm2", serial);
-		} else {
-			plugin.getDatabaseAdapter().unpublishLevelBySerialAsync(serial, mPlayer);
-		}
-	}
-
 	public void deleteLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, UUID authorId, Long levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		switch (result) {
 		case SUCCESS:
-			LevelBrowserMenu.removeLevelBySerial(levelSerial);
+			//LevelBrowserMenu.removeLevelBySerial(levelSerial);
 			if (authorId != null) {
 				// TODO: remove level from player levels menu (by serial)
+				// FIXME: not needed if the menu is live
 			}
 			sendMessageToPlayerIfPresent(playerId, "command.level.delete.success", levelSerial);
 			break;
@@ -327,7 +317,7 @@ public class MakerController implements Runnable, Tickable {
 			break;
 		}
 		if (levelCount != null) {
-			LevelBrowserMenu.updateLevelCount(levelCount);
+			AlternativeLevelBrowserMenu.updateLevelCount(levelCount);
 		}
 	}
 
@@ -378,34 +368,16 @@ public class MakerController implements Runnable, Tickable {
 		return levelMap.get(slotId);
 	}
 
+	public World getLobbyWorld() {
+		return getWorld(DEFAULT_TIME_AND_WEATHER);
+	}
+
 //	public World getMainWorld() {
 //		if (this.mainWorld == null) {
 //			this.mainWorld = MakerWorldUtils.createOrLoadWorld(this.plugin, this.mainWorldName, this.spawnVector);
 //		}
 //		return this.mainWorld;
 //	}
-
-	public World getLobbyWorld() {
-		return getWorld(DEFAULT_TIME_AND_WEATHER);
-	}
-
-	public World getWorld(WorldTimeAndWeather timeAndWeather) {
-		checkNotNull(timeAndWeather);
-		World world = worlds.get(timeAndWeather);
-		if (world == null) {
-			world = MakerWorldUtils.createOrLoadWorld(this.plugin, timeAndWeather.getWorldName(), this.spawnVector);
-			world.setStorm(timeAndWeather.isStorm());
-			world.setTime(timeAndWeather.getTime());
-			worlds.put(timeAndWeather, world);
-		}
-		return world;
-	}
-
-	// FIXME: find a way to reuse the world data object that doesn't mess with multithreading.
-	public WorldData getWorldData(WorldTimeAndWeather timeAndWeather) {
-		checkNotNull(timeAndWeather);
-		return BukkitUtil.toWorld(getWorld(timeAndWeather)).getWorldData();
-	}
 
 	public MakerPlayer getPlayer(Player player) {
 		checkNotNull(player);
@@ -426,6 +398,26 @@ public class MakerController implements Runnable, Tickable {
 		return new HashSet<Long>(steveLevelSerials);
 	}
 
+	public World getWorld(WorldTimeAndWeather timeAndWeather) {
+		checkNotNull(timeAndWeather);
+		World world = worlds.get(timeAndWeather);
+		if (world == null) {
+			world = MakerWorldUtils.createOrLoadWorld(this.plugin, timeAndWeather.getWorldName(), this.spawnVector);
+			world.setStorm(timeAndWeather.isStorm());
+			world.setTime(timeAndWeather.getTime());
+			world.setThundering(false);
+			world.setWeatherDuration(Integer.MAX_VALUE);
+			worlds.put(timeAndWeather, world);
+		}
+		return world;
+	}
+
+	// FIXME: find a way to reuse the world data object that doesn't mess with multithreading.
+	public WorldData getWorldData(WorldTimeAndWeather timeAndWeather) {
+		checkNotNull(timeAndWeather);
+		return BukkitUtil.toWorld(getWorld(timeAndWeather)).getWorldData();
+	}
+
 	public void init() {
 		if (initialized) {
 			throw new IllegalStateException("This controller is already initialized");
@@ -440,12 +432,16 @@ public class MakerController implements Runnable, Tickable {
 		return disabled;
 	}
 
+	private boolean isVoidLocation(Location location) {
+		return location.getBlockY() < -1;
+	}
+
 	public void levelLikeCallback(UUID levelId, UUID playerId, boolean dislike, long totalLikes, long totalDislikes, long trendingScore) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		// update level browser
-		LevelBrowserMenu.updateLevelLikes(plugin, levelId, totalLikes, totalDislikes, trendingScore);
+		// LevelBrowserMenu.updateLevelLikes(plugin, levelId, totalLikes, totalDislikes, trendingScore);
 		// update current user level
 		MakerPlayer mPlayer = getPlayer(playerId);
 		if (mPlayer == null) {
@@ -460,22 +456,37 @@ public class MakerController implements Runnable, Tickable {
 		level.setDislikes(totalDislikes);
 	}
 
-	public void levelPageUpdateCallback(LevelPageUpdateCallback callback) {
+//	public void levelPageUpdateCallback(LevelPageUpdateCallback callback) {
+//		if (!Bukkit.isPrimaryThread()) {
+//			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+//		}
+//		if (plugin.isDebugMode()) {
+//			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.levelPageUpdateCallback - callback: [%s]", callback));
+//		}
+//		LevelBrowserMenu.updateLevelCount(callback.getLevelCount());
+//		if (callback.getLevels() != null) {
+//			for (MakerDisplayableLevel level: callback.getLevels()) {
+//				steveLevelSerials.add(level.getLevelSerial());
+//				LevelBrowserMenu.addOrUpdateLevel(plugin, level);
+//			}
+//		}
+//		for (UUID playerId :callback.getPlayers()) {
+//			LevelBrowserMenu.updatePlayerMenu(playerId);
+//		}
+//	}
+
+	public void levelPageResultCallback(LevelPageResult result) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.levelPageUpdateCallback - callback: [%s]", callback));
-		}
-		LevelBrowserMenu.updateLevelCount(callback.getLevelCount());
-		if (callback.getLevels() != null) {
-			for (MakerDisplayableLevel level: callback.getLevels()) {
+		AlternativeLevelBrowserMenu.updateLevelCount(result.getLevelCount());
+		if (result.getLevels() != null) {
+			for (MakerDisplayableLevel level: result.getLevels()) {
 				steveLevelSerials.add(level.getLevelSerial());
-				LevelBrowserMenu.addOrUpdateLevel(plugin, level);
 			}
 		}
-		for (UUID playerId :callback.getPlayers()) {
-			LevelBrowserMenu.updatePlayerMenu(playerId);
+		for (UUID playerId :result.getPlayers()) {
+			AlternativeLevelBrowserMenu.updatePlayerMenu(playerId, result.getLevels());
 		}
 	}
 
@@ -514,9 +525,17 @@ public class MakerController implements Runnable, Tickable {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		PlayerLevelsMenu.removeLevelFromViewer(level);
-		LevelBrowserMenu.updateLevelCount(levelCount);
+		AlternativeLevelBrowserMenu.updateLevelCount(levelCount);
 		steveLevelSerials.add(level.getLevelSerial());
-		LevelBrowserMenu.addOrUpdateLevel(plugin, level);
+		//LevelBrowserMenu.addOrUpdateLevel(plugin, level);
+	}
+
+	public void muteOthers(UUID playerId) {
+		mutedOtherPlayers.add(playerId);
+	}
+
+	public void mutePlayer(UUID playerId) {
+		mutedPlayers.add(playerId);
 	}
 
 	public void onAsyncAccountDataLoad(MakerPlayerData data) {
@@ -1169,6 +1188,36 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+//	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
+//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
+//		// if the directory does not exist, create it
+//		if (!schematicsFolder.exists()) {
+//			try {
+//				schematicsFolder.mkdir();
+//			} catch (Exception e) {
+//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
+//				e.printStackTrace();
+//				return;
+//			}
+//		}
+//
+//		File f;
+//		try {
+//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
+//		} catch (FilenameException e) {
+//			// TODO notify player/sender
+//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+//			e.printStackTrace();
+//			return;
+//		}
+//
+//		Region levelRegion = LevelUtils.getDefaultLevelRegion(chunkZ);
+//		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
+//		clipboard.setOrigin(levelRegion.getMinimumPoint());
+//		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
+//		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
+//	}
+
 	public void onPlayerLogin(PlayerLoginEvent event) {
 		// allow vanilla white-list logic to work
 		if (org.bukkit.event.player.PlayerLoginEvent.Result.KICK_WHITELIST.equals(event.getResult())) {
@@ -1256,36 +1305,6 @@ public class MakerController implements Runnable, Tickable {
 		// plugin.publishServerInfoAsync();
 	}
 
-//	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
-//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
-//		// if the directory does not exist, create it
-//		if (!schematicsFolder.exists()) {
-//			try {
-//				schematicsFolder.mkdir();
-//			} catch (Exception e) {
-//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
-//				e.printStackTrace();
-//				return;
-//			}
-//		}
-//
-//		File f;
-//		try {
-//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
-//		} catch (FilenameException e) {
-//			// TODO notify player/sender
-//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
-//			e.printStackTrace();
-//			return;
-//		}
-//
-//		Region levelRegion = LevelUtils.getDefaultLevelRegion(chunkZ);
-//		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
-//		clipboard.setOrigin(levelRegion.getMinimumPoint());
-//		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
-//		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
-//	}
-
 	public void onPlayerRespawn(PlayerRespawnEvent event) {
 		event.getPlayer().setInvulnerable(true);
 		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
@@ -1326,7 +1345,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 		level.onPlayerTeleport(event);
 	}
-
+	
 	public void onVehicleMove(VehicleMoveEvent event) {
 		Entity passenger = event.getVehicle().getPassenger();
 		if (passenger == null || !(passenger instanceof Player) || ((Player) passenger).isDead()) {
@@ -1347,10 +1366,6 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	private boolean isVoidLocation(Location location) {
-		return location.getBlockY() < -1;
-	}
-
 	public void playerLevelsCountCallback(UUID authorId, int publishedCount, int unpublishedCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
@@ -1365,7 +1380,7 @@ public class MakerController implements Runnable, Tickable {
 		mPlayer.setPublishedLevelsCount(publishedCount);
 		mPlayer.setUnblishedLevelsCount(unpublishedCount);
 	}
-	
+
 	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
 		Bukkit.getLogger().warning(String.format("MakerController.removeLevelFromSlot - removing level: [%s<%s>] from slot: [%s]", makerLevel.getLevelName(), makerLevel.getLevelId(), makerLevel.getChunkZ()));
 		levelMap.remove(makerLevel.getChunkZ());
@@ -1462,6 +1477,12 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	private void startSpectating(MakerPlayer mPlayer) {
+		mPlayer.sendMessage(plugin, "player.spectate.menu");
+		mPlayer.sendMessage(plugin, "player.spectate.exit.command");
+		mPlayer.spectate();
+	}
+
 	public void startSteveChallenge(MakerPlayer mPlayer) {
 		if (!mPlayer.isInLobby()) {
 			mPlayer.sendActionMessage(plugin, "level.play.error.player-busy");
@@ -1508,8 +1529,27 @@ public class MakerController implements Runnable, Tickable {
 		entriesToAddToScoreboardTeams.clear();
 		entriesToRemoveFromScoreboardTeams.clear();
 		// TODO: this won't be needed after rabbit integration
-		if (this.currentTick % 1200 == 600) {
-			plugin.getAsyncLevelBrowserUpdater().resetCompleted();
+		// if (this.currentTick % 1200 == 600) {
+		// 	plugin.getAsyncLevelBrowserUpdater().resetCompleted();
+		//}
+	}
+
+	public void unmuteOthers(UUID playerId) {
+		mutedOtherPlayers.remove(playerId);
+	}
+
+	public void unmutePlayer(UUID playerId) {
+		mutedPlayers.remove(playerId);
+	}
+
+	public void unpublishLevel(MakerPlayer mPlayer, long serial) {
+		long confirmSerial = mPlayer.getLevelToUnpublishSerial();
+		if (confirmSerial != serial) {
+			mPlayer.setLevelToDeleteSerial(serial);
+			mPlayer.sendMessage(plugin, "command.level.unpublish.confirm1", serial);
+			mPlayer.sendMessage(plugin, "command.level.unpublish.confirm2", serial);
+		} else {
+			plugin.getDatabaseAdapter().unpublishLevelBySerialAsync(serial, mPlayer);
 		}
 	}
 
@@ -1527,26 +1567,8 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	private void startSpectating(MakerPlayer mPlayer) {
-		mPlayer.sendMessage(plugin, "player.spectate.menu");
-		mPlayer.sendMessage(plugin, "player.spectate.exit.command");
-		mPlayer.spectate();
-	}
-
-	public void mutePlayer(UUID playerId) {
-		mutedPlayers.add(playerId);
-	}
-
-	public void unmutePlayer(UUID playerId) {
-		mutedPlayers.remove(playerId);
-	}
-
-	public void muteOthers(UUID playerId) {
-		mutedOtherPlayers.add(playerId);
-	}
-
-	public void unmuteOthers(UUID playerId) {
-		mutedOtherPlayers.remove(playerId);
+	public void playerLevelClearsCountCallback(UUID authorId, long result) {
+		// TODO Auto-generated method stub
 	}
 
 }
