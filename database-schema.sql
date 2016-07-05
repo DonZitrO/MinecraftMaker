@@ -58,3 +58,14 @@ BEGIN
   CALL mcmaker.level_summary(NEW.level_id);
 END;//
 delimiter ;
+
+
+
+-- this trigger summarizes level likes and dislikes after every delete
+delimiter //
+CREATE TRIGGER mcmaker.after_like_delete AFTER DELETE ON mcmaker.level_likes
+FOR EACH ROW
+BEGIN
+  CALL mcmaker.level_summary(OLD.level_id);
+END;//
+delimiter ;
