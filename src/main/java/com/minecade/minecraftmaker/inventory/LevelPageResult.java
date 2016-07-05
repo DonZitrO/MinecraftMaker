@@ -44,9 +44,6 @@ public class LevelPageResult {
 		if (other == null) {
 			return this;
 		}
-		if (levels != null || other.levels != null) {
-			throw new IllegalStateException("Cannot merge after levels were loaded");
-		}
 		addPlayers(other.players);
 		addLevels(other.levels);
 		return this;

@@ -1,4 +1,4 @@
-package com.minecade.minecraftmaker.inventory;
+/*package com.minecade.minecraftmaker.inventory;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -119,3 +119,4 @@ public class LevelPageUpdateCallback {
 	}
 
 }
+*/
