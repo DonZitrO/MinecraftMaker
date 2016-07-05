@@ -700,6 +700,21 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	public void onPlayerDropItem(PlayerDropItemEvent event) {
+		if (LevelStatus.PLAYING.equals(getStatus())) {
+			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), GeneralMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
+				event.setCancelled(true);
+				return;
+			}
+			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
+				event.setCancelled(true);
+				return;
+			}
+			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), GeneralMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
+				event.setCancelled(true);
+				return;
+			}
+			return;
+		}
 		if (LevelStatus.EDITING.equals(getStatus())) {
 			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 				event.setCancelled(true);
