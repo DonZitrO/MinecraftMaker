@@ -682,30 +682,6 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	private synchronized void loadlLevelBestClearData(AbstractMakerLevel level) throws SQLException {
-		if (Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method should not be called from the main thread");
-		}
-		String levelIdString = level.getLevelId().toString().replace("-", "");
-		String query = 	"SELECT lc.player_id, lc.time_cleared, a.username " +
-						"FROM mcmaker.level_clears lc " +
-						"INNER JOIN minecade.accounts a " +
-						"ON a.unique_id = lc.player_id " +
-						"WHERE lc.level_id = UNHEX(?) " +
-						"ORDER BY lc.time_cleared ASC LIMIT 1";
-		try (PreparedStatement selectBestLevelClear = getConnection().prepareStatement(query)) {
-			selectBestLevelClear.setString(1, levelIdString);
-			ResultSet resultSet = selectBestLevelClear.executeQuery();
-			if (resultSet.next()) {
-				ByteBuffer playerIdBytes = ByteBuffer.wrap(resultSet.getBytes("player_id"));
-				AlternativeMakerLevelClearData data = new AlternativeMakerLevelClearData(level.getLevelId(), new UUID(playerIdBytes.getLong(), playerIdBytes.getLong()));
-				data.setPlayerName(resultSet.getString("username"));
-				data.setBestTimeCleared(resultSet.getLong("time_cleared"));
-				level.setLevelBestClearData(data);
-			}
-		}
-	}
-
 	private synchronized void loadLevelPlayerBestClearData(MakerPlayableLevel level) throws SQLException {
 		if (Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method should not be called from the main thread");
@@ -717,11 +693,11 @@ public class MakerDatabaseAdapter {
 		String playerIdString = level.getCurrentPlayerId().toString().replace("-", "");
 		String query = 	"SELECT lc.player_id, lc.time_cleared, a.username " +
 						"FROM mcmaker.level_clears lc " +
-						"INNER JOIN minecade.accounts a " +
+						"INNER JOIN %s.accounts a " +
 						"ON a.unique_id = lc.player_id " +
 						"WHERE lc.level_id = UNHEX(?) AND lc.player_id = UNHEX(?) " +
 						"ORDER BY lc.time_cleared ASC LIMIT 1";
-		try (PreparedStatement selectBestLevelClear = getConnection().prepareStatement(query)) {
+		try (PreparedStatement selectBestLevelClear = getConnection().prepareStatement(String.format(query, networkSchema))) {
 			selectBestLevelClear.setString(1, levelIdString);
 			selectBestLevelClear.setString(2, playerIdString);
 			ResultSet resultSet = selectBestLevelClear.executeQuery();
@@ -730,6 +706,30 @@ public class MakerDatabaseAdapter {
 				data.setPlayerName(resultSet.getString("username"));
 				data.setBestTimeCleared(resultSet.getLong("time_cleared"));
 				level.setCurrentPlayerBestClearData(data);
+			}
+		}
+	}
+
+	private synchronized void loadlLevelBestClearData(AbstractMakerLevel level) throws SQLException {
+		if (Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method should not be called from the main thread");
+		}
+		String levelIdString = level.getLevelId().toString().replace("-", "");
+		String query = 	"SELECT lc.player_id, lc.time_cleared, a.username " +
+						"FROM mcmaker.level_clears lc " +
+						"INNER JOIN %s.accounts a " +
+						"ON a.unique_id = lc.player_id " +
+						"WHERE lc.level_id = UNHEX(?) " +
+						"ORDER BY lc.time_cleared ASC LIMIT 1";
+		try (PreparedStatement selectBestLevelClear = getConnection().prepareStatement(String.format(query, networkSchema))) {
+			selectBestLevelClear.setString(1, levelIdString);
+			ResultSet resultSet = selectBestLevelClear.executeQuery();
+			if (resultSet.next()) {
+				ByteBuffer playerIdBytes = ByteBuffer.wrap(resultSet.getBytes("player_id"));
+				AlternativeMakerLevelClearData data = new AlternativeMakerLevelClearData(level.getLevelId(), new UUID(playerIdBytes.getLong(), playerIdBytes.getLong()));
+				data.setPlayerName(resultSet.getString("username"));
+				data.setBestTimeCleared(resultSet.getLong("time_cleared"));
+				level.setLevelBestClearData(data);
 			}
 		}
 	}
