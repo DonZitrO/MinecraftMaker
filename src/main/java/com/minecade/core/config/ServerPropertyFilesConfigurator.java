@@ -33,7 +33,7 @@ public class ServerPropertyFilesConfigurator {
 		changed |= forcePropertyValue(props, "gamemode", "2");
 		changed |= forcePropertyValue(props, "difficulty", "3");
 		changed |= forcePropertyValue(props, "online-mode", "false");
-		changed |= forcePropertyValue(props, "pvp", "false");
+		changed |= forcePropertyValue(props, "pvp", "true");
 
 		if (changed) {
 			Bukkit.getLogger().info(String.format("ServerPropertyFilesConfigurator.configureServerProperties - server.properties file changed - restarting server..."));

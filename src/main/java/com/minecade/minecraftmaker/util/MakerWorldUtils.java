@@ -34,6 +34,8 @@ public class MakerWorldUtils {
 	public static void setupWorld(World world) {
 		// world auto save disable
 		world.setAutoSave(false);
+		// pvp
+		world.setPVP(true);
 		// difficulty
 		world.setDifficulty(Difficulty.HARD);
 		// don't Spawn monster and animals
