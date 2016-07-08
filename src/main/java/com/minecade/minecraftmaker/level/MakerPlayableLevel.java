@@ -253,11 +253,13 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	public void finishSteveChallenge() {
 		if (isBusy()) {
+			steveData = null;
 			disable("attemped to skip a busy a level", null);
 			return;
 		}
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(currentPlayerId);
 		if (mPlayer == null) {
+			steveData = null;
 			disable("player is no longer on this level", null);
 			return;
 		}
@@ -453,14 +455,8 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	private void loadNextSteveLevel(MakerPlayer mPlayer) {
-		if (!steveData.hasMoreLevels()) {
-			finishSteveChallenge();
-			return;
-		}
-		reset();
 		waitForBusyLevel(mPlayer, true, true, false);
-		setLevelSerial(steveData.getRandomLevel());
-		plugin.getDatabaseAdapter().loadPlayableLevelBySerialAsync(this);
+		reset();
 	}
 
 	private void monitorProblematicEntities() {
@@ -872,11 +868,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
-	@Override
 	protected void reset() {
+		removeEntities();
 		super.reset();
+		this.clipboard = null;
 		this.firstTimeLoaded = true;
-		this.status = LevelStatus.LEVEL_LOAD_READY;
+		this.status = LevelStatus.START_BEACON_PLACED;
 	}
 
 //	public void restoreRedstoneInteraction(LevelRedstoneInteraction cancelled) {
@@ -972,33 +969,9 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		this.currentPlayerId = currentPlayerId;
 	}
 
-//	public void setupEffects(MakerPlayer mPlayer) {
-//		// Time
-//		mPlayer.getPlayer().setPlayerTime(getLevelTime(), false);
-//		// Weather
-//		if(getLevelWeather() != null){
-//			mPlayer.getPlayer().setPlayerWeather(getLevelWeather());
-//		} else {
-//			mPlayer.getPlayer().setPlayerWeather(WeatherType.CLEAR);
-//		}
-//	}
-
 	public void setFloorBlockId(int floorBlockId) {
 		this.floorBlockId = floorBlockId;
 	}
-
-//	public void setupStartLocation() {
-//		Vector mp = getLevelRegion().getMinimumPoint();
-//		Block startLocation = BukkitUtil.toLocation(getWorld(), mp.add(2, FLOOR_LEVEL_Y, 6)).getBlock();
-//		startLocation.setType(Material.BEACON);
-//		startLocation.getState().update(true, true);
-//		Block aboveStart = startLocation.getRelative(BlockFace.UP);
-//		aboveStart.setType(Material.AIR);
-//		aboveStart.getState().update(true, false);
-//		aboveStart = startLocation.getRelative(BlockFace.UP);
-//		aboveStart.setType(Material.AIR);
-//		aboveStart.getState().update(true, false);
-//	}
 
 	public void setSteveData(MakerSteveData steveData) {
 		this.steveData = steveData;
@@ -1078,7 +1051,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			return;
 		}
 		steveData.skipLevel(getLevelSerial(), loseLife);
-		removeEntities();
 		loadNextSteveLevel(mPlayer);
 	}
 
@@ -1262,7 +1234,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	}
 
 	private void tickDisableReady() {
-		if (isSteve() && steveData.hasMoreLevels()) {
+		if (isSteve() && hasActivePlayer()) {
 			skipSteveLevel(false);
 			return;
 		}
@@ -1379,6 +1351,11 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		waitForBusyLevel(mPlayer, true, true, false);
 		if (clipboard != null) {
 			status = LevelStatus.CLIPBOARD_LOADED;
+			return;
+		}
+		if (isSteve()) {
+			status = LevelStatus.STEVE_LEVEL_LOAD_READY;
+			plugin.getDatabaseAdapter().loadNextSteveLevelAsync(this, getSteveData().getClearedAndSkippedLevels());
 			return;
 		}
 		if (levelSerial > 0) {

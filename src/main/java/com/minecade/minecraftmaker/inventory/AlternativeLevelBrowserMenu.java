@@ -30,7 +30,7 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 public class AlternativeLevelBrowserMenu extends AbstractDisplayableLevelMenu {
 
 	private static Map<UUID, AlternativeLevelBrowserMenu> userLevelBrowserMenuMap = new HashMap<>();
-	private static long levelCount;
+	private static int levelCount;
 
 	public static int getLevelsPerPage() {
 		return LEVELS_PER_PAGE;
@@ -55,7 +55,7 @@ public class AlternativeLevelBrowserMenu extends AbstractDisplayableLevelMenu {
 		return menu;
 	}
 	
-	public static void updateLevelCount(long levelCount) {
+	public static void updateLevelCount(int levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}

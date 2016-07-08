@@ -98,7 +98,7 @@ public class MakerController implements Runnable, Tickable {
 	private static final int MAX_ACCOUNT_DATA_ENTRIES = 40;
 	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
 
-	private static final int MIN_STEVE_LEVELS = 16;
+	//private static final int MIN_STEVE_LEVELS = 16;
 
 	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.0d, 35.0d, 78.5d);
 	private static final float DEFAULT_SPAWN_YAW = 90.0f;
@@ -138,7 +138,7 @@ public class MakerController implements Runnable, Tickable {
 	// keeps track of every arena on the server
 	private Map<Short, MakerPlayableLevel> levelMap= new ConcurrentHashMap<>();
 	// steve level serials
-	private final Set<Long> steveLevelSerials = new HashSet<>();
+	// private final Set<Long> steveLevelSerials = new HashSet<>();
 	// an async thread loads the data to this map, then the main thread process it
 	private final Map<UUID, MakerPlayerData> accountDataMap = Collections.synchronizedMap(new LinkedHashMap<UUID, MakerPlayerData>(MAX_ACCOUNT_DATA_ENTRIES * 2) {
 		private static final long serialVersionUID = 1L;
@@ -292,7 +292,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void deleteLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, UUID authorId, Long levelCount) {
+	public void deleteLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, UUID authorId, Integer levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
@@ -393,10 +393,10 @@ public class MakerController implements Runnable, Tickable {
 		return playerMap.size();
 	}
 
-	// intentionally copy this to avoid tampering with the original set
-	private Set<Long> getSteveLevels() {
-		return new HashSet<Long>(steveLevelSerials);
-	}
+//	// intentionally copy this to avoid tampering with the original set
+//	private Set<Long> getSteveLevels() {
+//		return new HashSet<Long>(steveLevelSerials);
+//	}
 
 	public World getWorld(WorldTimeAndWeather timeAndWeather) {
 		checkNotNull(timeAndWeather);
@@ -480,11 +480,11 @@ public class MakerController implements Runnable, Tickable {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		AlternativeLevelBrowserMenu.updateLevelCount(result.getLevelCount());
-		if (result.getLevels() != null) {
-			for (MakerDisplayableLevel level: result.getLevels()) {
-				steveLevelSerials.add(level.getLevelSerial());
-			}
-		}
+//		if (result.getLevels() != null) {
+//			for (MakerDisplayableLevel level: result.getLevels()) {
+//				steveLevelSerials.add(level.getLevelSerial());
+//			}
+//		}
 		for (UUID playerId :result.getPlayers()) {
 			AlternativeLevelBrowserMenu.updatePlayerMenu(playerId, result.getLevels());
 		}
@@ -520,13 +520,13 @@ public class MakerController implements Runnable, Tickable {
 		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
-	public void loadPublishedLevelCallback(MakerDisplayableLevel level, long levelCount) {
+	public void loadPublishedLevelCallback(MakerDisplayableLevel level, int levelCount) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		PlayerLevelsMenu.removeLevelFromViewer(level);
 		AlternativeLevelBrowserMenu.updateLevelCount(levelCount);
-		steveLevelSerials.add(level.getLevelSerial());
+		//steveLevelSerials.add(level.getLevelSerial());
 		//LevelBrowserMenu.addOrUpdateLevel(plugin, level);
 	}
 
@@ -1488,21 +1488,21 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.sendActionMessage(plugin, "level.play.error.player-busy");
 			return;
 		}
-		Set<Long> levels = getSteveLevels();
-		if (levels.isEmpty() || levels.size() < MIN_STEVE_LEVELS) {
-			mPlayer.sendActionMessage(plugin, "steve.error.few-levels");
-			return;
-		}
+//		Set<Long> levels = getSteveLevels();
+//		if (levels.isEmpty() || levels.size() < MIN_STEVE_LEVELS) {
+//			mPlayer.sendActionMessage(plugin, "steve.error.few-levels");
+//			return;
+//		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
 			mPlayer.sendActionMessage(plugin, "level.error.full");
 			return;
 		}
 		level.setCurrentPlayerId(mPlayer.getUniqueId());
-		MakerSteveData steveData = new MakerSteveData(levels);
+		MakerSteveData steveData = new MakerSteveData();
 		level.setSteveData(steveData);
 		mPlayer.setSteveData(steveData);
-		level.setLevelSerial(steveData.getRandomLevel());
+		//level.setLevelSerial(steveData.getRandomLevel());
 		level.waitForBusyLevel(mPlayer, false, true, false);
 		mPlayer.sendTitleAndSubtitle(plugin.getMessage("steve.start.title"), plugin.getMessage("steve.start.subtitle"));
 	}

@@ -1,41 +1,43 @@
 package com.minecade.minecraftmaker.data;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
 public class MakerSteveData {
 
-	public static final Random RANDOM = new Random(System.currentTimeMillis());
+	//public static final Random RANDOM = new Random(System.currentTimeMillis());
 
 	private short lives = 100;
-	private final List<Long> levels;
+	//private final List<Long> levels;
 	private final Set<Long> levelsCleared = new HashSet<>();
 	private final Set<Long> levelsSkipped = new HashSet<>();
 
-	public MakerSteveData(Set<Long> levels) {
-		checkArgument(levels.size() > 0);
-		this.levels = new ArrayList<Long>(levels);
+	public MakerSteveData() {
+		//checkArgument(levels.size() > 0);
+		//this.levels = new ArrayList<Long>(levels);
 	}
 
 	public void clearLevel(Long levelSerial) {
-		levels.remove(levelSerial);
+		//levels.remove(levelSerial);
 		levelsCleared.add(levelSerial);
 	}
 
-	public long getRandomLevel() {
-		if (levels.size() == 0) {
-			return 0;
-		}
-		return levels.get(RANDOM.nextInt(levels.size()));
-	}
+//	public long getRandomLevel() {
+//		if (levels.size() == 0) {
+//			return 0;
+//		}
+//		return levels.get(RANDOM.nextInt(levels.size()));
+//	}
+//
+//	public boolean hasMoreLevels() {
+//		return levels.size() > 0;
+//	}
 
-	public boolean hasMoreLevels() {
-		return levels.size() > 0;
+	public Set<Long> getClearedAndSkippedLevels() {
+		Set<Long> result = new HashSet<>();
+		result.addAll(levelsCleared);
+		result.addAll(levelsSkipped);
+		return result;
 	}
 
 	public boolean hasClearedLevel(Long levelSerial) {
@@ -50,7 +52,7 @@ public class MakerSteveData {
 		if (loseLife) {
 			lives--;
 		}
-		levels.remove(levelSerial);
+		//levels.remove(levelSerial);
 		levelsSkipped.add(levelSerial);
 	}
 

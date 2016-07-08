@@ -13,7 +13,7 @@ public class LevelPageResult {
 
 	private final Set<UUID> players;
 	private final Set<MakerDisplayableLevel> levels = new LinkedHashSet<>();
-	private long levelCount;
+	private int levelCount;
 
 	public LevelPageResult(UUID playerId) {
 		players = new HashSet<>();
@@ -28,7 +28,7 @@ public class LevelPageResult {
 		this.levels.addAll(levels);
 	}
 
-	public long getLevelCount() {
+	public int getLevelCount() {
 		return levelCount;
 	}
 
@@ -49,7 +49,7 @@ public class LevelPageResult {
 		return this;
 	}
 
-	public void setLevelCount(long levelCount) {
+	public void setLevelCount(int levelCount) {
 		this.levelCount = levelCount;
 	}
 
