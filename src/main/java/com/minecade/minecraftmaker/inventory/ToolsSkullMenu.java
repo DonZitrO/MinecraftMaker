@@ -32,8 +32,14 @@ public class ToolsSkullMenu extends AbstractSharedMenu {
 	private final SkullTypeItem skullType;
 
 	private ToolsSkullMenu(MinecraftMakerPlugin plugin, SkullTypeItem skullType) {
-		super(plugin, plugin.getMessage(getTitleKey(skullType)), 45);
+		super(plugin, 45, skullType.name().toLowerCase());
 		this.skullType = skullType;
+	}
+
+	@Override
+	public String getTitleKey(String modifier) {
+		checkNotNull(modifier);
+		return String.format("menu.%s-skulls.title", modifier);
 	}
 
 	private void init() {
@@ -45,11 +51,6 @@ public class ToolsSkullMenu extends AbstractSharedMenu {
 		
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
-	}
-
-	public static String getTitleKey(SkullTypeItem skullType) {
-		checkNotNull(skullType);
-		return String.format("menu.%s-skulls.title", skullType.name().toLowerCase());
 	}
 
 	@Override

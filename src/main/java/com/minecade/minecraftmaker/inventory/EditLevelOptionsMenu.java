@@ -10,7 +10,7 @@ import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class EditLevelOptionsMenu extends AbstractMakerMenu {
+public class EditLevelOptionsMenu extends AbstractSharedMenu {
 
 	private static EditLevelOptionsMenu instance;
 
@@ -22,8 +22,13 @@ public class EditLevelOptionsMenu extends AbstractMakerMenu {
 	}
 
 	private EditLevelOptionsMenu(MinecraftMakerPlugin plugin) {
-		super(plugin, plugin.getMessage("menu.edit-level-options.title"), 9);
+		super(plugin, 9);
 		init();
+	}
+
+	@Override
+	public String getTitleKey(String modifier) {
+		return "menu.edit-level-options.title";
 	}
 
 	private void init() {
@@ -73,16 +78,6 @@ public class EditLevelOptionsMenu extends AbstractMakerMenu {
 			mPlayer.getCurrentLevel().exitEditing();
 		}
 		return MenuClickResult.CANCEL_CLOSE;
-	}
-
-	@Override
-	public void update() {
-
-	}
-
-	@Override
-	public boolean isShared() {
-		return true;
 	}
 
 }

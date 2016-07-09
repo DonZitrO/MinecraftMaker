@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.player;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -35,6 +37,7 @@ import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
+import com.minecade.minecraftmaker.inventory.SteveLevelClearOptionsMenu;
 import com.minecade.minecraftmaker.inventory.SteveLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.ToolsSkullMenu;
 import com.minecade.minecraftmaker.inventory.ToolsSkullTypeMenu;
@@ -62,7 +65,7 @@ public class MakerPlayer implements Tickable {
 	private MakerPlayableLevel currentLevel;
 
 	private MakerScoreboard makerScoreboard;
-	//private ChatColor nameColor = ChatColor.RESET;
+
 	private final Map<String, AbstractMakerMenu> personalMenus = new HashMap<>();
 
 	private final LinkedList<String> pendingActionMessages = new LinkedList<>();
@@ -315,8 +318,10 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public MenuClickResult onInventoryClick(Inventory inventory, int slot) {
-		if (personalMenus.containsKey(inventory.getName())) {
-			return personalMenus.get(inventory.getName()).onClick(this, slot);
+		checkNotNull(inventory);
+		AbstractMakerMenu menu = personalMenus.get(inventory.getTitle());
+		if (menu != null) {
+			return menu.onClick(this, slot);
 		}
 		return MenuClickResult.ALLOW;
 	}
@@ -331,135 +336,78 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void openEditLevelOptionsMenu() {
-		AbstractMakerMenu menu = personalMenus.get(EditLevelOptionsMenu.getInstance().getName());
-		if (menu == null) {
-			menu = EditLevelOptionsMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		openMakerInventory(EditLevelOptionsMenu.getInstance());
+	}
+
+	private void openMakerInventory(AbstractMakerMenu toOpen) {
+		checkNotNull(toOpen);
+		personalMenus.put(toOpen.getTitle(), toOpen);
+		inventoryToOpen = toOpen;
 	}
 
 	public void openEditorPlayLevelOptionsMenu() {
-		AbstractMakerMenu menu = personalMenus.get(EditorPlayLevelOptionsMenu.getInstance().getName());
-		if (menu == null) {
-			menu = EditorPlayLevelOptionsMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		openMakerInventory(EditorPlayLevelOptionsMenu.getInstance());
 	}
 
 	public void openLevelBrowserMenu() {
-		AlternativeLevelBrowserMenu menu = (AlternativeLevelBrowserMenu) personalMenus.get(plugin.getMessage(AlternativeLevelBrowserMenu.getTitleKey()));
-		if (menu == null) {
-			menu = AlternativeLevelBrowserMenu.getInstance(plugin, this.getUniqueId());
-			personalMenus.put(menu.getName(), menu);
-		}
+		AlternativeLevelBrowserMenu menu = AlternativeLevelBrowserMenu.getInstance(plugin, this.getUniqueId());
 		menu.update();
-		inventoryToOpen = menu;
+		openMakerInventory(menu);
 	}
 
 	public void openLevelSearchMenu(Set<MakerDisplayableLevel> levels) {
-		LevelSearchMenu menu = (LevelSearchMenu) personalMenus.get(plugin.getMessage(LevelSearchMenu.getTitleKey()));
-		if (menu == null) {
-			menu = LevelSearchMenu.getInstance(plugin, this.getUniqueId());
-			personalMenus.put(menu.getName(), menu);
-		}
+		LevelSearchMenu menu = LevelSearchMenu.getInstance(plugin, this.getUniqueId());
 		menu.update(levels);
-		inventoryToOpen = menu;
+		openMakerInventory(menu);
 	}
 
 	public void openLevelTemplateMenu() {
-		AbstractMakerMenu menu = personalMenus.get(LevelTemplateMenu.getInstance().getName());
-		if (menu == null) {
-			menu = LevelTemplateMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		openMakerInventory(LevelTemplateMenu.getInstance());
 	}
 
 	public void openLevelTimeMenu() {
-		AbstractMakerMenu menu = personalMenus.get(LevelTimeMenu.getInstance().getName());
-		if (menu == null) {
-			menu = LevelTimeMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		openMakerInventory(LevelTimeMenu.getInstance());
 	}
 
 	public void openLevelToolsMenu(){
-		AbstractMakerMenu menu = personalMenus.get(LevelToolsMenu.getInstance().getName());
-		if (menu == null) {
-			menu = LevelToolsMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		
-		inventoryToOpen = menu;
+		openMakerInventory(LevelToolsMenu.getInstance());
 	}
 
 	public void openLevelWeatherMenu() {
-		AbstractMakerMenu menu = personalMenus.get(LevelWeatherMenu.getInstance().getName());
-		if (menu == null) {
-			menu = LevelWeatherMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		openMakerInventory(LevelWeatherMenu.getInstance());
 	}
 
 	public void openPlayerLevelsMenu(boolean update) {
-		PlayerLevelsMenu menu = (PlayerLevelsMenu) personalMenus.get(plugin.getMessage(PlayerLevelsMenu.getTitleKey()));
-		if (menu == null) {
-			menu = PlayerLevelsMenu.getInstance(plugin, this.getUniqueId());
-			personalMenus.put(menu.getName(), menu);
-		}
+		PlayerLevelsMenu menu = PlayerLevelsMenu.getInstance(plugin, this.getUniqueId());
 		if (update) {
 			menu.update();
 		}
-		inventoryToOpen = menu;
+		openMakerInventory(menu);
 	}
 
 	public void openPlayLevelOptionsMenu() {
-		AbstractMakerMenu menu = personalMenus.get(PlayLevelOptionsMenu.getInstance().getName());
-		if (menu == null) {
-			menu = PlayLevelOptionsMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		openMakerInventory(PlayLevelOptionsMenu.getInstance());
 	}
 
 	public void openServerBrowserMenu() {
-		AbstractMakerMenu menu = personalMenus.get(ServerBrowserMenu.getInstance().getName());
-		if (menu == null) {
-			menu = ServerBrowserMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		openMakerInventory(ServerBrowserMenu.getInstance());
+	}
+
+	public void openSteveClearLevelOptionsMenu() {
+		openMakerInventory(SteveLevelClearOptionsMenu.getInstance());
 	}
 
 	public void openSteveLevelOptionsMenu() {
-		AbstractMakerMenu menu = personalMenus.get(SteveLevelOptionsMenu.getInstance().getName());
-		if (menu == null) {
-			menu = SteveLevelOptionsMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		openMakerInventory(SteveLevelOptionsMenu.getInstance());
 	}
 
 	public void openToolsSkullMenu(SkullTypeItem skullTypeItem) {
-		AbstractMakerMenu menu = personalMenus.get(ToolsSkullMenu.getInstance(skullTypeItem).getName());
-		if (menu == null) {
-			menu = ToolsSkullMenu.getInstance(skullTypeItem);
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		checkNotNull(skullTypeItem);
+		openMakerInventory(ToolsSkullMenu.getInstance(skullTypeItem));
 	}
 
 	public void openToolsSkullTypeMenu() {
-		AbstractMakerMenu menu = personalMenus.get(ToolsSkullTypeMenu.getInstance().getName());
-		if (menu == null) {
-			menu = ToolsSkullTypeMenu.getInstance();
-			personalMenus.put(menu.getName(), menu);
-		}
-		inventoryToOpen = menu;
+		openMakerInventory(ToolsSkullTypeMenu.getInstance());
 	}
 
 	public void removeTeamEntryFromScoreboard(String playerName) {

@@ -9,13 +9,9 @@ import com.minecade.minecraftmaker.items.TimeItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelTimeMenu extends AbstractMakerMenu {
+public class LevelTimeMenu extends AbstractSharedMenu {
 
 	private static LevelTimeMenu instance;
-
-	private LevelTimeMenu(MinecraftMakerPlugin plugin) {
-		super(plugin, plugin.getMessage(getTitleKey()), 45);
-	}
 
 	public static LevelTimeMenu getInstance() {
 		if (instance == null) {
@@ -25,21 +21,21 @@ public class LevelTimeMenu extends AbstractMakerMenu {
 		return instance;
 	}
 
+	private LevelTimeMenu(MinecraftMakerPlugin plugin) {
+		super(plugin, 45);
+	}
+
+	@Override
+	public String getTitleKey(String modifier) {
+		return "menu.level-time.title";
+	}
+
 	private void init() {
 		loadGlassPanes(items);
 		items[21] = TimeItem.NOON.getItem();
 		items[23] = TimeItem.MIDNIGHT.getItem();
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
-	}
-
-	@Override
-	public boolean isShared() {
-		return true;
-	}
-
-	public static String getTitleKey() {
-		return "menu.level-time.title";
 	}
 
 	@Override
@@ -71,10 +67,6 @@ public class LevelTimeMenu extends AbstractMakerMenu {
 			break;
 		}
 		return MenuClickResult.CANCEL_CLOSE;
-	}
-
-	@Override
-	public void update() {
 	}
 
 }

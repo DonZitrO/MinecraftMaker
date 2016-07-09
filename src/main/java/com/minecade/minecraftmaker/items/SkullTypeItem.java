@@ -8,7 +8,6 @@ import com.google.common.collect.Maps;
 import com.minecade.core.i18n.TranslatableItem;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemStackBuilder;
-import com.minecade.core.item.SkullItemBuilder;
 
 public enum SkullTypeItem implements TranslatableItem {
 

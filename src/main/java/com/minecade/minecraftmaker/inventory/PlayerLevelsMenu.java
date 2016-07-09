@@ -43,7 +43,8 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 		return menu;
 	}
 
-	public static String getTitleKey() {
+	@Override
+	public String getTitleKey(String modifier) {
 		return "menu.player-levels.title";
 	}
 
@@ -66,7 +67,7 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 	private long nextAllowedRefreshMillis;
 
 	private PlayerLevelsMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
-		super(plugin, plugin.getMessage(getTitleKey()), 54);
+		super(plugin, 54);
 		this.viewerId = viewerId;
 		init();
 	}
@@ -126,7 +127,7 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 		update(ownedLevelsBySerial);
 	}
 
-	public boolean shoulRefreshAgain() {
+	public boolean shouldRefreshAgain() {
 		long currentTimeMillis = System.currentTimeMillis();
 		if (nextAllowedRefreshMillis < currentTimeMillis) {
 			nextAllowedRefreshMillis = currentTimeMillis + MIN_TIME_BETWEEN_REFRESHES_MILLIS;
@@ -142,7 +143,7 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		update(ownedLevelsBySerial);
-		if (shoulRefreshAgain()) {
+		if (shouldRefreshAgain()) {
 			plugin.getDatabaseAdapter().loadUnpublishedLevelsByAuthorIdAsync(this);
 		}
 	}

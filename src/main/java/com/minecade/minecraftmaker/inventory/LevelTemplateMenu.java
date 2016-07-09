@@ -5,7 +5,7 @@ import com.minecade.minecraftmaker.items.LevelTemplateItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelTemplateMenu extends AbstractMakerMenu {
+public class LevelTemplateMenu extends AbstractSharedMenu {
 
 	private static LevelTemplateMenu instance;
 
@@ -17,8 +17,13 @@ public class LevelTemplateMenu extends AbstractMakerMenu {
 	}
 
 	private LevelTemplateMenu(MinecraftMakerPlugin plugin) {
-		super(plugin, plugin.getMessage("menu.level-template.title"), 9);
+		super(plugin, 9);
 		init();
+	}
+
+	@Override
+	public String getTitleKey(String modifier) {
+		return "menu.level-template.title";
 	}
 
 	private void init() {
@@ -42,16 +47,6 @@ public class LevelTemplateMenu extends AbstractMakerMenu {
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		return MenuClickResult.CANCEL_UPDATE;
-	}
-
-	@Override
-	public void update() {
-
-	}
-
-	@Override
-	public boolean isShared() {
-		return true;
 	}
 
 }

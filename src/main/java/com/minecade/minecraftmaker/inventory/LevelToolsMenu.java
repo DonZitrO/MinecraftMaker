@@ -13,7 +13,7 @@ import com.minecade.minecraftmaker.items.SkullTypeItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelToolsMenu extends AbstractMakerMenu {
+public class LevelToolsMenu extends AbstractSharedMenu {
 
 	private static ItemStack glassPane;
 	private static LevelToolsMenu instance;
@@ -21,7 +21,7 @@ public class LevelToolsMenu extends AbstractMakerMenu {
 	private SkullTypeItem skullType;
 
 	private LevelToolsMenu(MinecraftMakerPlugin plugin) {
-		super(plugin, plugin.getMessage(getTitleKey()), 45);
+		super(plugin, 45);
 	}
 
 	public static LevelToolsMenu getInstance() {
@@ -42,11 +42,7 @@ public class LevelToolsMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public boolean isShared() {
-		return true;
-	}
-
-	public static String getTitleKey() {
+	public String getTitleKey(String modifier) {
 		return "menu.level-tools.title";
 	}
 
@@ -109,10 +105,6 @@ public class LevelToolsMenu extends AbstractMakerMenu {
 		}
 
 		return MenuClickResult.CANCEL_UPDATE;
-	}
-
-	@Override
-	public void update() {
 	}
 
 	private void updateSkullsTypeMenu(){

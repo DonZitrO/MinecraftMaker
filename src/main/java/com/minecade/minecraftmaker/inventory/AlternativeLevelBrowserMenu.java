@@ -40,7 +40,8 @@ public class AlternativeLevelBrowserMenu extends AbstractDisplayableLevelMenu {
 		return Math.max(0, (page - 1) * LEVELS_PER_PAGE);
 	}
 
-	public static String getTitleKey() {
+	@Override
+	public String getTitleKey(String modifier) {
 		return "menu.level-browser.title";
 	}
 
@@ -83,7 +84,7 @@ public class AlternativeLevelBrowserMenu extends AbstractDisplayableLevelMenu {
 	private boolean busy;
 
 	private AlternativeLevelBrowserMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
-		super(plugin, plugin.getMessage(getTitleKey()), 54);
+		super(plugin, 54);
 		this.cycleSortBy = Iterators.cycle(LevelSortBy.values());
 		this.sortBy = cycleSortBy.next();
 		this.reverseSortBy = sortBy.isReversedDefault(); 

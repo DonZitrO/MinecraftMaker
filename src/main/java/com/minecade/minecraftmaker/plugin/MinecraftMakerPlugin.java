@@ -29,6 +29,7 @@ import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
 import com.minecade.minecraftmaker.items.SkullItem;
 import com.minecade.minecraftmaker.items.SkullTypeItem;
+import com.minecade.minecraftmaker.items.SteveLevelClearOptionItem;
 import com.minecade.minecraftmaker.items.SteveLevelOptionItem;
 import com.minecade.minecraftmaker.items.TimeItem;
 import com.minecade.minecraftmaker.items.WeatherItem;
@@ -213,6 +214,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		}
 		// translate steve level option menu items
 		for (SteveLevelOptionItem item : SteveLevelOptionItem.values()) {
+			item.translate(this);
+		}
+		// translate steve level clear option menu items
+		for (SteveLevelClearOptionItem item : SteveLevelClearOptionItem.values()) {
 			item.translate(this);
 		}
 		// translate level order by options

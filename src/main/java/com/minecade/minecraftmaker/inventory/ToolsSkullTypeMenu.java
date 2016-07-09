@@ -15,7 +15,7 @@ public class ToolsSkullTypeMenu extends AbstractSharedMenu {
 	private static ToolsSkullTypeMenu instance;
 
 	private ToolsSkullTypeMenu(MinecraftMakerPlugin plugin) {
-		super(plugin, plugin.getMessage(getTitleKey()), 45);
+		super(plugin, 45);
 	}
 
 	public static ToolsSkullTypeMenu getInstance() {
@@ -24,6 +24,11 @@ public class ToolsSkullTypeMenu extends AbstractSharedMenu {
 			instance.init();
 		}
 		return instance;
+	}
+
+	@Override
+	public String getTitleKey(String modifier) {
+		return "menu.skulltype.title";
 	}
 
 	private void init() {
@@ -41,10 +46,6 @@ public class ToolsSkullTypeMenu extends AbstractSharedMenu {
 		items[31] = GeneralMenuItem.CUSTOM_HEAD.getItem();
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
-	}
-
-	public static String getTitleKey() {
-		return "menu.skulltype.title";
 	}
 
 	@Override

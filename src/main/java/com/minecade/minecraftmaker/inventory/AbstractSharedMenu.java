@@ -2,10 +2,14 @@ package com.minecade.minecraftmaker.inventory;
 
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class AbstractSharedMenu extends AbstractMakerMenu {
+public abstract class AbstractSharedMenu extends AbstractMakerMenu {
 
-	public AbstractSharedMenu(MinecraftMakerPlugin plugin, String title, int size) {
-		super(plugin, title, size);
+	public AbstractSharedMenu(MinecraftMakerPlugin plugin, int size) {
+		super(plugin, size);
+	}
+
+	public AbstractSharedMenu(MinecraftMakerPlugin plugin, int size, String titleModifier) {
+		super(plugin, size, titleModifier);
 	}
 
 	@Override

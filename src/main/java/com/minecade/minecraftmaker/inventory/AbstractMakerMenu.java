@@ -21,12 +21,18 @@ public abstract class AbstractMakerMenu {
 	protected final MinecraftMakerPlugin plugin;
 
 	protected Inventory inventory;
+
 	protected ItemStack[] items;
 	protected AbstractMakerMenu back;
 
-	public AbstractMakerMenu(MinecraftMakerPlugin plugin, String title, int size) {
+	public AbstractMakerMenu(MinecraftMakerPlugin plugin, int size) {
+		this(plugin, size, null);
+	}
+
+	public AbstractMakerMenu(MinecraftMakerPlugin plugin, int size, String titleModifier) {
 		this.plugin = plugin;
 		this.items = new ItemStack[size];
+		String title = plugin.getMessage(getTitleKey(titleModifier));
 		if (title.length() > 32) {
 			title = title.substring(0, 32);
 		}
@@ -137,9 +143,22 @@ public abstract class AbstractMakerMenu {
 
 	public abstract boolean isShared();
 
-	protected void updateItems() {
-		inventory.setContents(items);
-	}
+	public abstract String getTitleKey(String modifier);
+
+//	public int getIdentityHashCode() {
+//		if (inventory == null) {
+//			return 0;
+//		}
+//		int identity = System.identityHashCode(inventory);
+//		if (plugin.isDebugMode()) {
+//			Bukkit.getLogger().info(String.format("[DEBUG] | AbstractMakerMenu.getIdentityHashCode - title: [%s] - identity: [%s]", getTitle(), identity));
+//		}
+//		return identity;
+//	}
+
+//	protected void updateItems() {
+//		inventory.setContents(items);
+//	}
 
 	public void disable() {
 		if (isShared()) {

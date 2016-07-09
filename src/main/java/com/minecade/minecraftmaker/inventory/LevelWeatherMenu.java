@@ -9,16 +9,16 @@ import com.minecade.minecraftmaker.items.WeatherItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelWeatherMenu extends AbstractMakerMenu {
+public class LevelWeatherMenu extends AbstractSharedMenu {
 
 	private static LevelWeatherMenu instance;
 
 	private LevelWeatherMenu(MinecraftMakerPlugin plugin) {
-		super(plugin, plugin.getMessage(getTitleKey()), 45);
+		super(plugin, 45);
 	}
 
-	
-	public static String getTitleKey() {
+	@Override
+	public String getTitleKey(String modifier) {
 		return "menu.level-weather.title";
 	}
 
@@ -36,11 +36,6 @@ public class LevelWeatherMenu extends AbstractMakerMenu {
 		items[23] = WeatherItem.RAINY.getItem();
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
-	}
-
-	@Override
-	public boolean isShared() {
-		return true;
 	}
 
 	@Override
@@ -72,10 +67,6 @@ public class LevelWeatherMenu extends AbstractMakerMenu {
 			break;
 		}
 		return MenuClickResult.CANCEL_CLOSE;
-	}
-
-	@Override
-	public void update() {
 	}
 
 }

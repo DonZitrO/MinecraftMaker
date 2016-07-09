@@ -9,7 +9,7 @@ import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class EditorPlayLevelOptionsMenu extends AbstractMakerMenu {
+public class EditorPlayLevelOptionsMenu extends AbstractSharedMenu {
 
 	private static EditorPlayLevelOptionsMenu instance;
 
@@ -21,8 +21,13 @@ public class EditorPlayLevelOptionsMenu extends AbstractMakerMenu {
 	}
 
 	private EditorPlayLevelOptionsMenu(MinecraftMakerPlugin plugin) {
-		super(plugin, plugin.getMessage("menu.editor-play-options.title"), 9);
+		super(plugin, 9);
 		init();
+	}
+
+	@Override
+	public String getTitleKey(String modifier) {
+		return "menu.editor-play-options.title";
 	}
 
 	private void init() {
@@ -53,16 +58,6 @@ public class EditorPlayLevelOptionsMenu extends AbstractMakerMenu {
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		return MenuClickResult.CANCEL_UPDATE;
-	}
-
-	@Override
-	public void update() {
-
-	}
-
-	@Override
-	public boolean isShared() {
-		return true;
 	}
 
 }

@@ -55,8 +55,8 @@ public abstract class AbstractDisplayableLevelMenu extends AbstractMakerMenu {
 		return getLevelItem(plugin, level);
 	}
 
-	public AbstractDisplayableLevelMenu(MinecraftMakerPlugin plugin, String title, int size) {
-		super(plugin, title, size);
+	public AbstractDisplayableLevelMenu(MinecraftMakerPlugin plugin, int size) {
+		super(plugin, size);
 	}
 
 	public void update(Collection<MakerDisplayableLevel> currentPageLevels) {

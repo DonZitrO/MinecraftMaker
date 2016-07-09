@@ -38,8 +38,13 @@ public class ServerBrowserMenu extends AbstractMakerMenu {
 	private Map<Integer, ServerData> serverData = new HashMap<>();
 
 	private ServerBrowserMenu(MinecraftMakerPlugin plugin) {
-		super(plugin, plugin.getMessage("menu.serverbrowser.title"), 18);
+		super(plugin, 18);
 		init();
+	}
+
+	@Override
+	public String getTitleKey(String modifier) {
+		return "menu.serverbrowser.title";
 	}
 
 	private ServerData createOfflineServerInfo(int serverId) {

@@ -31,7 +31,8 @@ public class LevelSearchMenu extends AbstractDisplayableLevelMenu {
 		return menu;
 	}
 
-	public static String getTitleKey() {
+	@Override
+	public String getTitleKey(String modifier) {
 		return "menu.level-search.title";
 	}
 
@@ -48,7 +49,7 @@ public class LevelSearchMenu extends AbstractDisplayableLevelMenu {
 	private final UUID viewerId;
 
 	private LevelSearchMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
-		super(plugin, plugin.getMessage(getTitleKey()), 54);
+		super(plugin, 54);
 		this.viewerId = viewerId;
 		init();
 	}

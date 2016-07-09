@@ -180,26 +180,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			}
 		}
 		if (isSteve()) {
-			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.clear.title"), plugin.getMessage("level.clear.subtitle", formatMillis(clearTimeMillis)));
-			mPlayer.sendActionMessage(plugin, "level.clear.time", formatMillis(clearTimeMillis));
-			clearSteveLevel(mPlayer);
-			return;
-		} else {
-			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.clear.title"), plugin.getMessage("level.clear.subtitle", formatMillis(clearTimeMillis)));
-			mPlayer.sendMessage(plugin, "level.clear.time", formatMillis(clearTimeMillis));
-			mPlayer.sendMessage(plugin, "level.clear.options");
-			Bukkit.getScheduler().runTaskLater(plugin, () -> openLevelOptionsAfterClear(mPlayer.getUniqueId()), 60);
-			return;
+			steveData.clearLevel(getLevelSerial());
 		}
-	}
-
-	private void clearSteveLevel(MakerPlayer mPlayer) {
-		steveData.clearLevel(getLevelSerial());
-		if (steveData.getLevelsClearedCount() == 16) {
-			finishSteveChallenge();
-		} else {
-			loadNextSteveLevel(mPlayer);
-		}
+		mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.clear.title"), plugin.getMessage("level.clear.subtitle", formatMillis(clearTimeMillis)));
+		mPlayer.sendMessage(plugin, "level.clear.time", formatMillis(clearTimeMillis));
+		mPlayer.sendMessage(plugin, "level.clear.options");
+		Bukkit.getScheduler().runTaskLater(plugin, () -> openLevelOptionsAfterClear(mPlayer.getUniqueId()), 60);
 	}
 
 	public boolean contains(org.bukkit.util.Vector position) {
@@ -224,14 +210,28 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
-	@Override
-	public void disable() {
-		status = LevelStatus.DISABLE_READY;
+	public void continueSteveChallenge() {
+		MakerPlayer mPlayer = getPlayerIsInThisLevel(currentPlayerId);
+		if (mPlayer == null) {
+			steveData = null;
+			disable("player is no longer on this level");
+			return;
+		}
+		if (steveData.getLevelsClearedCount() == 16) {
+			finishSteveChallenge();
+		} else {
+			loadNextSteveLevel(mPlayer);
+		}
 	}
 
 //	public void clearCancelledRedstoneInteractions() {
 //		cancelledRedstoneInteractions.clear();
 //	}
+
+	@Override
+	public void disable() {
+		status = LevelStatus.DISABLE_READY;
+	}
 
 	public synchronized void exitEditing() {
 		// TODO: maybe verify EDITING status
@@ -757,8 +757,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 
 	private void openLevelOptionsAfterClear(UUID playerId) {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(playerId);
-		if (mPlayer!=null && LevelStatus.CLEARED.equals(getStatus())) {
-			mPlayer.openPlayLevelOptionsMenu();
+		if (mPlayer != null && LevelStatus.CLEARED.equals(getStatus())) {
+			if (isSteve()) {
+				mPlayer.openSteveClearLevelOptionsMenu();
+			} else {
+				mPlayer.openPlayLevelOptionsMenu();
+			}
 		}
 	}
 
@@ -868,14 +872,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		}
 	}
 
-	protected void reset() {
-		removeEntities();
-		super.reset();
-		this.clipboard = null;
-		this.firstTimeLoaded = true;
-		this.status = LevelStatus.START_BEACON_PLACED;
-	}
-
 //	public void restoreRedstoneInteraction(LevelRedstoneInteraction cancelled) {
 //		if (plugin.isDebugMode()) {
 //			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.restoreRedstoneInteraction - tick: [%s] - interaction: [%s]", getCurrentTick(), cancelled));
@@ -901,6 +897,14 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 //		}
 //		cancelledRedstoneInteractions.clear();
 //	}
+
+	protected void reset() {
+		removeEntities();
+		super.reset();
+		this.clipboard = null;
+		this.firstTimeLoaded = true;
+		this.status = LevelStatus.START_BEACON_PLACED;
+	}
 
 	public void restartPlaying() {
 		if (LevelStatus.RESTART_PLAY_READY.equals(getStatus())) {
@@ -1481,13 +1485,5 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			mPlayer.sendTitleAndSubtitle(plugin.getMessage("level.busy.title"), plugin.getMessage("level.busy.subtitle"));
 		}
 	}
-
-
-//	public boolean isActivePlayer(UUID uniqueId) {
-//		if (uniqueId == null) {
-//			return false;
-//		}
-//		return uniqueId.equals(currentPlayerId);
-//	}
 
 }

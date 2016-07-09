@@ -924,6 +924,10 @@ public class MakerController implements Runnable, Tickable {
 		if (event.getSlotType() == SlotType.CONTAINER) {
 			final ItemStack clicked = event.getCurrentItem();
 			if (clicked != null && clicked.getType() != Material.AIR) {
+//				if (plugin.isDebugMode()) {
+//					Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onInventoryClick - upper title: [%s] - identity: [%s]", event.getInventory().getTitle(), System.identityHashCode(event.getInventory())));
+//					Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onInventoryClick - clicked title: [%s] - identity: [%s]", event.getClickedInventory().getTitle(), System.identityHashCode(event.getClickedInventory())));
+//				}
 				switch (mPlayer.onInventoryClick(event.getInventory(), event.getRawSlot())) {
 				case CANCEL_CLOSE:
 					event.setCancelled(true);
@@ -986,7 +990,11 @@ public class MakerController implements Runnable, Tickable {
 		}
 		if (mPlayer.isInSteve()) {
 			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
-				mPlayer.openSteveLevelOptionsMenu();
+				if (mPlayer.isPlayingLevel()) {
+					mPlayer.openSteveLevelOptionsMenu();
+				} else if (mPlayer.hasClearedLevel()) {
+					mPlayer.openSteveClearLevelOptionsMenu();
+				}
 				return MenuClickResult.CANCEL_UPDATE;
 			}
 			return MenuClickResult.ALLOW;
