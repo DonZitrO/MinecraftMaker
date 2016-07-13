@@ -5,11 +5,11 @@ import com.minecade.core.i18n.Translatable;
 public enum LevelSortBy implements Translatable {
 
 	TRENDING_SCORE(false, true),
+	DATE_PUBLISHED(true, true),
 	LEVEL_LIKES(false, true),
 	LEVEL_NAME(true, false),
 	AUTHOR_NAME(true, false),
 	AUTHOR_RANK(true, true),
-	DATE_PUBLISHED(true, true),
 	LEVEL_SERIAL(true, false),
 	LEVEL_DISLIKES(false, true);
 

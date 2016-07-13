@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.minecade.minecraftmaker.inventory.AlternativeLevelBrowserMenu;
+import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageResult;
 import com.minecade.minecraftmaker.inventory.LevelPageUpdateRequest;
 import com.minecade.minecraftmaker.level.LevelSortBy;
@@ -48,7 +48,7 @@ public class AlternativeAsyncLevelBrowserUpdaterTask extends BukkitRunnable {
 				Bukkit.getLogger().info(String.format("[DEBUG] | AlternativeAsyncLevelBrowserUpdaterTask.run - handling request: %s", request));
 				Bukkit.getLogger().info(String.format("[DEBUG] | AlternativeAsyncLevelBrowserUpdaterTask.run - with callback: %s", result));
 			}
-			result.addLevels(plugin.getDatabaseAdapter().loadPublishedLevelsPage(request.getLevelSortBy(), request.isReverseOrder(), AlternativeLevelBrowserMenu.getPageOffset(request.getPage()), AlternativeLevelBrowserMenu.getLevelsPerPage()));
+			result.addLevels(plugin.getDatabaseAdapter().loadPublishedLevelsPage(request.getLevelSortBy(), request.isReverseOrder(), LevelBrowserMenu.getPageOffset(request.getPage()), LevelBrowserMenu.getLevelsPerPage()));
 			result.setLevelCount(plugin.getDatabaseAdapter().loadPublishedLevelsCount());
 			final LevelPageResult finalPageResult = result;
 			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().levelPageResultCallback(finalPageResult));

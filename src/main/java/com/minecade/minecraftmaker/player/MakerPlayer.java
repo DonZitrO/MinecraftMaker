@@ -25,7 +25,7 @@ import com.minecade.core.player.PlayerUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
-import com.minecade.minecraftmaker.inventory.AlternativeLevelBrowserMenu;
+import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
@@ -350,7 +350,7 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void openLevelBrowserMenu() {
-		AlternativeLevelBrowserMenu menu = AlternativeLevelBrowserMenu.getInstance(plugin, this.getUniqueId());
+		LevelBrowserMenu menu = LevelBrowserMenu.getInstance(plugin, this.getUniqueId());
 		menu.update();
 		openMakerInventory(menu);
 	}

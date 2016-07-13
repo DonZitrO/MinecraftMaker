@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.material.MaterialData;
@@ -13,16 +14,24 @@ import com.minecade.nms.NMSUtils;
 
 public class ItemBuilder implements ItemStackBuilder, Cloneable {
 
-	private final Material material;
-	private final int amount;
-	private final short data;
+	private Material material;
+	private int amount;
+	private short data;
+	private MaterialData materialData;
 
 	private String displayName;
 	private List<String> lore;
-    private String uniqueId;
-    private String texture;
+
+	private String uniqueId;
+	private String texture;
+	private EntityType spawnEggType;
 
 	private List<EnchantmentWithLevel> enchantments;
+
+	public ItemBuilder(EntityType spawnEggType) {
+		this(Material.MONSTER_EGG, 1);
+		this.spawnEggType = spawnEggType;
+	}
 
 	public ItemBuilder(Material material) {
 		this(material, 1);
@@ -46,18 +55,23 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 		this.texture = texture;
 	}
 
-	@SuppressWarnings("deprecation")
 	public ItemBuilder(MaterialData materialData) {
-		this(materialData.getItemType(), 1, (short)materialData.getData());
+		this.materialData = materialData;
+		this.amount = 1;
 	}
 
-	@SuppressWarnings("deprecation")
 	public ItemBuilder(MaterialData materialData, int amount) {
-		this(materialData.getItemType(), amount, (short)materialData.getData());
+		this.materialData = materialData;
+		this.amount = amount;
 	}
 
 	public ItemStack build() {
-		ItemStack item = new ItemStack(material, amount, data);
+		ItemStack item = null;
+		if (materialData != null) {
+			item = materialData.toItemStack(amount);
+		} else {
+			item = new ItemStack(material, amount, data);
+		}
 		ItemMeta meta = item.getItemMeta();
 		if (!StringUtils.isBlank(displayName)) {
 			meta.setDisplayName(displayName);
@@ -77,6 +91,10 @@ public class ItemBuilder implements ItemStackBuilder, Cloneable {
 		// Skull
 		if (StringUtils.isNotBlank(this.uniqueId) && StringUtils.isNotBlank(this.texture)) {
 			return NMSUtils.createSkull(item, this.uniqueId, this.texture);
+		}
+		// Spawn Egg
+		if (spawnEggType != null) {
+			return NMSUtils.createSpawnEgg(item, spawnEggType);
 		}
 		return item;
 	}

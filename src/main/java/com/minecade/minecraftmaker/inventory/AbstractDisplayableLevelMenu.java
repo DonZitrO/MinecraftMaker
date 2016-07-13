@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.i18n.Internationalizable;
@@ -34,18 +34,43 @@ public abstract class AbstractDisplayableLevelMenu extends AbstractMakerMenu {
 	}
 
 	protected static ItemStack getLevelItem(Internationalizable plugin, MakerDisplayableLevel level) {
-		ItemBuilder builder = new ItemBuilder(Material.MONSTER_EGG);
+		EntityType data = EntityType.GHAST;
+		if (level.getAuthorRank() != null) {
+			switch (level.getAuthorRank()) {
+			case GUEST:
+				break;
+			case VIP:
+				data = EntityType.SLIME;
+				break;
+			case PRO:
+				data = EntityType.SQUID;
+				break;
+			case ELITE:
+				data = EntityType.BLAZE;
+				break;
+			case TITAN:
+			case LEGENDARY:
+				data = EntityType.MAGMA_CUBE;
+				break;
+			default:
+				data = EntityType.CHICKEN;
+				break;
+			}
+		}
+		ItemBuilder builder = new ItemBuilder(data);
 		builder.withDisplayName(plugin.getMessage("menu.level-browser.level.display-name", level.getLevelName()));
 		List<String> lore = new ArrayList<>();
 		lore.add(plugin.getMessage("menu.level-browser.level.serial", level.getLevelSerial()));
 		lore.add(StringUtils.EMPTY);
 		lore.add(plugin.getMessage("menu.level-browser.level.created-by", level.getAuthorName()));
-		lore.add(plugin.getMessage("menu.level-browser.level.created-by-rank", level.getAuthorRank().getDisplayName()));
-		lore.add(StringUtils.EMPTY);
-		lore.add(plugin.getMessage("menu.level-browser.level.likes", level.getLikes()));
-		lore.add(plugin.getMessage("menu.level-browser.level.dislikes", level.getDislikes()));
-		lore.add(plugin.getMessage("menu.level-browser.level.favorites", level.getFavs()));
-		lore.add(plugin.getMessage("menu.level-browser.level.publish-date", level.getDatePublished()));
+		if (level.getDatePublished() != null) {
+			lore.add(plugin.getMessage("menu.level-browser.level.created-by-rank", level.getAuthorRank().getDisplayName()));
+			lore.add(StringUtils.EMPTY);
+			lore.add(plugin.getMessage("menu.level-browser.level.likes", level.getLikes()));
+			lore.add(plugin.getMessage("menu.level-browser.level.dislikes", level.getDislikes()));
+			lore.add(plugin.getMessage("menu.level-browser.level.favorites", level.getFavs()));
+			lore.add(plugin.getMessage("menu.level-browser.level.publish-date", level.getDatePublished()));
+		}
 		lore.add(StringUtils.EMPTY);
 		builder.withLore(lore);
 		return builder.build();

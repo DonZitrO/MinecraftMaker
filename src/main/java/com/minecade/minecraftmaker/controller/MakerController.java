@@ -69,7 +69,7 @@ import com.minecade.core.util.BungeeUtils;
 import com.minecade.minecraftmaker.data.LevelOperationResult;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
-import com.minecade.minecraftmaker.inventory.AlternativeLevelBrowserMenu;
+import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageResult;
 import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
@@ -317,7 +317,7 @@ public class MakerController implements Runnable, Tickable {
 			break;
 		}
 		if (levelCount != null) {
-			AlternativeLevelBrowserMenu.updateLevelCount(levelCount);
+			LevelBrowserMenu.updateLevelCount(levelCount);
 		}
 	}
 
@@ -479,14 +479,14 @@ public class MakerController implements Runnable, Tickable {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		AlternativeLevelBrowserMenu.updateLevelCount(result.getLevelCount());
+		LevelBrowserMenu.updateLevelCount(result.getLevelCount());
 //		if (result.getLevels() != null) {
 //			for (MakerDisplayableLevel level: result.getLevels()) {
 //				steveLevelSerials.add(level.getLevelSerial());
 //			}
 //		}
 		for (UUID playerId :result.getPlayers()) {
-			AlternativeLevelBrowserMenu.updatePlayerMenu(playerId, result.getLevels());
+			LevelBrowserMenu.updatePlayerMenu(playerId, result.getLevels());
 		}
 	}
 
@@ -525,7 +525,7 @@ public class MakerController implements Runnable, Tickable {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		PlayerLevelsMenu.removeLevelFromViewer(level);
-		AlternativeLevelBrowserMenu.updateLevelCount(levelCount);
+		LevelBrowserMenu.updateLevelCount(levelCount);
 		//steveLevelSerials.add(level.getLevelSerial());
 		//LevelBrowserMenu.addOrUpdateLevel(plugin, level);
 	}
