@@ -4,7 +4,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import com.minecade.core.data.Rank;
-import com.minecade.minecraftmaker.data.AlternativeMakerLevelClearData;
+import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
@@ -26,7 +26,7 @@ public class AbstractMakerLevel {
 	protected long likes;
 	protected MakerRelativeLocationData relativeEndLocation;
 	protected long trendingScore;
-	protected AlternativeMakerLevelClearData levelBestClearData;
+	protected MakerLevelClearData levelBestClearData;
 
 	protected WorldTimeAndWeather timeAndWeather = WorldTimeAndWeather.NOON_CLEAR;
 	protected WorldTimeAndWeather timeAndWeatherChangeRequest;
@@ -68,7 +68,7 @@ public class AbstractMakerLevel {
 		return favs;
 	}
 
-	public AlternativeMakerLevelClearData getLevelBestClearData() {
+	public MakerLevelClearData getLevelBestClearData() {
 		return levelBestClearData;
 	}
 
@@ -167,7 +167,7 @@ public class AbstractMakerLevel {
 		this.dislikes = dislikes;
 	}
 
-	public void setLevelBestClearData(AlternativeMakerLevelClearData levelBestClearData) {
+	public void setLevelBestClearData(MakerLevelClearData levelBestClearData) {
 		this.levelBestClearData = levelBestClearData;
 	}
 

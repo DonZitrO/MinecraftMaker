@@ -82,13 +82,13 @@ public class ServerBrowserMenu extends AbstractMakerMenu {
 			return MenuClickResult.CANCEL_UPDATE;
 		}
 		if (info.getServerNumber() == plugin.getServerId()) {
-			mPlayer.sendMessage(plugin, "server.error.already-connected");
+			mPlayer.sendMessage("server.error.already-connected");
 			return MenuClickResult.CANCEL_UPDATE;
 		}
 		switch (info.getStatus()) {
 		case FULL:
 			if (!mPlayer.getData().hasRank(Rank.VIP)) {
-				mPlayer.sendMessage(plugin, "server.error.vip-only", Rank.VIP.getDisplayName());
+				mPlayer.sendMessage("server.error.vip-only", Rank.VIP.getDisplayName());
 				return MenuClickResult.CANCEL_UPDATE;
 			}
 			break;
@@ -97,7 +97,7 @@ public class ServerBrowserMenu extends AbstractMakerMenu {
 			BungeeUtils.switchServer(plugin, mPlayer.getPlayer(), bungeeId, plugin.getMessage("menu.serverbrowser.connecting", bungeeId));
 			return MenuClickResult.CANCEL_CLOSE;
 		default:
-			mPlayer.sendMessage(plugin, "server.error.not-available");
+			mPlayer.sendMessage("server.error.not-available");
 			break;
 		}
 		return MenuClickResult.CANCEL_UPDATE;

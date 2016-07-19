@@ -20,7 +20,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.scoreboard.Scoreboard;
 
 import com.minecade.core.data.Rank;
-import com.minecade.core.i18n.Internationalizable;
 import com.minecade.core.player.PlayerUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
@@ -28,6 +27,8 @@ import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
+import com.minecade.minecraftmaker.inventory.GuestEditLevelOptionsMenu;
+import com.minecade.minecraftmaker.inventory.GuestLevelToolsMenu;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.LevelTimeMenu;
@@ -153,6 +154,26 @@ public class MakerPlayer implements Tickable {
 		return currentLevel;
 	}
 
+	public String getCurrentLevelBestClearData() {
+		if (getCurrentLevel() == null || getCurrentLevel().getLevelBestClearData() == null) {
+			return plugin.getMessage("player.no-time");
+		}
+		if (getCurrentLevel().getLevelBestClearData().getBestTimeCleared() > 0) {
+			return getFormattedTime(getCurrentLevel().getLevelBestClearData().getBestTimeCleared());
+		}
+		return plugin.getMessage("player.no-time");
+	}
+
+	public String getCurrentLevelCurrentPlayerBestClearData() {
+		if (getCurrentLevel() == null || getCurrentLevel().getCurrentPlayerBestClearData() == null) {
+			return plugin.getMessage("player.no-time");
+		}
+		if (getCurrentLevel().getCurrentPlayerBestClearData().getBestTimeCleared() > 0) {
+			return getFormattedTime(getCurrentLevel().getCurrentPlayerBestClearData().getBestTimeCleared());
+		}
+		return plugin.getMessage("player.no-time");
+	}
+
 	@Override
 	public long getCurrentTick() {
 		return currentTick;
@@ -193,6 +214,16 @@ public class MakerPlayer implements Tickable {
 		return data.getHighestRank();
 	}
 
+	public String getLevelRecordUsername() {
+		if (getCurrentLevel() == null || getCurrentLevel().getLevelBestClearData() == null) {
+			return plugin.getMessage("general.empty");
+		}
+		if (getCurrentLevel().getLevelBestClearData().getPlayerName() != null) {
+			return getCurrentLevel().getLevelBestClearData().getPlayerName();
+		}
+		return plugin.getMessage("general.empty");
+	}
+
 	public long getLevelToDeleteSerial() {
 		return levelToDeleteSerial;
 	}
@@ -209,38 +240,8 @@ public class MakerPlayer implements Tickable {
 		return this.player;
 	}
 
-	public String getCurrentLevelCurrentPlayerBestClearData() {
-		if (getCurrentLevel() == null || getCurrentLevel().getCurrentPlayerBestClearData() == null) {
-			return plugin.getMessage("player.no-time");
-		}
-		if (getCurrentLevel().getCurrentPlayerBestClearData().getBestTimeCleared() > 0) {
-			return getFormattedTime(getCurrentLevel().getCurrentPlayerBestClearData().getBestTimeCleared());
-		}
-		return plugin.getMessage("player.no-time");
-	}
-
 	public int getPublishedLevelsCount() {
 		return data.getPublishedLevelsCount();
-	}
-
-	public String getCurrentLevelBestClearData() {
-		if (getCurrentLevel() == null || getCurrentLevel().getLevelBestClearData() == null) {
-			return plugin.getMessage("player.no-time");
-		}
-		if (getCurrentLevel().getLevelBestClearData().getBestTimeCleared() > 0) {
-			return getFormattedTime(getCurrentLevel().getLevelBestClearData().getBestTimeCleared());
-		}
-		return plugin.getMessage("player.no-time");
-	}
-
-	public String getLevelRecordUsername() {
-		if (getCurrentLevel() == null || getCurrentLevel().getLevelBestClearData() == null) {
-			return plugin.getMessage("general.empty");
-		}
-		if (getCurrentLevel().getLevelBestClearData().getPlayerName() != null) {
-			return getCurrentLevel().getLevelBestClearData().getPlayerName();
-		}
-		return plugin.getMessage("general.empty");
 	}
 
 	public MakerSteveData getSteveData(){
@@ -276,13 +277,21 @@ public class MakerPlayer implements Tickable {
 		makerScoreboard.init();
 	}
 
+	public boolean isAuthorEditingLevel() {
+		return currentLevel != null && LevelStatus.EDITING.equals(currentLevel.getStatus()) && getUniqueId().equals(currentLevel.getAuthorId());
+	}
+
 	@Override
 	public boolean isDisabled() {
 		return disabled;
 	}
 
 	public boolean isEditingLevel() {
-		return this.currentLevel != null && LevelStatus.EDITING.equals(this.currentLevel.getStatus());
+		return isAuthorEditingLevel() || isGuestEditingLevel();
+	}
+
+	public boolean isGuestEditingLevel() {
+		return currentLevel != null && LevelStatus.EDITING.equals(currentLevel.getStatus()) && currentLevel.isGuestEditor(getName());
 	}
 
 	public boolean isInBusyLevel() {
@@ -339,14 +348,12 @@ public class MakerPlayer implements Tickable {
 		openMakerInventory(EditLevelOptionsMenu.getInstance());
 	}
 
-	private void openMakerInventory(AbstractMakerMenu toOpen) {
-		checkNotNull(toOpen);
-		personalMenus.put(toOpen.getTitle(), toOpen);
-		inventoryToOpen = toOpen;
-	}
-
 	public void openEditorPlayLevelOptionsMenu() {
 		openMakerInventory(EditorPlayLevelOptionsMenu.getInstance());
+	}
+
+	public void openGuestEditLevelOptionsMenu() {
+		openMakerInventory(GuestEditLevelOptionsMenu.getInstance());
 	}
 
 	public void openLevelBrowserMenu() {
@@ -369,12 +376,22 @@ public class MakerPlayer implements Tickable {
 		openMakerInventory(LevelTimeMenu.getInstance());
 	}
 
-	public void openLevelToolsMenu(){
-		openMakerInventory(LevelToolsMenu.getInstance());
+	public void openLevelToolsMenu() {
+		if (isAuthorEditingLevel()) {
+			openMakerInventory(LevelToolsMenu.getInstance());
+		} else {
+			openMakerInventory(GuestLevelToolsMenu.getInstance());
+		}
 	}
 
 	public void openLevelWeatherMenu() {
 		openMakerInventory(LevelWeatherMenu.getInstance());
+	}
+
+	private void openMakerInventory(AbstractMakerMenu toOpen) {
+		checkNotNull(toOpen);
+		personalMenus.put(toOpen.getTitle(), toOpen);
+		inventoryToOpen = toOpen;
 	}
 
 	public void openPlayerLevelsMenu(boolean update) {
@@ -441,7 +458,7 @@ public class MakerPlayer implements Tickable {
 		PlayerUtils.resetPlayer(getPlayer(), gamemode);
 	}
 
-	public void sendActionMessage(Internationalizable plugin, String key, Object... args) {
+	public void sendActionMessage(String key, Object... args) {
 		if (!StringUtils.isEmpty(key)) {
 			String message = plugin.getMessage(key, args);
 			if (!message.equals(pendingActionMessages.peekFirst())) {
@@ -450,7 +467,7 @@ public class MakerPlayer implements Tickable {
 		}
 	}
 
-	public void sendMessage(Internationalizable plugin, String key, Object... args) {
+	public void sendMessage(String key, Object... args) {
 		if (player.isOnline()) {
 			if (StringUtils.isEmpty(key)) {
 				player.sendMessage("");
@@ -532,7 +549,8 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void spectate() {
-		clearInventory();
+		//setCurrentLevel(null);
+		 clearInventory();
 		player.setGameMode(GameMode.SPECTATOR);
 	}
 

@@ -27,6 +27,23 @@ public class PlayableLevelLimits {
 //		return 5;
 	}
 
+	public static int getRankGuestEditorsLimit(Rank rank) {
+		checkNotNull(rank);
+		if (rank.includes(Rank.TITAN)) {
+			return Integer.MAX_VALUE;
+		}
+		if (rank.includes(Rank.ELITE)) {
+			return 4;
+		}
+		if (rank.includes(Rank.PRO)) {
+			return 2;
+		}
+		if (rank.includes(Rank.VIP)) {
+			return 1;
+		}
+		return 0;
+	}
+
 	public static int getRankDroppedItemsLimit(Rank rank) {
 		checkNotNull(rank);
 		if (rank.includes(Rank.TITAN)) {

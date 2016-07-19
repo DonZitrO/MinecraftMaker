@@ -1,44 +1,59 @@
-/*package com.minecade.minecraftmaker.data;
+package com.minecade.minecraftmaker.data;
 
 import java.util.UUID;
 
 public class MakerLevelClearData {
 
-	private long timeCleared;
-	private int tries;
-	private UUID uniqueId;
-	private String username;
+	private final UUID levelId;
+	private final UUID playerId;
+	private String levelName;
+	private String playerName;
+	private long totalClears;
+	private long bestTimeCleared;
 
-	public long getTimeCleared() {
-		return timeCleared;
+	public MakerLevelClearData(UUID levelId, UUID playerId) {
+		this.levelId = levelId;
+		this.playerId = playerId;
 	}
 
-	public int getTries() {
-		return tries;
+	public long getBestTimeCleared() {
+		return bestTimeCleared;
 	}
 
-	public String getUsername() {
-		return username;
+	public UUID getLevelId() {
+		return levelId;
 	}
 
-	public UUID getUniqueId() {
-		return uniqueId;
+	public String getLevelName() {
+		return levelName;
 	}
 
-	public void setTries(int tries) {
-		this.tries = tries;
+	public UUID getPlayerId() {
+		return playerId;
 	}
 
-	public void setTimeCleared(long timeCleared) {
-		this.timeCleared = timeCleared;
+	public String getPlayerName() {
+		return playerName;
 	}
 
-	public void setUniqueId(UUID uniqueId) {
-		this.uniqueId = uniqueId;
+	public long getTotalClears() {
+		return totalClears;
 	}
 
-	public void setUsername(String username) {
-		this.username = username;
+	public void setBestTimeCleared(long bestTimeCleared) {
+		this.bestTimeCleared = bestTimeCleared;
 	}
+
+	public void setLevelName(String levelName) {
+		this.levelName = levelName;
+	}
+
+	public void setPlayerName(String playerName) {
+		this.playerName = playerName;
+	}
+
+	public void setTotalClears(long totalClears) {
+		this.totalClears = totalClears;
+	}
+
 }
-*/

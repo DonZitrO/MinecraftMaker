@@ -7,26 +7,22 @@ import com.minecade.core.i18n.TranslatableItem;
 import com.minecade.core.item.ItemBuilder;
 import com.minecade.core.item.ItemStackBuilder;
 
-public enum EditLevelOptionItem implements TranslatableItem {
+public enum GuestEditLevelOptionItem implements TranslatableItem {
 
-	SAVE(Material.BOOK_AND_QUILL),
-	PLAY(Material.FIREWORK),
 	TOOLS(Material.END_CRYSTAL),
-	INVITE(Material.SKULL_ITEM, 1, (short) 3),
-	PUBLISH(Material.ITEM_FRAME),
 	EXIT(Material.TRAP_DOOR);
 
 	private final ItemStackBuilder builder;
 
-	private EditLevelOptionItem(Material material) {
+	private GuestEditLevelOptionItem(Material material) {
 		this(material, 1);
 	}
 
-	private EditLevelOptionItem(Material material, int amount) {
+	private GuestEditLevelOptionItem(Material material, int amount) {
 		this(material, amount, (short) 0);
 	}
 
-	private EditLevelOptionItem(Material material, int amount, short data) {
+	private GuestEditLevelOptionItem(Material material, int amount, short data) {
 		this.builder = new ItemBuilder(material, amount, data);
 	}
 
@@ -40,7 +36,7 @@ public enum EditLevelOptionItem implements TranslatableItem {
 
 	@Override
 	public String getTranslationKeyBase() {
-		return "menu.edit-level-options";
+		return "menu.guest-edit-level-options";
 	}
 
 	@Override

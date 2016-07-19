@@ -43,7 +43,7 @@ public class LevelTimeMenu extends AbstractSharedMenu {
 		MenuClickResult result = super.onClick(mPlayer, slot);
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;
-		} else if (!mPlayer.isEditingLevel()) {
+		} else if (!mPlayer.isAuthorEditingLevel()) {
 			Bukkit.getLogger().warning(String.format("LevelTimeMenu.onClick - This menu should be available to level editors while editing only! - clicked by: [%s]", mPlayer.getName()));
 			return MenuClickResult.CANCEL_CLOSE;
 		}

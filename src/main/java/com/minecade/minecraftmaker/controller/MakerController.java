@@ -200,14 +200,10 @@ public class MakerController implements Runnable, Tickable {
 		mPlayer.setCurrentLevel(null);
 		// set lobby inventory
 		mPlayer.resetLobbyInventory();
-		// reset time and weather
-		// mPlayer.getPlayer().resetPlayerWeather();
-		// mPlayer.getPlayer().resetPlayerTime();
 		// reset display name
 		mPlayer.getPlayer().setDisplayName(mPlayer.getDisplayName());
+		// reset player list name
 		mPlayer.getPlayer().setPlayerListName(mPlayer.getDisplayName());
-		// reset visibility TODO: we don't need to reset player visibility until we have spectator mode
-		//PlayerUtils.resetPlayerVisibility(gPlayer.getPlayer());
 	}
 
 	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
@@ -229,12 +225,12 @@ public class MakerController implements Runnable, Tickable {
 
 	public void copyLevel(MakerPlayer mPlayer, long copyFromSerial) {
 		if (!mPlayer.isInLobby()) {
-			mPlayer.sendActionMessage(plugin, "level.create.error.author-busy");
+			mPlayer.sendActionMessage("level.create.error.author-busy");
 			return;
 		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
-			mPlayer.sendActionMessage(plugin, "level.error.full");
+			mPlayer.sendActionMessage("level.error.full");
 			return;
 		}
 		level.setLevelId(UUID.randomUUID());
@@ -247,21 +243,21 @@ public class MakerController implements Runnable, Tickable {
 
 	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
 		if (!author.isInLobby()) {
-			author.sendActionMessage(plugin, "level.create.error.author-busy");
+			author.sendActionMessage("level.create.error.author-busy");
 			return;
 		}
 		if (!author.canCreateLevel()) {
-			author.sendMessage(plugin, "level.create.error.unpublished-limit", author.getUnpublishedLevelsCount());
-			author.sendMessage(plugin, "level.create.error.unpublished-limit.publish-delete");
+			author.sendMessage("level.create.error.unpublished-limit", author.getUnpublishedLevelsCount());
+			author.sendMessage("level.create.error.unpublished-limit.publish-delete");
 			if (!author.hasRank(Rank.TITAN)) {
-				author.sendMessage(plugin, "upgrade.rank.increase.limits.or");
-				author.sendMessage(plugin, "upgrade.rank.unpublished.limits");
+				author.sendMessage("upgrade.rank.increase.limits.or");
+				author.sendMessage("upgrade.rank.unpublished.limits");
 			}
 			return;
 		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
-			author.sendActionMessage(plugin, "level.error.full");
+			author.sendActionMessage("level.error.full");
 			return;
 		}
 		level.setLevelId(UUID.randomUUID());
@@ -285,8 +281,8 @@ public class MakerController implements Runnable, Tickable {
 		long confirmSerial = mPlayer.getLevelToDeleteSerial();
 		if (confirmSerial != serial) {
 			mPlayer.setLevelToDeleteSerial(serial);
-			mPlayer.sendMessage(plugin, "command.level.delete.confirm1", serial);
-			mPlayer.sendMessage(plugin, "command.level.delete.confirm2", serial);
+			mPlayer.sendMessage("command.level.delete.confirm1", serial);
+			mPlayer.sendMessage("command.level.delete.confirm2", serial);
 		} else {
 			plugin.getDatabaseAdapter().deleteLevelBySerialAsync(serial, mPlayer);
 		}
@@ -447,7 +443,7 @@ public class MakerController implements Runnable, Tickable {
 		if (mPlayer == null) {
 			return;
 		}
-		mPlayer.sendActionMessage(plugin, dislike ? "level.dislike.success" : "level.like.success");
+		mPlayer.sendActionMessage(dislike ? "level.dislike.success" : "level.like.success");
 		MakerPlayableLevel level = mPlayer.getCurrentLevel();
 		if (level == null || !levelId.equals(level.getLevelId())) {
 			return;
@@ -492,12 +488,12 @@ public class MakerController implements Runnable, Tickable {
 
 	public void loadLevelForEditingBySerial(MakerPlayer mPlayer, Long levelSerial) {
 		if (!mPlayer.isInLobby()) {
-			mPlayer.sendActionMessage(plugin, "level.play.error.author-busy");
+			mPlayer.sendActionMessage("level.play.error.author-busy");
 			return;
 		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
-			mPlayer.sendActionMessage(plugin, "level.error.full");
+			mPlayer.sendActionMessage("level.error.full");
 			return;
 		}
 		level.setLevelSerial(levelSerial);
@@ -507,12 +503,12 @@ public class MakerController implements Runnable, Tickable {
 
 	public void loadLevelForPlayingBySerial(MakerPlayer mPlayer, Long levelSerial) {
 		if (!mPlayer.isInLobby()) {
-			mPlayer.sendActionMessage(plugin, "level.play.error.player-busy");
+			mPlayer.sendActionMessage("level.play.error.player-busy");
 			return;
 		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
-			mPlayer.sendActionMessage(plugin, "level.error.full");
+			mPlayer.sendActionMessage("level.error.full");
 			return;
 		}
 		level.setLevelSerial(levelSerial);
@@ -566,7 +562,7 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		if (mutedPlayers.contains(mPlayer.getUniqueId())) {
-			Bukkit.getScheduler().runTask(plugin, () -> mPlayer.sendMessage(plugin, "player.muted"));
+			Bukkit.getScheduler().runTask(plugin, () -> mPlayer.sendMessage("player.muted"));
 			event.setCancelled(true);
 			return;
 		}
@@ -641,15 +637,15 @@ public class MakerController implements Runnable, Tickable {
 		}
 		if (event.getBlock().getType().equals(Material.BEACON)) {
 			if (event.getBlock().getRelative(BlockFace.DOWN).getType().equals(Material.IRON_BLOCK)) {
-				mPlayer.sendMessage(plugin, "level.edit.clear-bacon");
+				mPlayer.sendMessage("level.edit.clear-bacon");
 			} else {
-				mPlayer.sendActionMessage(plugin, "level.edit.error.start-bacon");
+				mPlayer.sendActionMessage("level.edit.error.start-bacon");
 			}
 			event.setCancelled(true);
 			return;
 		}
 		if (LevelUtils.isBeaconPowerBlock(event.getBlock())) {
-			mPlayer.sendActionMessage(plugin, "level.edit.error.bacon-power-block");
+			mPlayer.sendActionMessage("level.edit.error.bacon-power-block");
 			event.setCancelled(true);
 			return;
 		}
@@ -755,9 +751,14 @@ public class MakerController implements Runnable, Tickable {
 		// end level beacon placement
 		switch (event.getBlockPlaced().getType()) {
 		case BEACON:
+			if (!mPlayer.isAuthorEditingLevel()) {
+				mPlayer.sendMessage("level.edit.error.author-only");
+				event.setCancelled(true);
+				return;
+			}
 			if (!LevelUtils.isValidEndBeaconLocation(event.getBlockPlaced().getLocation().toVector(), mPlayer.getCurrentLevel().getLevelRegion())) {
 				event.setCancelled(true);
-				mPlayer.sendActionMessage(plugin, "level.create.error.end-beacon-too-close-to-border");
+				mPlayer.sendActionMessage("level.create.error.end-beacon-too-close-to-border");
 				return;
 			}
 			Bukkit.getScheduler().runTask(plugin, () -> mPlayer.getCurrentLevel().setupEndLocation(event.getBlockPlaced().getLocation()));
@@ -766,12 +767,12 @@ public class MakerController implements Runnable, Tickable {
 		case BARRIER:
 		case ENDER_CHEST:
 			event.setCancelled(true);
-			mPlayer.sendActionMessage(plugin, "level.create.error.disabled-block");
+			mPlayer.sendActionMessage("level.create.error.disabled-block");
 			return;
 		default:
 			if (mPlayer.getCurrentLevel().getRelativeEndLocation() != null && LevelUtils.isAboveLocation(event.getBlockPlaced().getLocation().toVector(), mPlayer.getCurrentLevel().getEndLocation().toVector())) {
 				event.setCancelled(true);
-				mPlayer.sendActionMessage(plugin, "level.create.error.block-place-above-end-beacon");
+				mPlayer.sendActionMessage("level.create.error.block-place-above-end-beacon");
 				return;
 			}
 			break;
@@ -907,7 +908,7 @@ public class MakerController implements Runnable, Tickable {
 		if (mPlayer.isEditingLevel()) {
 			// allow editors to interact with creative inventory
 			if(event.getInventory().getName().equals("container.inventory")) {
-				if (ItemUtils.itemNameEquals(event.getCurrentItem(), GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
+				if (ItemUtils.itemNameEquals(event.getCurrentItem(), GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName()) || ItemUtils.itemNameEquals(event.getCurrentItem(), GeneralMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getDisplayName())) {
 					event.setCancelled(true);
 					mPlayer.updateInventory();
 				}
@@ -952,18 +953,18 @@ public class MakerController implements Runnable, Tickable {
 		if (mPlayer.isInLobby()) {
 			if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SERVER_BROWSER.getDisplayName())) {
 				//mPlayer.openServerBrowserMenu();
-				mPlayer.sendActionMessage(plugin, "general.coming-soon");
+				mPlayer.sendActionMessage("general.coming-soon");
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.STEVE_CHALLENGE.getDisplayName())) {
 				startSteveChallenge(mPlayer);
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.CREATE_LEVEL.getDisplayName())) {
 				if (!mPlayer.canCreateLevel()) {
-					mPlayer.sendMessage(plugin, "level.create.error.unpublished-limit", mPlayer.getUnpublishedLevelsCount());
-					mPlayer.sendMessage(plugin, "level.create.error.unpublished-limit.publish-delete");
+					mPlayer.sendMessage("level.create.error.unpublished-limit", mPlayer.getUnpublishedLevelsCount());
+					mPlayer.sendMessage("level.create.error.unpublished-limit.publish-delete");
 					if (!mPlayer.hasRank(Rank.TITAN)) {
-						mPlayer.sendMessage(plugin, "upgrade.rank.increase.limits.or");
-						mPlayer.sendMessage(plugin, "upgrade.rank.unpublished.limits");
+						mPlayer.sendMessage("upgrade.rank.increase.limits.or");
+						mPlayer.sendMessage("upgrade.rank.unpublished.limits");
 					}
 					return MenuClickResult.CANCEL_CLOSE;
 				}
@@ -977,7 +978,7 @@ public class MakerController implements Runnable, Tickable {
 				return MenuClickResult.CANCEL_UPDATE;
 			} else if (ItemUtils.itemNameEquals(item, MakerLobbyItem.SPECTATE.getDisplayName())) {
 				if (!mPlayer.hasRank(Rank.VIP)) {
-					mPlayer.sendMessage(plugin, "upgrade.rank.spectate");
+					mPlayer.sendMessage("upgrade.rank.spectate");
 				} else {
 					plugin.getController().startSpectating(mPlayer);
 				}
@@ -999,9 +1000,16 @@ public class MakerController implements Runnable, Tickable {
 			}
 			return MenuClickResult.ALLOW;
 		}
-		if (mPlayer.isEditingLevel()) {
+		if (mPlayer.isAuthorEditingLevel()) {
 			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 				mPlayer.openEditLevelOptionsMenu();
+				return MenuClickResult.CANCEL_UPDATE;
+			}
+			return MenuClickResult.ALLOW;
+		}
+		if (mPlayer.isGuestEditingLevel()) {
+			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getDisplayName())) {
+				mPlayer.openGuestEditLevelOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			}
 			return MenuClickResult.ALLOW;
@@ -1129,7 +1137,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 		if (mPlayer.isEditingLevel()) {
 			if (EventUtils.isItemRightClick(event, Material.LAVA_BUCKET)) {
-				mPlayer.sendActionMessage(plugin, "level.create.error.disabled-block");
+				mPlayer.sendActionMessage("level.create.error.disabled-block");
 				event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
 				event.setCancelled(true);
 				return;
@@ -1162,10 +1170,10 @@ public class MakerController implements Runnable, Tickable {
 			}
 			horse.setTamed(!horse.isTamed());
 			if (horse.isTamed()) {
-				mPlayer.sendMessage(plugin, "level.create.horse.tamed");
+				mPlayer.sendMessage("level.create.horse.tamed");
 				return;
 			} else {
-				mPlayer.sendMessage(plugin, "level.create.horse.untamed");
+				mPlayer.sendMessage("level.create.horse.untamed");
 				event.setCancelled(true);
 			}
 			return;
@@ -1253,17 +1261,17 @@ public class MakerController implements Runnable, Tickable {
 		if (mPlayer.isSpectating()) {
 			if (event.getTo().getBlockX() < -48 || event.getTo().getBlockX() > 186) {
 				event.setTo(event.getFrom());
-				mPlayer.sendActionMessage(plugin, "spectator.off-limits");
+				mPlayer.sendActionMessage("spectator.off-limits");
 				return;
 			}
 			if (event.getTo().getBlockY() < -16 || event.getTo().getBlockY() > 80) {
 				event.setTo(event.getFrom());
-				mPlayer.sendActionMessage(plugin, "spectator.off-limits");
+				mPlayer.sendActionMessage("spectator.off-limits");
 				return;
 			}
 			if (event.getTo().getBlockZ() < -16 || event.getTo().getBlockZ() > 16000) {
 				event.setTo(event.getFrom());
-				mPlayer.sendActionMessage(plugin, "spectator.off-limits");
+				mPlayer.sendActionMessage("spectator.off-limits");
 				return;
 			}
 			return;
@@ -1271,7 +1279,7 @@ public class MakerController implements Runnable, Tickable {
 		if (mPlayer.isInBusyLevel()) {
 			// look but don't move
 			if (event.getTo().getX() != event.getFrom().getX() || event.getTo().getY() != event.getFrom().getY() || event.getTo().getZ() != event.getFrom().getZ()) {
-				mPlayer.sendActionMessage(plugin, "level.busy.look-dont-move");
+				mPlayer.sendActionMessage("level.busy.look-dont-move");
 				event.setCancelled(true);
 			}
 			return;
@@ -1302,7 +1310,7 @@ public class MakerController implements Runnable, Tickable {
 		MakerPlayer mPlayer = playerMap.remove(player.getUniqueId());
 		if (mPlayer != null) {
 			MakerPlayableLevel level = mPlayer.getCurrentLevel();
-			if (level != null) {
+			if (level != null && !mPlayer.isGuestEditingLevel()) {
 				level.onPlayerQuit();
 			}
 			mPlayer.onQuit();
@@ -1396,12 +1404,12 @@ public class MakerController implements Runnable, Tickable {
 
 	public void renameLevel(MakerPlayer mPlayer, String newName) {
 		// needs to be editing that level
-		if (!mPlayer.isEditingLevel()) {
-			mPlayer.sendActionMessage(plugin, "level.rename.error.no-editing");
+		if (!mPlayer.isAuthorEditingLevel()) {
+			mPlayer.sendActionMessage("level.rename.error.no-editing");
 			return;
 		}
 		if (newName.equals(mPlayer.getCurrentLevel().getLevelName())) {
-			mPlayer.sendActionMessage(plugin, "level.rename.error.different-name");
+			mPlayer.sendActionMessage("level.rename.error.different-name");
 			return;
 		}
 		// rename
@@ -1422,11 +1430,11 @@ public class MakerController implements Runnable, Tickable {
 
 	public void searchLevels(MakerPlayer mPlayer, String searchString) {
 		if (!mPlayer.isInLobby()) {
-			mPlayer.sendActionMessage(plugin, "level.search.error.not-in-lobby");
+			mPlayer.sendActionMessage("level.search.error.not-in-lobby");
 			return;
 		}
 		if (!mPlayer.canSearchAgain()){
-			mPlayer.sendActionMessage(plugin, "level.search.error.too-soon");
+			mPlayer.sendActionMessage("level.search.error.too-soon");
 			return;
 		}
 		plugin.getDatabaseAdapter().searchPublishedLevelsByNameAsync(mPlayer.getUniqueId(), searchString);
@@ -1441,10 +1449,10 @@ public class MakerController implements Runnable, Tickable {
 			return;
 		}
 		if (levelCount == 0) {
-			mPlayer.sendActionMessage(plugin, "level.search.error.no-results", searchString);
+			mPlayer.sendActionMessage("level.search.error.no-results", searchString);
 			return;
 		} else if (levels == null) {
-			mPlayer.sendActionMessage(plugin, "level.search.error.too-many-results", levelCount, searchString);
+			mPlayer.sendActionMessage("level.search.error.too-many-results", levelCount, searchString);
 			return;
 		}
 		mPlayer.openLevelSearchMenu(levels);
@@ -1453,7 +1461,7 @@ public class MakerController implements Runnable, Tickable {
 	public void sendActionMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {
 		MakerPlayer mPlayer = getPlayer(playerId);
 		if (mPlayer != null) {
-			mPlayer.sendActionMessage(plugin, key, args);
+			mPlayer.sendActionMessage(key, args);
 		}
 	}
 
@@ -1473,7 +1481,7 @@ public class MakerController implements Runnable, Tickable {
 					this.plugin.getMessage("player.welcome6"), this.plugin.getMessage("player.welcome7"),
 					this.plugin.getMessage("player.new-line"), this.plugin.getMessage("player.welcome8")});
 			if (mPlayer.getData().isAllowedInFullServer()) {
-				mPlayer.sendMessage(plugin, "server.full.player.allowed");
+				mPlayer.sendMessage("server.full.player.allowed");
 			}
 		}
 	}
@@ -1481,19 +1489,19 @@ public class MakerController implements Runnable, Tickable {
 	public void sendMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {
 		MakerPlayer mPlayer = getPlayer(playerId);
 		if (mPlayer != null) {
-			mPlayer.sendMessage(plugin, key, args);
+			mPlayer.sendMessage(key, args);
 		}
 	}
 
-	private void startSpectating(MakerPlayer mPlayer) {
-		mPlayer.sendMessage(plugin, "player.spectate.menu");
-		mPlayer.sendMessage(plugin, "player.spectate.exit.command");
+	public void startSpectating(MakerPlayer mPlayer) {
+		mPlayer.sendMessage("player.spectate.menu");
+		mPlayer.sendMessage("player.spectate.exit.command");
 		mPlayer.spectate();
 	}
 
 	public void startSteveChallenge(MakerPlayer mPlayer) {
 		if (!mPlayer.isInLobby()) {
-			mPlayer.sendActionMessage(plugin, "level.play.error.player-busy");
+			mPlayer.sendActionMessage("level.play.error.player-busy");
 			return;
 		}
 //		Set<Long> levels = getSteveLevels();
@@ -1503,7 +1511,7 @@ public class MakerController implements Runnable, Tickable {
 //		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
-			mPlayer.sendActionMessage(plugin, "level.error.full");
+			mPlayer.sendActionMessage("level.error.full");
 			return;
 		}
 		level.setCurrentPlayerId(mPlayer.getUniqueId());
@@ -1554,8 +1562,8 @@ public class MakerController implements Runnable, Tickable {
 		long confirmSerial = mPlayer.getLevelToUnpublishSerial();
 		if (confirmSerial != serial) {
 			mPlayer.setLevelToDeleteSerial(serial);
-			mPlayer.sendMessage(plugin, "command.level.unpublish.confirm1", serial);
-			mPlayer.sendMessage(plugin, "command.level.unpublish.confirm2", serial);
+			mPlayer.sendMessage("command.level.unpublish.confirm1", serial);
+			mPlayer.sendMessage("command.level.unpublish.confirm2", serial);
 		} else {
 			plugin.getDatabaseAdapter().unpublishLevelBySerialAsync(serial, mPlayer);
 		}

@@ -187,7 +187,7 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 			plugin.getController().loadLevelForPlayingBySerial(mPlayer, Long.valueOf(serial));
 			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SEARCH.getDisplayName())) {
-			mPlayer.sendMessage(plugin, "command.level.search.usage");
+			mPlayer.sendMessage("command.level.search.usage");
 			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
 			sortByNext();

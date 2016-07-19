@@ -23,6 +23,7 @@ import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.EditorPlayLevelOptionItem;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
+import com.minecade.minecraftmaker.items.GuestEditLevelOptionItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
@@ -37,7 +38,7 @@ import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
-import com.minecade.minecraftmaker.task.AlternativeAsyncLevelBrowserUpdaterTask;
+import com.minecade.minecraftmaker.task.AsyncLevelBrowserUpdaterTask;
 import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
 import com.minecade.minecraftmaker.task.AsyncPlayerCounterUpdaterTask;
 import com.minecade.minecraftmaker.task.LevelOperatorTask;
@@ -56,7 +57,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	private MakerDatabaseAdapter databaseAdapter;
 	private MakerController controller;
 	private AsyncLevelSaverTask asyncLevelSaver;
-	private AlternativeAsyncLevelBrowserUpdaterTask asyncLevelBrowserUpdater;
+	private AsyncLevelBrowserUpdaterTask asyncLevelBrowserUpdater;
 	private LevelOperatorTask levelOperatorTask;
 	private BukkitImplAdapter bukkitImplAdapter;
 	private ResourceBundle messages;
@@ -71,7 +72,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		return bukkitImplAdapter;
 	}
 
-	public AlternativeAsyncLevelBrowserUpdaterTask getAsyncLevelBrowserUpdater() {
+	public AsyncLevelBrowserUpdaterTask getAsyncLevelBrowserUpdater() {
 		return asyncLevelBrowserUpdater;
 	}
 
@@ -126,7 +127,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		asyncLevelSaver = new AsyncLevelSaverTask(this);
 		asyncLevelSaver.runTaskTimerAsynchronously(this, 0, 0);
 		// asyc level browser updater
-		asyncLevelBrowserUpdater = new AlternativeAsyncLevelBrowserUpdaterTask(this);
+		asyncLevelBrowserUpdater = new AsyncLevelBrowserUpdaterTask(this);
 		asyncLevelBrowserUpdater.runTaskTimerAsynchronously(this, 0, 0);
 		// instantiate and init main controller
 		controller = new MakerController(this, getConfig().getConfigurationSection("controller"));
@@ -202,6 +203,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		}
 		// translate edit level option menu items
 		for (EditLevelOptionItem item : EditLevelOptionItem.values()) {
+			item.translate(this);
+		}
+		// translate guest edit level option menu items
+		for (GuestEditLevelOptionItem item : GuestEditLevelOptionItem.values()) {
 			item.translate(this);
 		}
 		// translate editor play level option menu items

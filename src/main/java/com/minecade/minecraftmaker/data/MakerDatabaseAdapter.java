@@ -692,7 +692,7 @@ public class MakerDatabaseAdapter {
 			selectBestLevelClear.setString(2, playerIdString);
 			ResultSet resultSet = selectBestLevelClear.executeQuery();
 			if (resultSet.next()) {
-				AlternativeMakerLevelClearData data = new AlternativeMakerLevelClearData(level.getLevelId(), level.getCurrentPlayerId());
+				MakerLevelClearData data = new MakerLevelClearData(level.getLevelId(), level.getCurrentPlayerId());
 				data.setPlayerName(resultSet.getString("username"));
 				data.setBestTimeCleared(resultSet.getLong("time_cleared"));
 				level.setCurrentPlayerBestClearData(data);
@@ -716,7 +716,7 @@ public class MakerDatabaseAdapter {
 			ResultSet resultSet = selectBestLevelClear.executeQuery();
 			if (resultSet.next()) {
 				ByteBuffer playerIdBytes = ByteBuffer.wrap(resultSet.getBytes("player_id"));
-				AlternativeMakerLevelClearData data = new AlternativeMakerLevelClearData(level.getLevelId(), new UUID(playerIdBytes.getLong(), playerIdBytes.getLong()));
+				MakerLevelClearData data = new MakerLevelClearData(level.getLevelId(), new UUID(playerIdBytes.getLong(), playerIdBytes.getLong()));
 				data.setPlayerName(resultSet.getString("username"));
 				data.setBestTimeCleared(resultSet.getLong("time_cleared"));
 				level.setLevelBestClearData(data);

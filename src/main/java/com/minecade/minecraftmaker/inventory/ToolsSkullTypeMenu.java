@@ -64,7 +64,7 @@ public class ToolsSkullTypeMenu extends AbstractSharedMenu {
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		if (ItemUtils.itemNameEquals(itemStack, GeneralMenuItem.CUSTOM_HEAD.getDisplayName())) {
-			mPlayer.sendMessage(plugin, "command.maker.head.usage");
+			mPlayer.sendMessage("command.maker.head.usage");
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		SkullTypeItem skullTypeItem = SkullTypeItem.getSkullTypeItemByDisplayName(itemStack.getItemMeta().getDisplayName());

@@ -46,7 +46,7 @@ public class EditLevelOptionsMenu extends AbstractSharedMenu {
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;
 		}
-		if (!mPlayer.isEditingLevel()) {
+		if (!mPlayer.isAuthorEditingLevel()) {
 			Bukkit.getLogger().warning(String.format("EditLevelOptionsMenu.onClick - This menu should be available to level editors only! - clicked by: [%s]", mPlayer.getName()));
 			return MenuClickResult.CANCEL_CLOSE;
 		}
@@ -57,23 +57,26 @@ public class EditLevelOptionsMenu extends AbstractSharedMenu {
 			mPlayer.getCurrentLevel().saveAndPlay();
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.PUBLISH.getDisplayName())) {
 			if (!mPlayer.canPublishLevel()) {
-				mPlayer.sendMessage(plugin, "level.publish.error.published-limit", mPlayer.getPublishedLevelsCount());
-				mPlayer.sendMessage(plugin, "level.publish.error.published-limit.unpublish-delete");
+				mPlayer.sendMessage("level.publish.error.published-limit", mPlayer.getPublishedLevelsCount());
+				mPlayer.sendMessage("level.publish.error.published-limit.unpublish-delete");
 				if (!mPlayer.hasRank(Rank.TITAN)) {
-					mPlayer.sendMessage(plugin, "upgrade.rank.increase.limits.or");
-					mPlayer.sendMessage(plugin, "upgrade.rank.published.limits");
+					mPlayer.sendMessage("upgrade.rank.increase.limits.or");
+					mPlayer.sendMessage("upgrade.rank.published.limits");
 				}
 				return MenuClickResult.CANCEL_CLOSE;
 			}
 			mPlayer.getCurrentLevel().publishLevel();
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.TOOLS.getDisplayName())) {
 			if(!mPlayer.hasRank(Rank.VIP)){
-				mPlayer.sendMessage(plugin, "upgrade.rank.build.tools");
+				mPlayer.sendMessage("upgrade.rank.build.tools");
 				return MenuClickResult.CANCEL_CLOSE;
 			} else {
 				mPlayer.updateInventory();
 				mPlayer.openLevelToolsMenu();
 			}
+		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.INVITE.getDisplayName())) {
+			mPlayer.sendMessage("command.maker.invite.usage");
+			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.EXIT.getDisplayName())) {
 			mPlayer.getCurrentLevel().exitEditing();
 		}

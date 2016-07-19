@@ -9,17 +9,17 @@ import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelToolsMenu extends AbstractSharedMenu {
+public class GuestLevelToolsMenu extends AbstractSharedMenu {
 
-	private static LevelToolsMenu instance;
+	private static GuestLevelToolsMenu instance;
 
-	private LevelToolsMenu(MinecraftMakerPlugin plugin) {
+	private GuestLevelToolsMenu(MinecraftMakerPlugin plugin) {
 		super(plugin, 45);
 	}
 
-	public static LevelToolsMenu getInstance() {
+	public static GuestLevelToolsMenu getInstance() {
 		if (instance == null) {
-			instance = new LevelToolsMenu(MinecraftMakerPlugin.getInstance());
+			instance = new GuestLevelToolsMenu(MinecraftMakerPlugin.getInstance());
 			instance.init();
 		}
 		return instance;
@@ -27,16 +27,14 @@ public class LevelToolsMenu extends AbstractSharedMenu {
 
 	private void init() {
 		loadGlassPanes(items);
-		items[20] = LevelToolsItem.WEATHER.getItem();
-		items[22] = LevelToolsItem.TIME.getItem();
-		items[24] = LevelToolsItem.SKULL.getItem();
+		items[22] = LevelToolsItem.SKULL.getItem();
 		items[44] = GeneralMenuItem.EXIT_MENU.getItem();
 		inventory.setContents(items);
 	}
 
 	@Override
 	public String getTitleKey(String modifier) {
-		return "menu.level-tools.title";
+		return "menu.guest-level-tools.title";
 	}
 
 	@Override
@@ -46,7 +44,7 @@ public class LevelToolsMenu extends AbstractSharedMenu {
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;
 		} else if (!mPlayer.isEditingLevel()) {
-			Bukkit.getLogger().warning(String.format("LevelToolsMenu.onClick - This menu should be available to level editors while editing only! - clicked by: [%s]", mPlayer.getName()));
+			Bukkit.getLogger().warning(String.format("GuestLevelToolsMenu.onClick - This menu should be available to level editors while editing only! - clicked by: [%s]", mPlayer.getName()));
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		
@@ -56,22 +54,6 @@ public class LevelToolsMenu extends AbstractSharedMenu {
 		if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.EXIT.getDisplayName())) {
 			mPlayer.openLevelToolsMenu();
 			return MenuClickResult.CANCEL_CLOSE;
-		} else if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.TIME.getDisplayName())) {
-			if (mPlayer.isAuthorEditingLevel()) {
-				mPlayer.openLevelTimeMenu();
-				return MenuClickResult.CANCEL_CLOSE;
-			} else {
-				mPlayer.sendMessage("level.edit.error.author-only");
-				return MenuClickResult.CANCEL_UPDATE;
-			}
-		} else if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.WEATHER.getDisplayName())) {
-			if (mPlayer.isAuthorEditingLevel()) {
-				mPlayer.openLevelWeatherMenu();
-				return MenuClickResult.CANCEL_CLOSE;
-			} else {
-				mPlayer.sendMessage("level.edit.error.author-only");
-				return MenuClickResult.CANCEL_UPDATE;
-			}
 		} else if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.SKULL.getDisplayName())) {
 			mPlayer.openToolsSkullTypeMenu();
 			return MenuClickResult.CANCEL_CLOSE;
