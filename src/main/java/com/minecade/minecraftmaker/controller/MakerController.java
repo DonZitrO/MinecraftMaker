@@ -183,6 +183,13 @@ public class MakerController implements Runnable, Tickable {
 		addPlayerToMainLobby(mPlayer);
 		// welcome message
 		Bukkit.getScheduler().runTask(plugin, () -> sendBruteForceWelcomeMessage(mPlayer));
+		// announcements
+		Bukkit.getScheduler().runTaskLater(plugin, () -> mPlayer.sendMessage("announcements.everyone1"), 100);
+		Bukkit.getScheduler().runTaskLater(plugin, () -> mPlayer.sendMessage("announcements.everyone2"), 200);
+		if (!mPlayer.hasRank(Rank.VIP)) {
+			Bukkit.getScheduler().runTaskLater(plugin, () -> mPlayer.sendMessage("announcements.default1"), 300);
+			Bukkit.getScheduler().runTaskLater(plugin, () -> mPlayer.sendMessage("announcements.default2"), 400);
+		}
 	}
 
 	public void addPlayerToMainLobby(MakerPlayer mPlayer) {
