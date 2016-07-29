@@ -1,8 +1,10 @@
 package com.minecade.minecraftmaker.data;
 
 public enum LevelOperationResult {
-	SUCCESS,
+	ALREADY_UNPUBLISHED,
+	ERROR,
 	NOT_FOUND,
-	PERMISSION_DENIED,
-	ERROR
+	NOT_PUBLISHED,
+	PERMISSION_DENIED, 
+	SUCCESS;
 }

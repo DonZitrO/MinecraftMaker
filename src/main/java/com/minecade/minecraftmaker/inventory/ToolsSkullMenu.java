@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import com.google.common.collect.Maps;
@@ -54,9 +55,8 @@ public class ToolsSkullMenu extends AbstractSharedMenu {
 	}
 
 	@Override
-	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
-		MenuClickResult result = super.onClick(mPlayer, slot);
-
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot, ClickType clickType) {
+		MenuClickResult result = super.onClick(mPlayer, slot, clickType);
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;
 		} else if (!mPlayer.isEditingLevel()) {

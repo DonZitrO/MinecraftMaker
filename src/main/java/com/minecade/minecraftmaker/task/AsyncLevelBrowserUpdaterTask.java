@@ -48,7 +48,7 @@ public class AsyncLevelBrowserUpdaterTask extends BukkitRunnable {
 				Bukkit.getLogger().info(String.format("[DEBUG] | AsyncLevelBrowserUpdaterTask.run - handling request: %s", request));
 				Bukkit.getLogger().info(String.format("[DEBUG] | AsyncLevelBrowserUpdaterTask.run - with callback: %s", result));
 			}
-			result.addLevels(plugin.getDatabaseAdapter().loadPublishedLevelsPage(request.getLevelSortBy(), request.isReverseOrder(), LevelBrowserMenu.getPageOffset(request.getPage()), LevelBrowserMenu.getLevelsPerPage()));
+			result.addLevels(plugin.getDatabaseAdapter().loadPublishedLevelsPage(request.getLevelSortBy(), request.isReverseOrder(), LevelBrowserMenu.getPageOffset(request.getPage()), LevelBrowserMenu.ITEMS_PER_PAGE));
 			result.setLevelCount(plugin.getDatabaseAdapter().loadPublishedLevelsCount());
 			final LevelPageResult finalPageResult = result;
 			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().levelPageResultCallback(finalPageResult));

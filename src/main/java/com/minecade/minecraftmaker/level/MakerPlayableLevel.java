@@ -111,16 +111,15 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (host == null) {
 			return;
 		}
-		if (mPlayer.teleport(host.getPlayer().getLocation(), TeleportCause.PLUGIN)) {
-			mPlayer.setCurrentLevel(this);
-			mPlayer.setGameMode(GameMode.CREATIVE);
-			mPlayer.resetPlayer();
-			mPlayer.setAllowFlight(true);
-			mPlayer.setFlying(true);
-			mPlayer.clearInventory();
-			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getItem());
-			mPlayer.updateInventory();
-		}
+		mPlayer.setGameMode(GameMode.SPECTATOR);
+		mPlayer.teleportOnNextTick(host.getPlayer(), GameMode.CREATIVE);
+		mPlayer.setCurrentLevel(this);
+		mPlayer.resetPlayer();
+		mPlayer.setAllowFlight(true);
+		mPlayer.setFlying(true);
+		mPlayer.clearInventory();
+		mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getItem());
+
 	}
 
 	public void checkLevelEnd(Location location) {
@@ -198,6 +197,15 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 				this.clearedByAuthorMillis = clearTimeMillis;
 				plugin.getDatabaseAdapter().updateLevelAuthorClearTimeAsync(getLevelId(), clearTimeMillis);
 			}
+		}
+		// update level best clear if faster
+		if (levelBestClearData != null && (levelBestClearData.getBestTimeCleared() == 0 || levelBestClearData.getBestTimeCleared() > clearTimeMillis)) {
+			levelBestClearData.setPlayerName(mPlayer.getName());
+			levelBestClearData.setBestTimeCleared(clearTimeMillis);
+		}
+		// update player best clear data if faster
+		if (currentPlayerBestClearData != null && (currentPlayerBestClearData.getBestTimeCleared() == 0 || currentPlayerBestClearData.getBestTimeCleared() > clearTimeMillis)) {
+			currentPlayerBestClearData.setBestTimeCleared(clearTimeMillis);
 		}
 		if (isSteve()) {
 			steveData.clearLevel(getLevelSerial());
@@ -1166,8 +1174,9 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		// sync the level info with the latest from author
 		this.authorRank = mPlayer.getHighestRank();
 		this.authorName= mPlayer.getName();
-		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
-			mPlayer.setGameMode(GameMode.CREATIVE);
+		mPlayer.setGameMode(GameMode.SPECTATOR);
+		if (mPlayer.teleport(getStartLocation().add(-5, 0, 0), TeleportCause.PLUGIN)) {
+			mPlayer.teleportOnNextTick(getStartLocation(), GameMode.CREATIVE);
 			mPlayer.resetPlayer();
 			//setupEffects(mPlayer);
 			mPlayer.setAllowFlight(true);
@@ -1219,8 +1228,9 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			disable(e.getMessage(), e);
 			return;
 		}
-		if (mPlayer.teleport(getStartLocation(), TeleportCause.PLUGIN)) {
-			mPlayer.setGameMode(GameMode.ADVENTURE);
+		mPlayer.setGameMode(GameMode.SPECTATOR);
+		if (mPlayer.teleport(getStartLocation().add(-5, 0, 0), TeleportCause.PLUGIN)) {
+			mPlayer.teleportOnNextTick(getStartLocation(), GameMode.ADVENTURE);
 			mPlayer.resetPlayer();
 			//setupEffects(mPlayer);
 			mPlayer.setInvulnerable(false);

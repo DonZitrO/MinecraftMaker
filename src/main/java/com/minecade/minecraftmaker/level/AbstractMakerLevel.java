@@ -27,6 +27,7 @@ public class AbstractMakerLevel {
 	protected MakerRelativeLocationData relativeEndLocation;
 	protected long trendingScore;
 	protected MakerLevelClearData levelBestClearData;
+	protected boolean unpublished;
 
 	protected WorldTimeAndWeather timeAndWeather = WorldTimeAndWeather.NOON_CLEAR;
 	protected WorldTimeAndWeather timeAndWeatherChangeRequest;
@@ -124,6 +125,10 @@ public class AbstractMakerLevel {
 		return datePublished != null;
 	}
 
+	public boolean isUnpublished() {
+		return unpublished;
+	}
+
 	public void requestTimeAndWeatherChange(WorldTimeAndWeather timeAndWeather) {
 		this.timeAndWeatherChangeRequest = timeAndWeather;
 	}
@@ -183,6 +188,10 @@ public class AbstractMakerLevel {
 		this.levelSerial = levelSerial;
 	}
 
+	public void setLikes(long likes) {
+		this.likes = likes;
+	}
+
 //	public void setLevelTime(long levelTime) {
 //		this.levelTime = levelTime;
 //	}
@@ -191,16 +200,16 @@ public class AbstractMakerLevel {
 //		this.levelWeather = levelWeather;
 //	}
 
-	public void setLikes(long likes) {
-		this.likes = likes;
-	}
-
 	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
 		this.relativeEndLocation = relativeEndLocation;
 	}
 
 	public void setTrendingScore(long trendingScore) {
 		this.trendingScore = trendingScore;
+	}
+
+	public void setUnpublished(boolean unpublished) {
+		this.unpublished = unpublished;
 	}
 
 }

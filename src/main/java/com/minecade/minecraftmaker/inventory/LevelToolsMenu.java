@@ -1,6 +1,7 @@
 package com.minecade.minecraftmaker.inventory;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.item.ItemUtils;
@@ -40,8 +41,8 @@ public class LevelToolsMenu extends AbstractSharedMenu {
 	}
 
 	@Override
-	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
-		MenuClickResult result = super.onClick(mPlayer, slot);
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot, ClickType clickType) {
+		MenuClickResult result = super.onClick(mPlayer, slot, clickType);
 
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;

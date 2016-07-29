@@ -2,10 +2,10 @@ package com.minecade.minecraftmaker.player;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -14,7 +14,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.scoreboard.Scoreboard;
@@ -24,11 +26,11 @@ import com.minecade.core.player.PlayerUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
-import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.GuestEditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.GuestLevelToolsMenu;
+import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.LevelTimeMenu;
@@ -78,7 +80,9 @@ public class MakerPlayer implements Tickable {
 	private long currentTick;
 	private boolean disabled = false;
 
+	private Entity entityTeleportDestination;
 	private Location teleportDestination;
+	private GameMode requestedGameMode;
 
 	private long levelToDeleteSerial;
 	private long levelToUnpublishSerial;
@@ -326,11 +330,11 @@ public class MakerPlayer implements Tickable {
 		return player.getGameMode().equals(GameMode.SPECTATOR);
 	}
 
-	public MenuClickResult onInventoryClick(Inventory inventory, int slot) {
+	public MenuClickResult onInventoryClick(Inventory inventory, int slot, ClickType clickType) {
 		checkNotNull(inventory);
 		AbstractMakerMenu menu = personalMenus.get(inventory.getTitle());
 		if (menu != null) {
-			return menu.onClick(this, slot);
+			return menu.onClick(this, slot, clickType);
 		}
 		return MenuClickResult.ALLOW;
 	}
@@ -362,10 +366,14 @@ public class MakerPlayer implements Tickable {
 		openMakerInventory(menu);
 	}
 
-	public void openLevelSearchMenu(Set<MakerDisplayableLevel> levels) {
+	public void openLevelSearchMenu(String searchString, int totalResults, Collection<MakerDisplayableLevel> levelsPage) {
 		LevelSearchMenu menu = LevelSearchMenu.getInstance(plugin, this.getUniqueId());
-		menu.update(levels);
+		menu.update(searchString, totalResults, levelsPage);
 		openMakerInventory(menu);
+	}
+
+	public void resetLevelSearchMenu() {
+		LevelSearchMenu.getInstance(plugin, this.getUniqueId()).reset();
 	}
 
 	public void openLevelTemplateMenu() {
@@ -548,6 +556,10 @@ public class MakerPlayer implements Tickable {
 		data.setUnpublishedLevelsCount(unpublishedCount);
 	}
 
+	public void setUniqueLevelClearsCount(long count) {
+		getData().setUniqueLevelClearsCount(count);
+	}
+
 	public void spectate() {
 		//setCurrentLevel(null);
 		 clearInventory();
@@ -559,15 +571,33 @@ public class MakerPlayer implements Tickable {
 	}
 
 	private void teleportIfRequested() {
+		if (entityTeleportDestination != null) {
+			teleportDestination = entityTeleportDestination.getLocation().clone();
+			entityTeleportDestination = null;
+		}
 		if (teleportDestination != null) {
 			if (player.teleport(teleportDestination, TeleportCause.PLUGIN)) {
 				teleportDestination = null;
+				if (requestedGameMode != null){
+					player.setGameMode(requestedGameMode);
+					requestedGameMode = null;
+				}
 			}
 		}
 	}
 
+	public void teleportOnNextTick(Entity destination, GameMode gameMode) {
+		entityTeleportDestination = destination;
+		requestedGameMode = gameMode;
+	}
+
 	public void teleportOnNextTick(Location destination) {
 		this.teleportDestination = destination;
+	}
+
+	public void teleportOnNextTick(Location destination, GameMode gameMode) {
+		teleportDestination = destination;
+		requestedGameMode = gameMode;
 	}
 
 	@Override

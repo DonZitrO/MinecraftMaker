@@ -38,6 +38,7 @@ import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
 import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
+import com.minecade.minecraftmaker.task.AnnouncerTask;
 import com.minecade.minecraftmaker.task.AsyncLevelBrowserUpdaterTask;
 import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
 import com.minecade.minecraftmaker.task.AsyncPlayerCounterUpdaterTask;
@@ -137,6 +138,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		// start builder task
 		levelOperatorTask = new LevelOperatorTask(this);
 		levelOperatorTask.runTaskTimer(this, 0, 0);
+		// announcer
+		AnnouncerTask announcer = new AnnouncerTask(this);
+		announcer.init();
+		announcer.runTaskTimer(this, 2400L, 2400L);
 		// register listeners
 		getServer().getPluginManager().registerEvents(new MakerListener(this), this);
 		// TODO: remove this after fixed

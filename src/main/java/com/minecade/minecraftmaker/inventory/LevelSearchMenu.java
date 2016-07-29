@@ -2,6 +2,7 @@ package com.minecade.minecraftmaker.inventory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -9,10 +10,11 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.core.item.ItemUtils;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
+import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -31,25 +33,13 @@ public class LevelSearchMenu extends AbstractDisplayableLevelMenu {
 		return menu;
 	}
 
-	@Override
-	public String getTitleKey(String modifier) {
-		return "menu.level-search.title";
-	}
-
-	public static void updatePlayerMenu(UUID playerId) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		LevelSearchMenu menu = userLevelSearchMenuMap.get(playerId);
-		if (menu != null) {
-			menu.update();
-		}
-	}
-
 	private final UUID viewerId;
 
+	private String searchString;
+	private int totalSearchResults;
+
 	private LevelSearchMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
-		super(plugin, 54);
+		super(plugin);
 		this.viewerId = viewerId;
 		init();
 	}
@@ -60,15 +50,18 @@ public class LevelSearchMenu extends AbstractDisplayableLevelMenu {
 		userLevelSearchMenuMap.remove(getViewerId());
 	}
 
-	public UUID getViewerId() {
-		return this.viewerId;
+	@Override
+	public String getTitleKey(String modifier) {
+		return "menu.level-search.title";
 	}
 
-	private void init() {
-		for (int i = 0; i < inventory.getSize(); i++) {
-			items[i] = getGlassPane();
-		}
-		items[51] = GeneralMenuItem.EXIT_MENU.getItem();
+	@Override
+	protected int getTotalItemsCount() {
+		return totalSearchResults;
+	}
+
+	public UUID getViewerId() {
+		return this.viewerId;
 	}
 
 	@Override
@@ -77,8 +70,8 @@ public class LevelSearchMenu extends AbstractDisplayableLevelMenu {
 	}
 
 	@Override
-	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
-		MenuClickResult result = super.onClick(mPlayer, slot);
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot, ClickType clickType) {
+		MenuClickResult result = super.onClick(mPlayer, slot, clickType);
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;
 		}
@@ -99,9 +92,25 @@ public class LevelSearchMenu extends AbstractDisplayableLevelMenu {
 		return MenuClickResult.CANCEL_UPDATE;
 	}
 
+	public void reset() {
+		currentPage = 1;
+		totalSearchResults = 0;
+		update(null);
+	}
+
 	@Override
 	public void update() {
-		throw new UnsupportedOperationException();
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		update(null);
+		plugin.getDatabaseAdapter().searchPublishedLevelsPageByNameAsync(getViewerId(), searchString, getPageOffset(currentPage), ITEMS_PER_PAGE);
+	}
+
+	public void update(String searchString, int totalResults, Collection<MakerDisplayableLevel> currentPageLevels) {
+		this.searchString = searchString;
+		this.totalSearchResults = totalResults;
+		update(currentPageLevels);
 	}
 
 }

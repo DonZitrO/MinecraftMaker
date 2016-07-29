@@ -17,6 +17,20 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class LevelCommandExecutor extends AbstractCommandExecutor {
 
+	private static long validateLevelSerial(String[] args, int index) {
+		if (args.length > index) {
+			try {
+				long serial = Long.parseLong(args[index]);
+				Validate.isTrue(serial > 0);
+				return serial;
+			} catch (Exception e) {
+				Bukkit.getLogger().warning(String.format("LevelCommandExecutor.optionalBlockId - invalid level serial: [%s] - %s", args[index], e.getMessage()));
+				return 0;
+			}
+		}
+		return 0;
+	}
+
 	public LevelCommandExecutor(MinecraftMakerPlugin plugin) {
 		super(plugin);
 	}
@@ -34,136 +48,141 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 			return true;
 		}
 		if (args.length < 1) {
-			sender.sendMessage(plugin.getMessage("command.level.usage"));
-			sender.sendMessage(plugin.getMessage("command.level.actions"));
-			sender.sendMessage(plugin.getMessage("command.level.actions.help"));
+			showUsage(mPlayer);
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("rename")) {
-			if (args.length < 2) {
-				sender.sendMessage(plugin.getMessage("command.level.rename.usage"));
-				sender.sendMessage(plugin.getMessage("command.level.rename.permissions"));
-				return true;
-			}
-			String name = Joiner.on(" ").join(Arrays.copyOfRange(args, 1, args.length));
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | LevelCommandExecutor.onCommand - new level name: [%s]", name));
-			}
-			if (StringUtils.isBlank(name)) {
-				sender.sendMessage(plugin.getMessage("level.rename.error.empty-name"));
-				return true;
-			}
-			if (name.length() < 3) {
-				sender.sendMessage(plugin.getMessage("level.rename.error.too-short"));
-				return true;
-			}
-			if (name.length() > 30) {
-				sender.sendMessage(plugin.getMessage("level.rename.error.too-long"));
-				return true;
-			}
-			if (!name.matches("\\w(\\w|'|\\ )*\\w")) {
-				sender.sendMessage(plugin.getMessage("level.rename.error.invalid"));
-				return true;
-			}
-			// capitalize
-			name = WordUtils.capitalize(name);
-			plugin.getController().renameLevel(mPlayer, name);
+			executeRenameCommand(args, mPlayer);
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("search")) {
-			if (args.length < 2) {
-				sender.sendMessage(plugin.getMessage("command.level.search.usage"));
-				sender.sendMessage(plugin.getMessage("command.level.search.permissions"));
-				//sender.sendMessage(plugin.getMessage("level.search.error.empty-string"));
-				return true;
-			}
-			String searchString = Joiner.on(" ").join(Arrays.copyOfRange(args, 1, args.length));
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | LevelCommandExecutor.onCommand - search string: [%s]", searchString));
-			}
-			if (StringUtils.isBlank(searchString)) {
-				sender.sendMessage(plugin.getMessage("level.search.error.empty-string"));
-				return true;
-			}
-			if (searchString.length() < 3 || searchString.length() > 16) {
-				sender.sendMessage(plugin.getMessage("level.search.error.wrong-size-string"));
-				return true;
-			}
-			if (!searchString.matches("\\w(\\w|'|\\ )*\\w")) {
-				sender.sendMessage(plugin.getMessage("level.search.error.invalid-string"));
-				return true;
-			}
-			plugin.getController().searchLevels(mPlayer, searchString);
+			executeSearchCommand(args, mPlayer);
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("delete")) {
-			if (args.length < 2) {
-				sender.sendMessage(plugin.getMessage("command.level.delete.usage"));
-				sender.sendMessage(plugin.getMessage("command.level.delete.permissions"));
-				return true;
-			}
-			long serial = validateLevelSerial(args, 1);
-			if (serial <= 0) {
-				sender.sendMessage(plugin.getMessage("command.level.error.invalid-serial"));
-				return true;
-			}
-			plugin.getController().deleteLevel(mPlayer, serial);
+			executeDeleteCommand(args, mPlayer);
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("unpublish")) {
-			if (args.length < 2) {
-				sender.sendMessage(plugin.getMessage("command.level.unpublish.usage"));
-				sender.sendMessage(plugin.getMessage("command.level.unpublish.permissions"));
-				return true;
-			}
-			long serial = validateLevelSerial(args, 1);
-			if (serial <= 0) {
-				sender.sendMessage(plugin.getMessage("command.level.error.invalid-serial"));
-				return true;
-			}
-			plugin.getController().unpublishLevel(mPlayer, serial);
+			executeUnpublishCommand(args, mPlayer);
 			return true;
 		}
 		// ADMIN only sub-commands below
 		if (!mPlayer.getData().hasRank(Rank.ADMIN)) {
-			sender.sendMessage(plugin.getMessage("command.error.permissions"));
-			sender.sendMessage(plugin.getMessage("command.level.usage"));
-			sender.sendMessage(plugin.getMessage("command.level.actions"));
-			sender.sendMessage(plugin.getMessage("command.level.actions.help"));
+			showUsage(mPlayer);
 			return true;
 		}
-		if (args[0].equalsIgnoreCase("edit")) {
-			if (args.length < 2) {
-				sender.sendMessage(plugin.getMessage("command.level.edit.usage"));
-				sender.sendMessage(plugin.getMessage("command.level.edit.permissions"));
-				return true;
-			}
-			long serial = validateLevelSerial(args, 1);
-			if (serial <= 0) {
-				sender.sendMessage(plugin.getMessage("command.level.error.invalid-serial"));
-				return true;
-			}
-			plugin.getController().copyLevel(mPlayer, serial);
+		if (args[0].equalsIgnoreCase("copy")) {
+			executeCopyCommand(args, mPlayer);
 			return true;
 		}
-		sender.sendMessage(plugin.getMessage("command.level.usage"));
-		sender.sendMessage(plugin.getMessage("command.level.actions"));
-		sender.sendMessage(plugin.getMessage("command.level.actions.help"));
+		showUsage(mPlayer);
 		return true;
 	}
 
-	private static long validateLevelSerial(String[] args, int index) {
-		if (args.length > index) {
-			try {
-				long serial = Long.parseLong(args[index]);
-				Validate.isTrue(serial > 0);
-				return serial;
-			} catch (Exception e) {
-				Bukkit.getLogger().warning(String.format("LevelCommandExecutor.optionalBlockId - invalid level serial: [%s] - %s", args[index], e.getMessage()));
-				return 0;
-			}
+	private void executeCopyCommand(String[] args, MakerPlayer mPlayer) {
+		if (args.length < 2) {
+			mPlayer.sendMessage("command.level.edit.usage");
+			mPlayer.sendMessage("command.level.edit.permissions");
+			return;
 		}
-		return 0;
+		long serial = validateLevelSerial(args, 1);
+		if (serial <= 0) {
+			mPlayer.sendMessage("command.level.error.invalid-serial");
+			return;
+		}
+		plugin.getController().copyAndLoadLevelForEditingBySerial(mPlayer, serial);
+		return;
+	}
+
+	private void executeDeleteCommand(String[] args, MakerPlayer mPlayer) {
+		if (args.length < 2) {
+			mPlayer.sendMessage("command.level.delete.usage");
+			mPlayer.sendMessage("command.level.delete.permissions");
+			return;
+		}
+		long serial = validateLevelSerial(args, 1);
+		if (serial <= 0) {
+			mPlayer.sendMessage("command.level.error.invalid-serial");
+			return;
+		}
+		plugin.getController().deleteLevel(mPlayer, serial);
+	}
+
+	private void executeRenameCommand(String[] args, MakerPlayer mPlayer) {
+		if (args.length < 2) {
+			mPlayer.sendMessage("command.level.rename.usage");
+			mPlayer.sendMessage("command.level.rename.permissions");
+			return;
+		}
+		String name = Joiner.on(" ").join(Arrays.copyOfRange(args, 1, args.length));
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | LevelCommandExecutor.executeRenameCommand - new level name: [%s]", name));
+		}
+		if (StringUtils.isBlank(name)) {
+			mPlayer.sendMessage("level.rename.error.empty-name");
+			return;
+		}
+		if (name.length() < 3) {
+			mPlayer.sendMessage("level.rename.error.too-short");
+			return;
+		}
+		if (name.length() > 30) {
+			mPlayer.sendMessage("level.rename.error.too-long");
+			return;
+		}
+		if (!name.matches("\\w(\\w|'|\\ )*\\w")) {
+			mPlayer.sendMessage("level.rename.error.invalid");
+			return;
+		}
+		// capitalize
+		name = WordUtils.capitalize(name);
+		plugin.getController().renameLevel(mPlayer, name);
+	}
+
+	private void executeSearchCommand(String[] args, MakerPlayer mPlayer) {
+		if (args.length < 2) {
+			mPlayer.sendMessage("command.level.search.usage");
+			mPlayer.sendMessage("command.level.search.permissions");
+			return;
+		}
+		String searchString = Joiner.on(" ").join(Arrays.copyOfRange(args, 1, args.length));
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | LevelCommandExecutor.executeSearchCommand - search string: [%s]", searchString));
+		}
+		if (StringUtils.isBlank(searchString)) {
+			mPlayer.sendMessage("level.search.error.empty-string");
+			return;
+		}
+		if (searchString.length() < 3 || searchString.length() > 16) {
+			mPlayer.sendMessage("level.search.error.wrong-size-string");
+			return;
+		}
+		if (!searchString.matches("\\w(\\w|'|\\ )*\\w")) {
+			mPlayer.sendMessage("level.search.error.invalid-string");
+			return;
+		}
+		plugin.getController().searchLevels(mPlayer, searchString);
+	}
+
+	private void executeUnpublishCommand(String[] args, MakerPlayer mPlayer) {
+		if (args.length < 2) {
+			mPlayer.sendMessage("command.level.unpublish.usage");
+			mPlayer.sendMessage("command.level.unpublish.permissions");
+			return;
+		}
+		long serial = validateLevelSerial(args, 1);
+		if (serial <= 0) {
+			mPlayer.sendMessage("command.level.error.invalid-serial");
+			return;
+		}
+		plugin.getController().unpublishLevel(mPlayer, serial);
+	}
+
+	private void showUsage(MakerPlayer mPlayer) {
+		mPlayer.sendMessage("command.level.usage");
+		mPlayer.sendMessage("command.level.actions");
+		mPlayer.sendMessage("command.level.actions.help");
 	}
 
 }

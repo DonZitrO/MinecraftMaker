@@ -13,25 +13,9 @@ import com.minecade.core.item.ItemBuilder;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public abstract class AbstractDisplayableLevelMenu extends AbstractMakerMenu {
+public abstract class AbstractDisplayableLevelMenu extends AbstractPaginatedMenu {
 
 	protected static final int LEVELS_PER_PAGE = 28;
-
-	protected static boolean isLevelSlot(int index) {
-		if (index > 9 && index < 17) {
-			return true;
-		}
-		if (index > 18 && index < 26) {
-			return true;
-		}
-		if (index > 27 && index < 35) {
-			return true;
-		}
-		if (index > 36 && index < 44) {
-			return true;
-		}
-		return false;
-	}
 
 	protected static ItemStack getLevelItem(Internationalizable plugin, MakerDisplayableLevel level) {
 		EntityType data = EntityType.GHAST;
@@ -76,40 +60,44 @@ public abstract class AbstractDisplayableLevelMenu extends AbstractMakerMenu {
 		return builder.build();
 	}
 
+	public AbstractDisplayableLevelMenu(MinecraftMakerPlugin plugin) {
+		super(plugin);
+	}
+
 	protected ItemStack getLevelItem(MakerDisplayableLevel level) {
 		return getLevelItem(plugin, level);
 	}
 
-	public AbstractDisplayableLevelMenu(MinecraftMakerPlugin plugin, int size) {
-		super(plugin, size);
-	}
-
 	public void update(Collection<MakerDisplayableLevel> currentPageLevels) {
 
+		updatePaginationItems();
+
 		for (int j = 10; j < 44; j++) {
-			if (isLevelSlot(j)) {
+			if (isItemSlot(j)) {
 				items[j] = getGlassPane();
 			}
 		}
 
 		int i = 10;
-		levelSlots: for (MakerDisplayableLevel level : currentPageLevels) {
-			while (!isLevelSlot(i)) {
-				i++;
-				if (i >= items.length) {
-					break levelSlots;
+		if (currentPageLevels != null && currentPageLevels.size() > 0) {
+			levelSlots: for (MakerDisplayableLevel level : currentPageLevels) {
+				while (!isItemSlot(i)) {
+					i++;
+					if (i >= items.length) {
+						break levelSlots;
+					}
 				}
+				ItemStack item = getLevelItem(level);
+				if (item != null) {
+					items[i] = item;
+				} else {
+					items[i] = getBlackGlassPane();
+				}
+				i++;
 			}
-			ItemStack item = getLevelItem(level);
-			if (item != null) {
-				items[i] = item;
-			} else {
-				items[i] = getBlackGlassPane();
-			}
-			i++;
 		}
 		for (; i < items.length; i++) {
-			if (isLevelSlot(i)) {
+			if (isItemSlot(i)) {
 				items[i] = getBlackGlassPane();
 			}
 		}

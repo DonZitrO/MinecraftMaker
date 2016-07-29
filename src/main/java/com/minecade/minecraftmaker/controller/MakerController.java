@@ -3,6 +3,7 @@ package com.minecade.minecraftmaker.controller;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -71,8 +72,8 @@ import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageResult;
+import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.MenuClickResult;
-import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
@@ -183,13 +184,6 @@ public class MakerController implements Runnable, Tickable {
 		addPlayerToMainLobby(mPlayer);
 		// welcome message
 		Bukkit.getScheduler().runTask(plugin, () -> sendBruteForceWelcomeMessage(mPlayer));
-		// announcements
-		Bukkit.getScheduler().runTaskLater(plugin, () -> mPlayer.sendMessage("announcements.everyone1"), 100);
-		Bukkit.getScheduler().runTaskLater(plugin, () -> mPlayer.sendMessage("announcements.everyone2"), 200);
-		if (!mPlayer.hasRank(Rank.VIP)) {
-			Bukkit.getScheduler().runTaskLater(plugin, () -> mPlayer.sendMessage("announcements.default1"), 300);
-			Bukkit.getScheduler().runTaskLater(plugin, () -> mPlayer.sendMessage("announcements.default2"), 400);
-		}
 	}
 
 	public void addPlayerToMainLobby(MakerPlayer mPlayer) {
@@ -213,6 +207,14 @@ public class MakerController implements Runnable, Tickable {
 		mPlayer.getPlayer().setPlayerListName(mPlayer.getDisplayName());
 	}
 
+	public void broadcastToDefaultPlayers(String message) {
+		for (MakerPlayer mPlayer : playerMap.values()) {
+			if (!mPlayer.hasRank(Rank.VIP) && mPlayer.getPlayer().isOnline()) {
+				mPlayer.getPlayer().sendMessage(message);
+			}
+		}
+	}
+
 	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
 		if (playerMap.containsKey(event.getUniqueId())) {
 			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlDoubleLoginHack - possible double login detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
@@ -230,7 +232,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
-	public void copyLevel(MakerPlayer mPlayer, long copyFromSerial) {
+	public void copyAndLoadLevelForEditingBySerial(MakerPlayer mPlayer, long copyFromSerial) {
 		if (!mPlayer.isInLobby()) {
 			mPlayer.sendActionMessage("level.create.error.author-busy");
 			return;
@@ -301,11 +303,6 @@ public class MakerController implements Runnable, Tickable {
 		}
 		switch (result) {
 		case SUCCESS:
-			//LevelBrowserMenu.removeLevelBySerial(levelSerial);
-			if (authorId != null) {
-				// TODO: remove level from player levels menu (by serial)
-				// FIXME: not needed if the menu is live
-			}
 			sendMessageToPlayerIfPresent(playerId, "command.level.delete.success", levelSerial);
 			break;
 		case NOT_FOUND:
@@ -375,13 +372,6 @@ public class MakerController implements Runnable, Tickable {
 		return getWorld(DEFAULT_TIME_AND_WEATHER);
 	}
 
-//	public World getMainWorld() {
-//		if (this.mainWorld == null) {
-//			this.mainWorld = MakerWorldUtils.createOrLoadWorld(this.plugin, this.mainWorldName, this.spawnVector);
-//		}
-//		return this.mainWorld;
-//	}
-
 	public MakerPlayer getPlayer(Player player) {
 		checkNotNull(player);
 		return getPlayer(player.getUniqueId());
@@ -395,11 +385,6 @@ public class MakerController implements Runnable, Tickable {
 	public int getPlayerCount() {
 		return playerMap.size();
 	}
-
-//	// intentionally copy this to avoid tampering with the original set
-//	private Set<Long> getSteveLevels() {
-//		return new HashSet<Long>(steveLevelSerials);
-//	}
 
 	public World getWorld(WorldTimeAndWeather timeAndWeather) {
 		checkNotNull(timeAndWeather);
@@ -459,35 +444,11 @@ public class MakerController implements Runnable, Tickable {
 		level.setDislikes(totalDislikes);
 	}
 
-//	public void levelPageUpdateCallback(LevelPageUpdateCallback callback) {
-//		if (!Bukkit.isPrimaryThread()) {
-//			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-//		}
-//		if (plugin.isDebugMode()) {
-//			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.levelPageUpdateCallback - callback: [%s]", callback));
-//		}
-//		LevelBrowserMenu.updateLevelCount(callback.getLevelCount());
-//		if (callback.getLevels() != null) {
-//			for (MakerDisplayableLevel level: callback.getLevels()) {
-//				steveLevelSerials.add(level.getLevelSerial());
-//				LevelBrowserMenu.addOrUpdateLevel(plugin, level);
-//			}
-//		}
-//		for (UUID playerId :callback.getPlayers()) {
-//			LevelBrowserMenu.updatePlayerMenu(playerId);
-//		}
-//	}
-
 	public void levelPageResultCallback(LevelPageResult result) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
 		LevelBrowserMenu.updateLevelCount(result.getLevelCount());
-//		if (result.getLevels() != null) {
-//			for (MakerDisplayableLevel level: result.getLevels()) {
-//				steveLevelSerials.add(level.getLevelSerial());
-//			}
-//		}
 		for (UUID playerId :result.getPlayers()) {
 			LevelBrowserMenu.updatePlayerMenu(playerId, result.getLevels());
 		}
@@ -527,8 +488,9 @@ public class MakerController implements Runnable, Tickable {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		PlayerLevelsMenu.removeLevelFromViewer(level);
+		// FIXME: candidate for removal?
 		LevelBrowserMenu.updateLevelCount(levelCount);
+		//PlayerLevelsMenu.removeLevelFromViewer(level);
 		//steveLevelSerials.add(level.getLevelSerial());
 		//LevelBrowserMenu.addOrUpdateLevel(plugin, level);
 	}
@@ -932,11 +894,7 @@ public class MakerController implements Runnable, Tickable {
 		if (event.getSlotType() == SlotType.CONTAINER) {
 			final ItemStack clicked = event.getCurrentItem();
 			if (clicked != null && clicked.getType() != Material.AIR) {
-//				if (plugin.isDebugMode()) {
-//					Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onInventoryClick - upper title: [%s] - identity: [%s]", event.getInventory().getTitle(), System.identityHashCode(event.getInventory())));
-//					Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onInventoryClick - clicked title: [%s] - identity: [%s]", event.getClickedInventory().getTitle(), System.identityHashCode(event.getClickedInventory())));
-//				}
-				switch (mPlayer.onInventoryClick(event.getInventory(), event.getRawSlot())) {
+				switch (mPlayer.onInventoryClick(event.getInventory(), event.getRawSlot(), event.getClick())) {
 				case CANCEL_CLOSE:
 					event.setCancelled(true);
 					mPlayer.closeInventory();
@@ -1350,7 +1308,6 @@ public class MakerController implements Runnable, Tickable {
 		if (mPlayer.isInLobby()) {
 			Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
 		}
-
 	}
 
 	public void onPlayerTeleport(PlayerTeleportEvent event) {
@@ -1368,7 +1325,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 		level.onPlayerTeleport(event);
 	}
-	
+
 	public void onVehicleMove(VehicleMoveEvent event) {
 		Entity passenger = event.getVehicle().getPassenger();
 		if (passenger == null || !(passenger instanceof Player) || ((Player) passenger).isDead()) {
@@ -1387,6 +1344,17 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.getCurrentLevel().checkLevelEnd(event.getTo());
 			return;
 		}
+	}
+
+	public void playerLevelClearsCountCallback(UUID playerId, long result) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		MakerPlayer mPlayer = getPlayer(playerId);
+		if (mPlayer == null) {
+			return;
+		}
+		mPlayer.setUniqueLevelClearsCount(result);
 	}
 
 	public void playerLevelsCountCallback(UUID authorId, int publishedCount, int unpublishedCount) {
@@ -1444,10 +1412,11 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.sendActionMessage("level.search.error.too-soon");
 			return;
 		}
-		plugin.getDatabaseAdapter().searchPublishedLevelsByNameAsync(mPlayer.getUniqueId(), searchString);
+		mPlayer.resetLevelSearchMenu();
+		plugin.getDatabaseAdapter().searchPublishedLevelsPageByNameAsync(mPlayer.getUniqueId(), searchString, 0, LevelSearchMenu.ITEMS_PER_PAGE);
 	}
 
-	public void searchLevelsCallback(UUID playerId, String searchString, int levelCount, Set<MakerDisplayableLevel> levels) {
+	public void searchLevelsCallback(UUID playerId, String searchString, int levelCount, Collection<MakerDisplayableLevel> levels) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
@@ -1458,11 +1427,11 @@ public class MakerController implements Runnable, Tickable {
 		if (levelCount == 0) {
 			mPlayer.sendActionMessage("level.search.error.no-results", searchString);
 			return;
-		} else if (levels == null) {
-			mPlayer.sendActionMessage("level.search.error.too-many-results", levelCount, searchString);
-			return;
+//		} else if (levels == null) {
+//			mPlayer.sendActionMessage("level.search.error.too-many-results", levelCount, searchString);
+//			return;
 		}
-		mPlayer.openLevelSearchMenu(levels);
+		mPlayer.openLevelSearchMenu(searchString, levelCount, levels);
 	}
 
 	public void sendActionMessageToPlayerIfPresent(UUID playerId, String key, Object... args) {
@@ -1511,11 +1480,6 @@ public class MakerController implements Runnable, Tickable {
 			mPlayer.sendActionMessage("level.play.error.player-busy");
 			return;
 		}
-//		Set<Long> levels = getSteveLevels();
-//		if (levels.isEmpty() || levels.size() < MIN_STEVE_LEVELS) {
-//			mPlayer.sendActionMessage(plugin, "steve.error.few-levels");
-//			return;
-//		}
 		MakerPlayableLevel level = getEmptyLevelIfAvailable();
 		if (level == null) {
 			mPlayer.sendActionMessage("level.error.full");
@@ -1568,11 +1532,40 @@ public class MakerController implements Runnable, Tickable {
 	public void unpublishLevel(MakerPlayer mPlayer, long serial) {
 		long confirmSerial = mPlayer.getLevelToUnpublishSerial();
 		if (confirmSerial != serial) {
-			mPlayer.setLevelToDeleteSerial(serial);
+			mPlayer.setLevelToUnpublishSerial(serial);
 			mPlayer.sendMessage("command.level.unpublish.confirm1", serial);
 			mPlayer.sendMessage("command.level.unpublish.confirm2", serial);
 		} else {
 			plugin.getDatabaseAdapter().unpublishLevelBySerialAsync(serial, mPlayer);
+		}
+	}
+
+	public void unpublishLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, UUID authorId, Integer levelCount) {
+		if (!Bukkit.isPrimaryThread()) {
+			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+		}
+		switch (result) {
+		case SUCCESS:
+			sendMessageToPlayerIfPresent(playerId, "command.level.unpublish.success", levelSerial);
+			break;
+		case NOT_FOUND:
+			sendMessageToPlayerIfPresent(playerId, "command.level.error.not-found", levelSerial);
+			break;
+		case PERMISSION_DENIED:
+			sendMessageToPlayerIfPresent(playerId, "command.level.unpublish.denied", levelSerial);
+			break;
+		case NOT_PUBLISHED:
+			sendMessageToPlayerIfPresent(playerId, "command.level.unpublish.not-published", levelSerial);
+			break;
+		case ALREADY_UNPUBLISHED:
+			sendMessageToPlayerIfPresent(playerId, "command.level.unpublish.already-unpublished", levelSerial);
+			break;
+		default:
+			sendMessageToPlayerIfPresent(playerId, "server.error.internal", levelSerial);
+			break;
+		}
+		if (levelCount != null) {
+			LevelBrowserMenu.updateLevelCount(levelCount);
 		}
 	}
 
@@ -1588,10 +1581,6 @@ public class MakerController implements Runnable, Tickable {
 		for (String playerName : entriesToRemoveFromScoreboardTeams) {
 			mPlayer.removeTeamEntryFromScoreboard(playerName);
 		}
-	}
-
-	public void playerLevelClearsCountCallback(UUID authorId, long result) {
-		// TODO Auto-generated method stub
 	}
 
 }

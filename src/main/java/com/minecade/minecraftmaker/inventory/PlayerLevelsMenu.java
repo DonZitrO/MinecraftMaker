@@ -2,35 +2,28 @@ package com.minecade.minecraftmaker.inventory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
-import com.minecade.core.i18n.Internationalizable;
-import com.minecade.core.item.ItemUtils;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
-import com.minecade.minecraftmaker.level.AbstractMakerLevel;
+import com.minecade.core.data.Rank;
+import com.minecade.core.item.ItemBuilder;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 
-	private static final long MIN_TIME_BETWEEN_REFRESHES_MILLIS = 300000;
-
-	private static Map<UUID, ItemStack> levelItems = new HashMap<>();
 	private static Map<UUID, PlayerLevelsMenu> userLevelBrowserMenuMap = new HashMap<>();
-
-	private static void addLevelItem(Internationalizable plugin, MakerDisplayableLevel level) {
-		levelItems.put(level.getLevelId(), getLevelItem(plugin, level));
-	}
 
 	public static PlayerLevelsMenu getInstance(MinecraftMakerPlugin plugin, UUID viewerId) {
 		checkNotNull(plugin);
@@ -43,31 +36,12 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 		return menu;
 	}
 
-	@Override
-	public String getTitleKey(String modifier) {
-		return "menu.player-levels.title";
-	}
-
-	public static void removeLevelFromViewer(MakerDisplayableLevel level) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
-		PlayerLevelsMenu menu = userLevelBrowserMenuMap.get(level.getAuthorId());
-		if (menu != null) {
-			menu.removeOwnedLevel(level);
-		}
-	}
-
-	private static void removeLevelItem(UUID levelId) {
-		levelItems.remove(levelId);
-	}
-	private final TreeSet<MakerDisplayableLevel> ownedLevelsBySerial = new TreeSet<MakerDisplayableLevel>((AbstractMakerLevel l1, AbstractMakerLevel l2) -> Long.valueOf(l1.getLevelSerial()).compareTo(Long.valueOf(l2.getLevelSerial())));
 	private final UUID viewerId;
 
-	private long nextAllowedRefreshMillis;
-
+	private final Map<Integer, MakerDisplayableLevel> slotLevelMap = new HashMap<>();
+	private int levelCount = 0;
 	private PlayerLevelsMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
-		super(plugin, 54);
+		super(plugin);
 		this.viewerId = viewerId;
 		init();
 	}
@@ -79,19 +53,17 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 	}
 
 	@Override
-	protected ItemStack getLevelItem(MakerDisplayableLevel level) {
-		return levelItems.get(level.getLevelId());
+	public String getTitleKey(String modifier) {
+		return "menu.player-levels.title";
+	}
+
+	@Override
+	protected int getTotalItemsCount() {
+		return levelCount;
 	}
 
 	public UUID getViewerId() {
 		return this.viewerId;
-	}
-
-	private void init() {
-		for (int i = 0; i < inventory.getSize(); i++) {
-			items[i] = getGlassPane();
-		}
-		items[51] = GeneralMenuItem.EXIT_MENU.getItem();
 	}
 
 	@Override
@@ -99,42 +71,49 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 		return false;
 	}
 
-	@Override
-	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
-		MenuClickResult result = super.onClick(mPlayer, slot);
-		if (!MenuClickResult.ALLOW.equals(result)) {
-			return result;
-		}
-		ItemStack clickedItem = inventory.getItem(slot);
-		if (clickedItem.getType().equals(Material.MONSTER_EGG)) {
-			String serial = ItemUtils.getLoreLine(clickedItem, 1);
-			if (StringUtils.isBlank(serial) || !StringUtils.isNumeric(serial)) {
-				Bukkit.getLogger().severe(String.format("PlayerLevelsMenu.onClick - unable to get level serial from lore: [%s]", serial));
-				return MenuClickResult.CANCEL_UPDATE;
-			}
-			plugin.getController().loadLevelForEditingBySerial(mPlayer, Long.valueOf(serial));
-			return MenuClickResult.CANCEL_CLOSE;
-		}
-		return MenuClickResult.CANCEL_UPDATE;
-	}
-
-	public void removeOwnedLevel(MakerDisplayableLevel level) {
+	public void loadLevelsCallback(int totalLevelCount, Collection<MakerDisplayableLevel> levels) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		removeLevelItem(level.getLevelId());
-		ownedLevelsBySerial.remove(level);
-		update(ownedLevelsBySerial);
+		this.levelCount = totalLevelCount;
+		update(levels);
 	}
 
-	public boolean shouldRefreshAgain() {
-		long currentTimeMillis = System.currentTimeMillis();
-		if (nextAllowedRefreshMillis < currentTimeMillis) {
-			nextAllowedRefreshMillis = currentTimeMillis + MIN_TIME_BETWEEN_REFRESHES_MILLIS;
-			return true;
-		} else {
-			return false;
+	@Override
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot, ClickType clickType) {
+		MenuClickResult result = super.onClick(mPlayer, slot, clickType);
+		if (!MenuClickResult.ALLOW.equals(result)) {
+			return result;
 		}
+		MakerDisplayableLevel clickedLevel = slotLevelMap.get(slot);
+		if (clickedLevel != null) {
+			if (ClickType.LEFT.equals(clickType)) {
+				if (clickedLevel.isPublished()) {
+					if (!mPlayer.canCreateLevel()) {
+						mPlayer.sendMessage("level.create.error.unpublished-limit", mPlayer.getUnpublishedLevelsCount());
+						mPlayer.sendMessage("level.create.error.unpublished-limit.publish-delete");
+						if (!mPlayer.hasRank(Rank.TITAN)) {
+							mPlayer.sendMessage("upgrade.rank.increase.limits.or");
+							mPlayer.sendMessage("upgrade.rank.unpublished.limits");
+						}
+						return MenuClickResult.CANCEL_CLOSE;
+					}
+					plugin.getController().copyAndLoadLevelForEditingBySerial(mPlayer, clickedLevel.getLevelSerial());
+				} else {
+					plugin.getController().loadLevelForEditingBySerial(mPlayer, clickedLevel.getLevelSerial());
+				}
+				return MenuClickResult.CANCEL_CLOSE;
+			}
+			if (ClickType.RIGHT.equals(clickType)) {
+				if (clickedLevel.isPublished() && !clickedLevel.isUnpublished()) {
+					plugin.getController().unpublishLevel(mPlayer, clickedLevel.getLevelSerial());
+				} else {
+					plugin.getController().deleteLevel(mPlayer, clickedLevel.getLevelSerial());
+				}
+				return MenuClickResult.CANCEL_CLOSE;
+			}
+		}
+		return MenuClickResult.CANCEL_UPDATE;
 	}
 
 	@Override
@@ -142,30 +121,93 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		update(ownedLevelsBySerial);
-		if (shouldRefreshAgain()) {
-			plugin.getDatabaseAdapter().loadUnpublishedLevelsByAuthorIdAsync(this);
-		}
+		update(null);
+		plugin.getDatabaseAdapter().loadDisplayableLevelsPageByAuthorIdAsync(this, getPageOffset(currentPage), ITEMS_PER_PAGE);
 	}
 
-	public void updateOwnedLevel(MakerDisplayableLevel level) {
+	@Override
+	public void update(Collection<MakerDisplayableLevel> currentPageLevels) {
 		if (!Bukkit.isPrimaryThread()) {
 			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
 		}
-		addLevelItem(plugin, level);
-		ownedLevelsBySerial.add(level);
-		update(ownedLevelsBySerial);
+		slotLevelMap.clear();
+		updatePaginationItems();
+		for (int j = 10; j < 44; j++) {
+			if (isItemSlot(j)) {
+				items[j] = getGlassPane();
+			}
+		}
+
+		int i = 10;
+		if (currentPageLevels != null && currentPageLevels.size() > 0) {
+			levelSlots: for (MakerDisplayableLevel level : currentPageLevels) {
+				while (!isItemSlot(i)) {
+					i++;
+					if (i >= items.length) {
+						break levelSlots;
+					}
+				}
+				ItemStack item = getLevelItem(level);
+				if (item != null) {
+					slotLevelMap.put(i, level);
+					items[i] = item;
+				} else {
+					items[i] = getBlackGlassPane();
+				}
+				i++;
+			}
+		}
+		for (; i < items.length; i++) {
+			if (isItemSlot(i)) {
+				items[i] = getBlackGlassPane();
+			}
+		}
+		inventory.setContents(items);
 	}
 
-	public void updateOwnedLevels(Collection<MakerDisplayableLevel> levels) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
+	@Override
+	protected ItemStack getLevelItem(MakerDisplayableLevel level) {
+		EntityType data = null;
+		if (level.isUnpublished()) {
+			data = EntityType.MUSHROOM_COW;
+		} else if (level.isPublished()) {
+			data = EntityType.CREEPER;
+		} else {
+			data = EntityType.SKELETON;
 		}
-		for (MakerDisplayableLevel level : levels) {
-			addLevelItem(plugin, level);
+		ItemBuilder builder = new ItemBuilder(data);
+		builder.withDisplayName(plugin.getMessage("menu.level-browser.level.display-name", level.getLevelName()));
+		List<String> lore = new ArrayList<>();
+		lore.add(plugin.getMessage("menu.level-browser.level.serial", level.getLevelSerial()));
+		lore.add(StringUtils.EMPTY);
+		if (!level.isPublished()) {
+			lore.add(plugin.getMessage("menu.level-browser.level.status-notpublished"));
+			lore.add(StringUtils.EMPTY);
+			lore.add(plugin.getMessage("menu.level-browser.level.click-to-edit"));
+			lore.add(plugin.getMessage("menu.level-browser.level.right-click-to-delete"));
+			//lore.add(plugin.getMessage("menu.player-levels.level.delete", level.getLevelSerial()));
+		} else {
+			lore.add(plugin.getMessage("menu.level-browser.level.likes", level.getLikes()));
+			lore.add(plugin.getMessage("menu.level-browser.level.dislikes", level.getDislikes()));
+			lore.add(plugin.getMessage("menu.level-browser.level.favorites", level.getFavs()));
+			lore.add(plugin.getMessage("menu.level-browser.level.publish-date", level.getDatePublished()));
+			lore.add(StringUtils.EMPTY);
+			if (level.isUnpublished()) {
+				lore.add(plugin.getMessage("menu.level-browser.level.status-unpublished"));
+				lore.add(StringUtils.EMPTY);
+				lore.add(plugin.getMessage("menu.level-browser.level.click-to-copy"));
+					lore.add(plugin.getMessage("menu.level-browser.level.right-click-to-delete"));
+				//lore.add(plugin.getMessage("menu.player-levels.level.delete", level.getLevelSerial()));
+			} else {
+				lore.add(plugin.getMessage("menu.level-browser.level.status-published"));
+				lore.add(StringUtils.EMPTY);
+				lore.add(plugin.getMessage("menu.level-browser.level.click-to-copy"));
+				lore.add(plugin.getMessage("menu.level-browser.level.right-click-to-unpublish"));
+				//lore.add(plugin.getMessage("menu.player-levels.level.unpublish", level.getLevelSerial()));
+			}
 		}
-		ownedLevelsBySerial.addAll(levels);
-		update(ownedLevelsBySerial);
+		builder.withLore(lore);
+		return builder.build();
 	}
 
 }

@@ -8,7 +8,7 @@ public class MakerLevelClearData {
 	private final UUID playerId;
 	private String levelName;
 	private String playerName;
-	private long totalClears;
+	//private long totalClears;
 	private long bestTimeCleared;
 
 	public MakerLevelClearData(UUID levelId, UUID playerId) {
@@ -36,9 +36,9 @@ public class MakerLevelClearData {
 		return playerName;
 	}
 
-	public long getTotalClears() {
-		return totalClears;
-	}
+//	public long getTotalClears() {
+//		return totalClears;
+//	}
 
 	public void setBestTimeCleared(long bestTimeCleared) {
 		this.bestTimeCleared = bestTimeCleared;
@@ -52,8 +52,8 @@ public class MakerLevelClearData {
 		this.playerName = playerName;
 	}
 
-	public void setTotalClears(long totalClears) {
-		this.totalClears = totalClears;
-	}
+//	public void setTotalClears(long totalClears) {
+//		this.totalClears = totalClears;
+//	}
 
 }

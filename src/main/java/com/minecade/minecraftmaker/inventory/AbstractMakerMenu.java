@@ -3,6 +3,7 @@ package com.minecade.minecraftmaker.inventory;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -117,7 +118,7 @@ public abstract class AbstractMakerMenu {
 		}
 	}
 
-	public MenuClickResult onClick(MakerPlayer mPlayer, int slot) {
+	public MenuClickResult onClick(MakerPlayer mPlayer, int slot, ClickType clickType) {
 		if (slot >= items.length) {
 			return MenuClickResult.CANCEL_UPDATE;
 		}

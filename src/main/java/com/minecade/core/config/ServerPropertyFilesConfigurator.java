@@ -29,7 +29,7 @@ public class ServerPropertyFilesConfigurator {
 		changed |= forcePropertyValue(props, "hardcore", "false");
 		changed |= forcePropertyValue(props, "snooper-enabled", "false");
 		changed |= forcePropertyValue(props, "spawn-protection", "0");
-		changed |= forcePropertyValue(props, "view-distance", "8");
+		//changed |= forcePropertyValue(props, "view-distance", "8");
 		changed |= forcePropertyValue(props, "gamemode", "2");
 		changed |= forcePropertyValue(props, "difficulty", "3");
 		changed |= forcePropertyValue(props, "online-mode", "false");
