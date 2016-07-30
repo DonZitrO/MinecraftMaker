@@ -112,7 +112,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 			return;
 		}
 		mPlayer.setGameMode(GameMode.SPECTATOR);
-		mPlayer.teleportOnNextTick(host.getPlayer(), GameMode.CREATIVE);
+		mPlayer.teleportOnNextTick(getStartLocation(), GameMode.CREATIVE);
 		mPlayer.setCurrentLevel(this);
 		mPlayer.resetPlayer();
 		mPlayer.setAllowFlight(true);

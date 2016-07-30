@@ -14,7 +14,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
@@ -80,7 +79,7 @@ public class MakerPlayer implements Tickable {
 	private long currentTick;
 	private boolean disabled = false;
 
-	private Entity entityTeleportDestination;
+	//private Entity entityTeleportDestination;
 	private Location teleportDestination;
 	private GameMode requestedGameMode;
 
@@ -571,10 +570,10 @@ public class MakerPlayer implements Tickable {
 	}
 
 	private void teleportIfRequested() {
-		if (entityTeleportDestination != null) {
-			teleportDestination = entityTeleportDestination.getLocation().clone();
-			entityTeleportDestination = null;
-		}
+//		if (entityTeleportDestination != null) {
+//			teleportDestination = entityTeleportDestination.getLocation().clone();
+//			entityTeleportDestination = null;
+//		}
 		if (teleportDestination != null) {
 			if (player.teleport(teleportDestination, TeleportCause.PLUGIN)) {
 				teleportDestination = null;
@@ -586,10 +585,10 @@ public class MakerPlayer implements Tickable {
 		}
 	}
 
-	public void teleportOnNextTick(Entity destination, GameMode gameMode) {
-		entityTeleportDestination = destination;
-		requestedGameMode = gameMode;
-	}
+//	public void teleportOnNextTick(Entity destination, GameMode gameMode) {
+//		entityTeleportDestination = destination;
+//		requestedGameMode = gameMode;
+//	}
 
 	public void teleportOnNextTick(Location destination) {
 		this.teleportDestination = destination;
