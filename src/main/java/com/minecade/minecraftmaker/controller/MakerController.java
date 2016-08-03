@@ -1,6 +1,7 @@
 package com.minecade.minecraftmaker.controller;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.minecade.core.util.BukkitUtils.verifyPrimaryThread;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -62,11 +63,15 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+import com.minecade.core.data.CoinTransaction;
 import com.minecade.core.data.Rank;
+import com.minecade.core.data.CoinTransaction.Reason;
+import com.minecade.core.data.CoinTransaction.SourceType;
 import com.minecade.core.event.AsyncAccountDataLoadEvent;
 import com.minecade.core.event.EventUtils;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.core.util.BungeeUtils;
+import com.minecade.minecraftmaker.data.CoinTransactionResult;
 import com.minecade.minecraftmaker.data.LevelOperationResult;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
@@ -215,6 +220,39 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void clearSteveChallengeCallback(UUID playerId, String playerName) {
+		verifyPrimaryThread();
+		checkNotNull(playerId);
+		checkNotNull(playerName);
+		String description = plugin.getMessage("coin.transaction.first-time-steve-challenge-clear.description", playerName);
+		CoinTransaction transaction = new CoinTransaction(UUID.randomUUID(), playerId, 1000, plugin.getServerUniqueId(), SourceType.SERVER, Reason.FIRST_TIME_STEVE_CHALLENGE_CLEAR, description);
+		plugin.getDatabaseAdapter().executeCoinTransactionAsync(transaction);
+		MakerPlayer mPlayer = plugin.getController().getPlayer(playerId);
+		if (mPlayer != null) {
+			mPlayer.getData().setSteveClear(true);
+		}
+	}
+
+	public void coinTransactionCallback(CoinTransaction transaction, CoinTransactionResult result, long balance) {
+		checkNotNull(transaction);
+		verifyPrimaryThread();
+		switch (result) {
+		case COMMITTED:
+			notifyCoinTransactionCommit(transaction, balance);
+			break;
+		case INSUFFICIENT_COINS:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.error.insufficient-coins");
+			break;
+		default:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "server.error.internal");
+			break;
+		}
+		if (balance >= 0) {
+			updatePlayerCoinBalanceIfPresent(transaction.getPlayerId(), balance);
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.new-balance", balance); 
+		}
+	}
+
 	private void controlDoubleLoginHack(AsyncPlayerPreLoginEvent event) {
 		if (playerMap.containsKey(event.getUniqueId())) {
 			Bukkit.getLogger().warning(String.format("[POSSIBLE-HACK] | MakerController.controlDoubleLoginHack - possible double login detected for player: [%s<%s>]", event.getName(), event.getUniqueId()));
@@ -291,19 +329,32 @@ public class MakerController implements Runnable, Tickable {
 		if (confirmSerial != serial) {
 			mPlayer.setLevelToDeleteSerial(serial);
 			mPlayer.sendMessage("command.level.delete.confirm1", serial);
-			mPlayer.sendMessage("command.level.delete.confirm2", serial);
+			if (!mPlayer.hasRank(Rank.ADMIN)) {
+				mPlayer.sendMessage("command.level.delete.confirm2", serial);
+			}
+			mPlayer.sendMessage("command.level.delete.confirm3", serial);
 		} else {
 			plugin.getDatabaseAdapter().deleteLevelBySerialAsync(serial, mPlayer);
 		}
 	}
 
-	public void deleteLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, UUID authorId, Integer levelCount) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+	public void deleteLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, Long playerCoinBalance, Integer totalPublishedLevelsCount) {
+		verifyPrimaryThread();
 		switch (result) {
 		case SUCCESS:
-			sendMessageToPlayerIfPresent(playerId, "command.level.delete.success", levelSerial);
+			MakerPlayer mPlayer = getPlayer(playerId);
+			if (mPlayer == null) {
+				break;
+			}
+			mPlayer.sendMessage("command.level.delete.success", levelSerial);
+			if (!mPlayer.hasRank(Rank.ADMIN)) {
+				mPlayer.sendMessage("coin.transaction.level-delete.player", 500);
+			}
+			if (playerCoinBalance != null) {
+				mPlayer.setCoins(playerCoinBalance);
+				mPlayer.sendMessage("coin.transaction.new-balance", playerCoinBalance); 
+			}
+			plugin.getDatabaseAdapter().loadPlayerLevelsCountAsync(playerId);
 			break;
 		case NOT_FOUND:
 			sendMessageToPlayerIfPresent(playerId, "command.level.error.not-found", levelSerial);
@@ -316,8 +367,8 @@ public class MakerController implements Runnable, Tickable {
 		default:
 			break;
 		}
-		if (levelCount != null) {
-			LevelBrowserMenu.updateLevelCount(levelCount);
+		if (totalPublishedLevelsCount != null) {
+			LevelBrowserMenu.updateLevelCount(totalPublishedLevelsCount);
 		}
 	}
 
@@ -425,9 +476,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void levelLikeCallback(UUID levelId, UUID playerId, boolean dislike, long totalLikes, long totalDislikes, long trendingScore) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+		verifyPrimaryThread();
 		// update level browser
 		// LevelBrowserMenu.updateLevelLikes(plugin, levelId, totalLikes, totalDislikes, trendingScore);
 		// update current user level
@@ -445,9 +494,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void levelPageResultCallback(LevelPageResult result) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+		verifyPrimaryThread();
 		LevelBrowserMenu.updateLevelCount(result.getLevelCount());
 		for (UUID playerId :result.getPlayers()) {
 			LevelBrowserMenu.updatePlayerMenu(playerId, result.getLevels());
@@ -485,9 +532,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void loadPublishedLevelCallback(MakerDisplayableLevel level, int levelCount) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+		verifyPrimaryThread();
 		// FIXME: candidate for removal?
 		LevelBrowserMenu.updateLevelCount(levelCount);
 		//PlayerLevelsMenu.removeLevelFromViewer(level);
@@ -501,6 +546,33 @@ public class MakerController implements Runnable, Tickable {
 
 	public void mutePlayer(UUID playerId) {
 		mutedPlayers.add(playerId);
+	}
+
+	private void notifyCoinTransactionCommit(CoinTransaction transaction, long balance) {
+		checkNotNull(transaction);
+		verifyPrimaryThread();
+		switch (transaction.getReason()) {
+		case FIRST_TIME_LEVEL_CLEAR:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.first-time-level-clear.player", transaction.getAmount());
+			break;
+		case POPULAR_LEVEL_RECORD_BEAT:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.popular-level-record-beat.player", transaction.getAmount());
+			break;
+		case STEVE_CHALLENGE_CLEAR:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.steve-challenge-clear.player", transaction.getAmount());
+			break;
+		case LEVEL_UNPUBLISH:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.level-unpublish.player", transaction.getAmount());
+			break;
+		case LEVEL_DELETE:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.level-delete.player", transaction.getAmount());
+			break;
+		case FIRST_TIME_STEVE_CHALLENGE_CLEAR:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.first-time-steve-challenge-clear.player", transaction.getAmount());
+			break;
+		default:
+			break;
+		}
 	}
 
 	public void onAsyncAccountDataLoad(MakerPlayerData data) {
@@ -1110,6 +1182,36 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+//	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
+//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
+//		// if the directory does not exist, create it
+//		if (!schematicsFolder.exists()) {
+//			try {
+//				schematicsFolder.mkdir();
+//			} catch (Exception e) {
+//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
+//				e.printStackTrace();
+//				return;
+//			}
+//		}
+//
+//		File f;
+//		try {
+//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
+//		} catch (FilenameException e) {
+//			// TODO notify player/sender
+//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+//			e.printStackTrace();
+//			return;
+//		}
+//
+//		Region levelRegion = LevelUtils.getDefaultLevelRegion(chunkZ);
+//		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
+//		clipboard.setOrigin(levelRegion.getMinimumPoint());
+//		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
+//		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
+//	}
+
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
 		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
 		if (mPlayer == null) {
@@ -1168,36 +1270,6 @@ public class MakerController implements Runnable, Tickable {
 			addMakerPlayer(player, data);
 		}
 	}
-
-//	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
-//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
-//		// if the directory does not exist, create it
-//		if (!schematicsFolder.exists()) {
-//			try {
-//				schematicsFolder.mkdir();
-//			} catch (Exception e) {
-//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
-//				e.printStackTrace();
-//				return;
-//			}
-//		}
-//
-//		File f;
-//		try {
-//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
-//		} catch (FilenameException e) {
-//			// TODO notify player/sender
-//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
-//			e.printStackTrace();
-//			return;
-//		}
-//
-//		Region levelRegion = LevelUtils.getDefaultLevelRegion(chunkZ);
-//		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
-//		clipboard.setOrigin(levelRegion.getMinimumPoint());
-//		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
-//		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
-//	}
 
 	public void onPlayerLogin(PlayerLoginEvent event) {
 		// allow vanilla white-list logic to work
@@ -1347,9 +1419,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void playerLevelClearsCountCallback(UUID playerId, long result) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+		verifyPrimaryThread();
 		MakerPlayer mPlayer = getPlayer(playerId);
 		if (mPlayer == null) {
 			return;
@@ -1358,9 +1428,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void playerLevelsCountCallback(UUID authorId, int publishedCount, int unpublishedCount) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+		verifyPrimaryThread();
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.playerLevelsCountCallback - maker: [%s] - published count: [%s] - unpublished count: [%s]", authorId, publishedCount, unpublishedCount));
 		}
@@ -1417,9 +1485,7 @@ public class MakerController implements Runnable, Tickable {
 	}
 
 	public void searchLevelsCallback(UUID playerId, String searchString, int levelCount, Collection<MakerDisplayableLevel> levels) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+		verifyPrimaryThread();
 		MakerPlayer mPlayer = getPlayer(playerId);
 		if (mPlayer == null || !mPlayer.isInLobby()) {
 			return;
@@ -1534,19 +1600,32 @@ public class MakerController implements Runnable, Tickable {
 		if (confirmSerial != serial) {
 			mPlayer.setLevelToUnpublishSerial(serial);
 			mPlayer.sendMessage("command.level.unpublish.confirm1", serial);
-			mPlayer.sendMessage("command.level.unpublish.confirm2", serial);
+			if (!mPlayer.hasRank(Rank.ADMIN)) {
+				mPlayer.sendMessage("command.level.unpublish.confirm2", serial);
+			}
+			mPlayer.sendMessage("command.level.unpublish.confirm3", serial);
 		} else {
 			plugin.getDatabaseAdapter().unpublishLevelBySerialAsync(serial, mPlayer);
 		}
 	}
 
-	public void unpublishLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, UUID authorId, Integer levelCount) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+	public void unpublishLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, Long playerCoinBalance, Integer totalPublishedLevelsCount) {
+		verifyPrimaryThread();
 		switch (result) {
 		case SUCCESS:
-			sendMessageToPlayerIfPresent(playerId, "command.level.unpublish.success", levelSerial);
+			MakerPlayer mPlayer = getPlayer(playerId);
+			if (mPlayer == null) {
+				break;
+			}
+			mPlayer.sendMessage("command.level.unpublish.success", levelSerial);
+			if (!mPlayer.hasRank(Rank.ADMIN)) {
+				sendMessageToPlayerIfPresent(playerId, "coin.transaction.level-unpublish.player", 500);
+			}
+			if (playerCoinBalance != null) {
+				mPlayer.setCoins(playerCoinBalance);
+				mPlayer.sendMessage("coin.transaction.new-balance", playerCoinBalance); 
+			}
+			plugin.getDatabaseAdapter().loadPlayerLevelsCountAsync(playerId);
 			break;
 		case NOT_FOUND:
 			sendMessageToPlayerIfPresent(playerId, "command.level.error.not-found", levelSerial);
@@ -1561,11 +1640,18 @@ public class MakerController implements Runnable, Tickable {
 			sendMessageToPlayerIfPresent(playerId, "command.level.unpublish.already-unpublished", levelSerial);
 			break;
 		default:
-			sendMessageToPlayerIfPresent(playerId, "server.error.internal", levelSerial);
+			sendMessageToPlayerIfPresent(playerId, "server.error.internal");
 			break;
 		}
-		if (levelCount != null) {
-			LevelBrowserMenu.updateLevelCount(levelCount);
+		if (totalPublishedLevelsCount != null) {
+			LevelBrowserMenu.updateLevelCount(totalPublishedLevelsCount);
+		}
+	}
+
+	private void updatePlayerCoinBalanceIfPresent(UUID playerId, long balance) {
+		MakerPlayer mPlayer = getPlayer(playerId);
+		if (mPlayer != null) {
+			mPlayer.setCoins(balance);
 		}
 	}
 

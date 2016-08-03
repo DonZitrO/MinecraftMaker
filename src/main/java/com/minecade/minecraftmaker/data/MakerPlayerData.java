@@ -9,15 +9,11 @@ public class MakerPlayerData extends MinecadeAccountData {
 	private int unpublishedLevelsCount;
 	private int publishedLevelsCount;
 	private long uniqueLevelClearsCount;
-	// private AlternativeMakerLevelClearData currentLevelClearData;
+	private boolean steveClear;
 
 	public MakerPlayerData(UUID uniqueId, String username) {
 		super(uniqueId, username);
 	}
-
-//	public AlternativeMakerLevelClearData getCurrentLevelClearData() {
-//		return currentLevelClearData;
-//	}
 
 	public int getPublishedLevelsCount() {
 		return publishedLevelsCount;
@@ -31,12 +27,16 @@ public class MakerPlayerData extends MinecadeAccountData {
 		return unpublishedLevelsCount;
 	}
 
-//	public void setCurrentLevelClearData(AlternativeMakerLevelClearData currentLevelClearData) {
-//		this.currentLevelClearData = currentLevelClearData;
-//	}
+	public boolean isSteveClear() {
+		return steveClear;
+	}
 
 	public void setPublishedLevelsCount(int publishedLevelsCount) {
 		this.publishedLevelsCount = publishedLevelsCount;
+	}
+
+	public void setSteveClear(boolean steveClear) {
+		this.steveClear = steveClear;
 	}
 
 	public void setUniqueLevelClearsCount(long uniqueLevelClearsCount) {

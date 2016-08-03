@@ -82,7 +82,7 @@ public class ServerBrowserMenu extends AbstractMakerMenu {
 		if (info == null) {
 			return MenuClickResult.CANCEL_UPDATE;
 		}
-		if (info.getServerNumber() == plugin.getServerId()) {
+		if (info.getServerNumber() == plugin.getServerBungeeId()) {
 			mPlayer.sendMessage("server.error.already-connected");
 			return MenuClickResult.CANCEL_UPDATE;
 		}

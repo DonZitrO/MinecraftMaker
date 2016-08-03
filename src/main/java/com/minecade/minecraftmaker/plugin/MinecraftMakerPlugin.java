@@ -2,6 +2,7 @@ package com.minecade.minecraftmaker.plugin;
 
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -17,6 +18,7 @@ import com.minecade.core.util.EmptyGenerator;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.cmd.MakerCommandExecutor;
 import com.minecade.minecraftmaker.cmd.MakerLobbyCommandExecutor;
+import com.minecade.minecraftmaker.cmd.MakerTestCommandExecutor;
 import com.minecade.minecraftmaker.cmd.ReportCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
@@ -53,6 +55,8 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		return instance;
 	}
 
+	private final UUID uniqueId = UUID.randomUUID();
+
 	private final ChunkGenerator emptyGenerator = new EmptyGenerator();
 
 	private MakerDatabaseAdapter databaseAdapter;
@@ -65,16 +69,12 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 
 	private boolean debugMode;
 
-	public LevelOperatorTask getLevelOperatorTask() {
-		return levelOperatorTask;
+	public AsyncLevelBrowserUpdaterTask getAsyncLevelBrowserUpdater() {
+		return asyncLevelBrowserUpdater;
 	}
 
 	public BukkitImplAdapter getBukkitImplAdapter() {
 		return bukkitImplAdapter;
-	}
-
-	public AsyncLevelBrowserUpdaterTask getAsyncLevelBrowserUpdater() {
-		return asyncLevelBrowserUpdater;
 	}
 
 	public MakerController getController() {
@@ -90,6 +90,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		return emptyGenerator;
 	}
 
+	public LevelOperatorTask getLevelOperatorTask() {
+		return levelOperatorTask;
+	}
+
 	@Override
 	public String getMessage(String key, Object... args) {
 		if (messages.containsKey(key)) {
@@ -98,8 +102,12 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		return key;
 	}
 
-	public int getServerId() {
+	public int getServerBungeeId() {
 		return getConfig().getInt("server.id", 0);
+	}
+
+	public UUID getServerUniqueId() {
+		return uniqueId;
 	}
 
 	public boolean isDebugMode() {
@@ -123,6 +131,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		getCommand("maker").setExecutor(new MakerCommandExecutor(this));
 		getCommand("report").setExecutor(new ReportCommandExecutor(this));
 		getCommand("makerlobby").setExecutor(new MakerLobbyCommandExecutor(this));
+		getCommand("makertest").setExecutor(new MakerTestCommandExecutor(this));
 		databaseAdapter = new MakerDatabaseAdapter(this);
 		// async player data saver
 		asyncLevelSaver = new AsyncLevelSaverTask(this);
@@ -149,7 +158,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 			databaseAdapter.fixTrendingScoresAsync();
 		}
 		// TODO: remove this after rabbit
-		if (getServerId() > 100) {
+		if (getServerBungeeId() > 100) {
 			return;
 		}
 		new AsyncPlayerCounterUpdaterTask(this).runTaskTimerAsynchronously(this, 100L, 100L);

@@ -41,6 +41,9 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 
+import com.minecade.core.data.CoinTransaction;
+import com.minecade.core.data.CoinTransaction.Reason;
+import com.minecade.core.data.CoinTransaction.SourceType;
 import com.minecade.core.data.Rank;
 import com.minecade.core.item.ItemUtils;
 import com.minecade.minecraftmaker.data.MakerLevelClearData;
@@ -198,14 +201,26 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 				plugin.getDatabaseAdapter().updateLevelAuthorClearTimeAsync(getLevelId(), clearTimeMillis);
 			}
 		}
+		MakerLevelClearData clearData = new MakerLevelClearData(getLevelId(), mPlayer.getUniqueId());
+		clearData.setLevelName(getLevelName());
+		clearData.setPlayerName(mPlayer.getName());
+		clearData.setBestTimeCleared(clearTimeMillis);
 		// update level best clear if faster
-		if (levelBestClearData != null && (levelBestClearData.getBestTimeCleared() == 0 || levelBestClearData.getBestTimeCleared() > clearTimeMillis)) {
-			levelBestClearData.setPlayerName(mPlayer.getName());
-			levelBestClearData.setBestTimeCleared(clearTimeMillis);
+		if (levelBestClearData == null || levelBestClearData.getBestTimeCleared() == 0 || levelBestClearData.getBestTimeCleared() > clearTimeMillis) {
+			levelBestClearData = clearData;
+//			if (getLikes() > 50) {
+				String description = plugin.getMessage("coin.transaction.popular-level-record-beat.description", mPlayer.getName(), getLevelName());
+				CoinTransaction transaction = new CoinTransaction(UUID.randomUUID(), mPlayer.getUniqueId(), 100, plugin.getServerUniqueId(), SourceType.SERVER, Reason.POPULAR_LEVEL_RECORD_BEAT, description);
+				plugin.getDatabaseAdapter().executeCoinTransactionAsync(transaction);
+//			}
 		}
-		// update player best clear data if faster
-		if (currentPlayerBestClearData != null && (currentPlayerBestClearData.getBestTimeCleared() == 0 || currentPlayerBestClearData.getBestTimeCleared() > clearTimeMillis)) {
-			currentPlayerBestClearData.setBestTimeCleared(clearTimeMillis);
+		if (currentPlayerBestClearData == null || currentPlayerBestClearData.getBestTimeCleared() == 0 || currentPlayerBestClearData.getBestTimeCleared() > clearTimeMillis) {
+			if (currentPlayerBestClearData == null || currentPlayerBestClearData.getBestTimeCleared() == 0) {
+				String description = plugin.getMessage("coin.transaction.first-time-level-clear.description", mPlayer.getName(), getLevelName());
+				CoinTransaction transaction = new CoinTransaction(UUID.randomUUID(), mPlayer.getUniqueId(), 10, plugin.getServerUniqueId(), SourceType.SERVER, Reason.FIRST_TIME_LEVEL_CLEAR, description);
+				plugin.getDatabaseAdapter().executeCoinTransactionAsync(transaction);
+			}
+			currentPlayerBestClearData = clearData;
 		}
 		if (isSteve()) {
 			steveData.clearLevel(getLevelSerial());
@@ -297,6 +312,14 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 		if (steveData.getLevelsClearedCount() == 16) {
 			title = plugin.getMessage("steve.completed.title");
 			subtitle = plugin.getMessage("steve.level.start.subtitle", steveData.getLevelsClearedCount(), steveData.getLives());
+			if (!mPlayer.getData().isSteveClear()) {
+				// player cleared 100 Steve challenge for the first time
+				plugin.getDatabaseAdapter().clearSteveChallengeAsync(mPlayer.getUniqueId(), mPlayer.getName());
+			} else {
+				String description = plugin.getMessage("coin.transaction.steve-challenge-clear.description", mPlayer.getName());
+				CoinTransaction transaction = new CoinTransaction(UUID.randomUUID(), mPlayer.getUniqueId(), 100, plugin.getServerUniqueId(), SourceType.SERVER, Reason.STEVE_CHALLENGE_CLEAR, description);
+				plugin.getDatabaseAdapter().executeCoinTransactionAsync(transaction);
+			}
 		} else {
 			title = plugin.getMessage("steve.failed.title");
 			if (steveData.getLives() == 0) {
@@ -979,6 +1002,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements Tickable {
 	protected void reset() {
 		removeEntities();
 		super.reset();
+		currentPlayerBestClearData = null;
 		this.clipboard = null;
 		this.firstTimeLoaded = true;
 		this.status = LevelStatus.START_BEACON_PLACED;

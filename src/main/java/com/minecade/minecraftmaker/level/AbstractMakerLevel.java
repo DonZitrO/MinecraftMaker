@@ -146,6 +146,7 @@ public class AbstractMakerLevel {
 		levelSerial = 0;
 		likes = 0;
 		relativeEndLocation = null;
+		levelBestClearData = null;
 	}
 
 	public void setAuthorId(UUID authorId) {

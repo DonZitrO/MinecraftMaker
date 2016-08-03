@@ -20,3 +20,7 @@ commands:
     description: Used by players to report issues
     usage: 'Usage: /report <report>'
     permission-message: '§4You are not allowed to use this command!'
+  makertest:
+    description: Used by devs to test stuff
+    usage: 'Usage: /makertest <action> <params>'
+    permission-message: '§4You are not allowed to use this command!'

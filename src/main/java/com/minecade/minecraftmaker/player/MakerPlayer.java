@@ -371,10 +371,6 @@ public class MakerPlayer implements Tickable {
 		openMakerInventory(menu);
 	}
 
-	public void resetLevelSearchMenu() {
-		LevelSearchMenu.getInstance(plugin, this.getUniqueId()).reset();
-	}
-
 	public void openLevelTemplateMenu() {
 		openMakerInventory(LevelTemplateMenu.getInstance());
 	}
@@ -440,6 +436,10 @@ public class MakerPlayer implements Tickable {
 		}
 	}
 
+	public void resetLevelSearchMenu() {
+		LevelSearchMenu.getInstance(plugin, this.getUniqueId()).reset();
+	}
+
 	public void resetLobbyInventory() {
 		// clear inventory
 		player.getInventory().clear();
@@ -499,6 +499,10 @@ public class MakerPlayer implements Tickable {
 
 	public void setAllowFlight(boolean allowFlight) {
 		player.setAllowFlight(allowFlight);
+	}
+
+	public void setCoins(long balance) {
+		getData().setCoins(balance);
 	}
 
 	public void setCurrentLevel(MakerPlayableLevel level) {
@@ -569,6 +573,11 @@ public class MakerPlayer implements Tickable {
 		return player.teleport(location, cause);
 	}
 
+//	public void teleportOnNextTick(Entity destination, GameMode gameMode) {
+//		entityTeleportDestination = destination;
+//		requestedGameMode = gameMode;
+//	}
+
 	private void teleportIfRequested() {
 //		if (entityTeleportDestination != null) {
 //			teleportDestination = entityTeleportDestination.getLocation().clone();
@@ -584,11 +593,6 @@ public class MakerPlayer implements Tickable {
 			}
 		}
 	}
-
-//	public void teleportOnNextTick(Entity destination, GameMode gameMode) {
-//		entityTeleportDestination = destination;
-//		requestedGameMode = gameMode;
-//	}
 
 	public void teleportOnNextTick(Location destination) {
 		this.teleportDestination = destination;
