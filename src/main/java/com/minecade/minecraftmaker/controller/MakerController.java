@@ -75,6 +75,8 @@ import com.minecade.minecraftmaker.data.CoinTransactionResult;
 import com.minecade.minecraftmaker.data.LevelOperationResult;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
+import com.minecade.minecraftmaker.data.MakerUnlockable;
+import com.minecade.minecraftmaker.data.UnlockOperationResult;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageResult;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
@@ -362,8 +364,12 @@ public class MakerController implements Runnable, Tickable {
 		case PERMISSION_DENIED:
 			sendMessageToPlayerIfPresent(playerId, "command.level.delete.denied", levelSerial);
 			break;
+		case INSUFFICIENT_COINS:
+			sendMessageToPlayerIfPresent(playerId, "coin.transaction.error.insufficient-coins");
+			break;
 		case ERROR:
-			sendMessageToPlayerIfPresent(playerId, "server.error.internal", levelSerial);
+			sendMessageToPlayerIfPresent(playerId, "server.error.internal");
+			break;
 		default:
 			break;
 		}
@@ -1581,10 +1587,69 @@ public class MakerController implements Runnable, Tickable {
 		}
 		entriesToAddToScoreboardTeams.clear();
 		entriesToRemoveFromScoreboardTeams.clear();
-		// TODO: this won't be needed after rabbit integration
-		// if (this.currentTick % 1200 == 600) {
-		// 	plugin.getAsyncLevelBrowserUpdater().resetCompleted();
-		//}
+	}
+
+	public void unlock(MakerPlayer mPlayer, MakerUnlockable unlockable) {
+		checkNotNull(mPlayer);
+		checkNotNull(unlockable);
+		switch (unlockable) {
+		case MIDNIGHT_LEVEL:
+			if (mPlayer.getData().isMidnightLevelUnlocked()) {
+				mPlayer.sendMessage("command.unlock.already-unlocked");
+				return;
+			}
+			break;
+		case RAINY_LEVEL:
+			if (mPlayer.getData().isRainyLevelUnlocked()) {
+				mPlayer.sendMessage("command.unlock.already-unlocked");
+				return;
+			}
+		default:
+			break;
+		}
+		plugin.getDatabaseAdapter().unlockAsync(mPlayer, unlockable);
+	}
+
+	public void unlockCallback(UUID playerId, MakerUnlockable unlockable, UnlockOperationResult finalResult, Long playerCoinBalance) {
+		verifyPrimaryThread();
+		checkNotNull(playerId);
+		checkNotNull(unlockable);
+		switch (finalResult) {
+		case SUCCESS:
+			MakerPlayer mPlayer = getPlayer(playerId);
+			if (mPlayer == null) {
+				break;
+			}
+			switch (unlockable) {
+			case MIDNIGHT_LEVEL:
+				mPlayer.getData().setMidnightLevelUnlocked(true);
+				break;
+			case RAINY_LEVEL:
+				mPlayer.getData().setRainyLevelUnlocked(true);
+				break;
+			default:
+				break;
+			}
+			mPlayer.sendMessage("command.unlock.success", unlockable.name().toLowerCase());
+			//if (!mPlayer.hasRank(Rank.ADMIN)) {
+			mPlayer.sendMessage("coin.transaction.unlock.player", unlockable.getCost(), unlockable.name().toLowerCase());
+			//}
+			if (playerCoinBalance != null) {
+				mPlayer.setCoins(playerCoinBalance);
+				mPlayer.sendMessage("coin.transaction.new-balance", playerCoinBalance); 
+			}
+			break;
+		case ALREADY_UNLOCKED:
+			sendMessageToPlayerIfPresent(playerId, "command.unlock.already-unlocked");
+			break;
+		case INSUFFICIENT_COINS:
+			sendMessageToPlayerIfPresent(playerId, "coin.transaction.error.insufficient-coins");
+			break;
+		case ERROR:
+			sendMessageToPlayerIfPresent(playerId, "server.error.internal");
+		default:
+			break;
+		}
 	}
 
 	public void unmuteOthers(UUID playerId) {
@@ -1638,6 +1703,9 @@ public class MakerController implements Runnable, Tickable {
 			break;
 		case ALREADY_UNPUBLISHED:
 			sendMessageToPlayerIfPresent(playerId, "command.level.unpublish.already-unpublished", levelSerial);
+			break;
+		case INSUFFICIENT_COINS:
+			sendMessageToPlayerIfPresent(playerId, "coin.transaction.error.insufficient-coins");
 			break;
 		default:
 			sendMessageToPlayerIfPresent(playerId, "server.error.internal");

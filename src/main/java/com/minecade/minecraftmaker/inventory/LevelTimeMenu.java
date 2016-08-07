@@ -1,34 +1,60 @@
 package com.minecade.minecraftmaker.inventory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import com.minecade.core.item.ItemUtils;
+import com.minecade.minecraftmaker.data.MakerUnlockable;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.items.TimeItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelTimeMenu extends AbstractSharedMenu {
+public class LevelTimeMenu extends AbstractMakerMenu {
 
-	private static LevelTimeMenu instance;
+	private static Map<UUID, LevelTimeMenu> userMenuMap = new HashMap<>();
 
-	public static LevelTimeMenu getInstance() {
-		if (instance == null) {
-			instance = new LevelTimeMenu(MinecraftMakerPlugin.getInstance());
-			instance.init();
+	public static LevelTimeMenu getInstance(MinecraftMakerPlugin plugin, UUID viewerId) {
+		checkNotNull(plugin);
+		checkNotNull(viewerId);
+		LevelTimeMenu menu = userMenuMap.get(viewerId);
+		if (menu == null) {
+			menu = new LevelTimeMenu(plugin, viewerId);
 		}
-		return instance;
+		userMenuMap.put(viewerId, menu);
+		return menu;
 	}
 
-	private LevelTimeMenu(MinecraftMakerPlugin plugin) {
+	private final UUID viewerId;
+
+	private LevelTimeMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
 		super(plugin, 45);
+		this.viewerId = viewerId;
+		init();
+	}
+
+	@Override
+	public void disable() {
+		super.disable();
+		userMenuMap.remove(getViewerId());
 	}
 
 	@Override
 	public String getTitleKey(String modifier) {
 		return "menu.level-time.title";
+	}
+
+	public UUID getViewerId() {
+		return this.viewerId;
 	}
 
 	private void init() {
@@ -37,6 +63,11 @@ public class LevelTimeMenu extends AbstractSharedMenu {
 		items[23] = TimeItem.MIDNIGHT.getItem();
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
+	}
+
+	@Override
+	public boolean isShared() {
+		return false;
 	}
 
 	@Override
@@ -51,7 +82,7 @@ public class LevelTimeMenu extends AbstractSharedMenu {
 		
 		ItemStack itemStack = inventory.getItem(slot);
 		if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.EXIT.getDisplayName())) {
-			mPlayer.openLevelToolsMenu();
+			mPlayer.openConfigLevelMenu();
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		TimeItem timeItem = TimeItem.getTimeItemByDisplayName(itemStack.getItemMeta().getDisplayName());
@@ -64,10 +95,38 @@ public class LevelTimeMenu extends AbstractSharedMenu {
 			mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toNoon());
 			break;
 		case MIDNIGHT:
-			mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toMidnight());
+			if (mPlayer.getData().isMidnightLevelUnlocked()) {
+				mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toMidnight());
+			} else {
+				mPlayer.sendMessage("command.unlock.confirm1", MakerUnlockable.MIDNIGHT_LEVEL.getCost());
+				mPlayer.sendMessage("command.unlock.confirm2", MakerUnlockable.MIDNIGHT_LEVEL.name().toLowerCase());
+			}
 			break;
 		}
 		return MenuClickResult.CANCEL_CLOSE;
+	}
+
+	@Override
+	public void update() {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(getViewerId());
+		if (mPlayer == null) {
+			return;
+		}
+		if (items[23] == null || !items[23].hasItemMeta() || !items[23].getItemMeta().hasLore()) {
+			return;
+		}
+		ItemMeta meta = items[23].getItemMeta();
+		List<String> lore = meta.getLore();
+		while (lore.size() < 5) {
+			lore.add("");
+		}
+		if (mPlayer.getData().isMidnightLevelUnlocked()) {
+			lore.set(4, plugin.getMessage("unlockable.unlocked"));
+		} else {
+			lore.set(4, plugin.getMessage("unlockable.cost", MakerUnlockable.MIDNIGHT_LEVEL.getCost()));
+		}
+		meta.setLore(lore);
+		items[23].setItemMeta(meta);
 	}
 
 }

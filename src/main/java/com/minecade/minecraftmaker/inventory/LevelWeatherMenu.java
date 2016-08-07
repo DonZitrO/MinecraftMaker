@@ -1,21 +1,51 @@
 package com.minecade.minecraftmaker.inventory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import com.minecade.core.item.ItemUtils;
+import com.minecade.minecraftmaker.data.MakerUnlockable;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.items.WeatherItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelWeatherMenu extends AbstractSharedMenu {
+public class LevelWeatherMenu extends AbstractMakerMenu {
 
-	private static LevelWeatherMenu instance;
+	private static Map<UUID, LevelWeatherMenu> userMenuMap = new HashMap<>();
 
-	private LevelWeatherMenu(MinecraftMakerPlugin plugin) {
+	public static LevelWeatherMenu getInstance(MinecraftMakerPlugin plugin, UUID viewerId) {
+		checkNotNull(plugin);
+		checkNotNull(viewerId);
+		LevelWeatherMenu menu = userMenuMap.get(viewerId);
+		if (menu == null) {
+			menu = new LevelWeatherMenu(plugin, viewerId);
+		}
+		userMenuMap.put(viewerId, menu);
+		return menu;
+	}
+
+	private final UUID viewerId;
+
+	private LevelWeatherMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
 		super(plugin, 45);
+		this.viewerId = viewerId;
+		init();
+	}
+
+	@Override
+	public void disable() {
+		super.disable();
+		userMenuMap.remove(getViewerId());
 	}
 
 	@Override
@@ -23,12 +53,8 @@ public class LevelWeatherMenu extends AbstractSharedMenu {
 		return "menu.level-weather.title";
 	}
 
-	public static LevelWeatherMenu getInstance() {
-		if (instance == null) {
-			instance = new LevelWeatherMenu(MinecraftMakerPlugin.getInstance());
-			instance.init();
-		}
-		return instance;
+	public UUID getViewerId() {
+		return this.viewerId;
 	}
 
 	private void init() {
@@ -37,6 +63,11 @@ public class LevelWeatherMenu extends AbstractSharedMenu {
 		items[23] = WeatherItem.RAINY.getItem();
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
+	}
+
+	@Override
+	public boolean isShared() {
+		return false;
 	}
 
 	@Override
@@ -51,7 +82,7 @@ public class LevelWeatherMenu extends AbstractSharedMenu {
 		
 		ItemStack itemStack = inventory.getItem(slot);
 		if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.EXIT.getDisplayName())) {
-			mPlayer.openLevelToolsMenu();
+			mPlayer.openConfigLevelMenu();
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		WeatherItem weatherItem = WeatherItem.getWeatherItem(itemStack.getType());
@@ -61,13 +92,41 @@ public class LevelWeatherMenu extends AbstractSharedMenu {
 		}
 		switch (weatherItem) {
 		case RAINY:
-			mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toRainy());
+			if (mPlayer.getData().isRainyLevelUnlocked()) {
+				mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toRainy());
+			} else {
+				mPlayer.sendMessage("command.unlock.confirm1", MakerUnlockable.RAINY_LEVEL.getCost());
+				mPlayer.sendMessage("command.unlock.confirm2", MakerUnlockable.RAINY_LEVEL.name().toLowerCase());
+			}
 			break;
 		case CLEAR:
 			mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toClear());
 			break;
 		}
 		return MenuClickResult.CANCEL_CLOSE;
+	}
+
+	@Override
+	public void update() {
+		MakerPlayer mPlayer = plugin.getController().getPlayer(getViewerId());
+		if (mPlayer == null) {
+			return;
+		}
+		if (items[23] == null || !items[23].hasItemMeta() || !items[23].getItemMeta().hasLore()) {
+			return;
+		}
+		ItemMeta meta = items[23].getItemMeta();
+		List<String> lore = meta.getLore();
+		while (lore.size() < 5) {
+			lore.add("");
+		}
+		if (mPlayer.getData().isRainyLevelUnlocked()) {
+			lore.set(4, plugin.getMessage("unlockable.unlocked"));
+		} else {
+			lore.set(4, plugin.getMessage("unlockable.cost", MakerUnlockable.RAINY_LEVEL.getCost()));
+		}
+		meta.setLore(lore);
+		items[23].setItemMeta(meta);
 	}
 
 }

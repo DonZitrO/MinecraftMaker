@@ -24,7 +24,7 @@ public class LevelCommandExecutor extends AbstractCommandExecutor {
 				Validate.isTrue(serial > 0);
 				return serial;
 			} catch (Exception e) {
-				Bukkit.getLogger().warning(String.format("LevelCommandExecutor.optionalBlockId - invalid level serial: [%s] - %s", args[index], e.getMessage()));
+				Bukkit.getLogger().warning(String.format("LevelCommandExecutor.validateLevelSerial - invalid level serial: [%s] - %s", args[index], e.getMessage()));
 				return 0;
 			}
 		}

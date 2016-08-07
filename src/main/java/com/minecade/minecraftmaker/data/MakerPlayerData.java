@@ -10,6 +10,8 @@ public class MakerPlayerData extends MinecadeAccountData {
 	private int publishedLevelsCount;
 	private long uniqueLevelClearsCount;
 	private boolean steveClear;
+	private boolean rainyLevelUnlocked;
+	private boolean midnightLevelUnlocked;
 
 	public MakerPlayerData(UUID uniqueId, String username) {
 		super(uniqueId, username);
@@ -27,12 +29,28 @@ public class MakerPlayerData extends MinecadeAccountData {
 		return unpublishedLevelsCount;
 	}
 
+	public boolean isMidnightLevelUnlocked() {
+		return midnightLevelUnlocked;
+	}
+
+	public boolean isRainyLevelUnlocked() {
+		return rainyLevelUnlocked;
+	}
+
 	public boolean isSteveClear() {
 		return steveClear;
 	}
 
+	public void setMidnightLevelUnlocked(boolean midnightLevelUnlocked) {
+		this.midnightLevelUnlocked = midnightLevelUnlocked;
+	}
+
 	public void setPublishedLevelsCount(int publishedLevelsCount) {
 		this.publishedLevelsCount = publishedLevelsCount;
+	}
+
+	public void setRainyLevelUnlocked(boolean rainyLevelUnlocked) {
+		this.rainyLevelUnlocked = rainyLevelUnlocked;
 	}
 
 	public void setSteveClear(boolean steveClear) {

@@ -28,12 +28,11 @@ import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.GuestEditLevelOptionsMenu;
-import com.minecade.minecraftmaker.inventory.GuestLevelToolsMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
+import com.minecade.minecraftmaker.inventory.LevelConfigMenu;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.LevelTimeMenu;
-import com.minecade.minecraftmaker.inventory.LevelToolsMenu;
 import com.minecade.minecraftmaker.inventory.LevelWeatherMenu;
 import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
@@ -43,6 +42,7 @@ import com.minecade.minecraftmaker.inventory.SteveLevelClearOptionsMenu;
 import com.minecade.minecraftmaker.inventory.SteveLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.ToolsSkullMenu;
 import com.minecade.minecraftmaker.inventory.ToolsSkullTypeMenu;
+import com.minecade.minecraftmaker.inventory.VipLevelToolsMenu;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.items.SkullTypeItem;
 import com.minecade.minecraftmaker.level.LevelStatus;
@@ -347,6 +347,10 @@ public class MakerPlayer implements Tickable {
 		this.makerScoreboard.disable();
 	}
 
+	public void openConfigLevelMenu() {
+		openMakerInventory(LevelConfigMenu.getInstance());
+	}
+
 	public void openEditLevelOptionsMenu() {
 		openMakerInventory(EditLevelOptionsMenu.getInstance());
 	}
@@ -376,19 +380,15 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void openLevelTimeMenu() {
-		openMakerInventory(LevelTimeMenu.getInstance());
-	}
-
-	public void openLevelToolsMenu() {
-		if (isAuthorEditingLevel()) {
-			openMakerInventory(LevelToolsMenu.getInstance());
-		} else {
-			openMakerInventory(GuestLevelToolsMenu.getInstance());
-		}
+		LevelTimeMenu menu = LevelTimeMenu.getInstance(plugin, getUniqueId());
+		menu.update();
+		openMakerInventory(menu);
 	}
 
 	public void openLevelWeatherMenu() {
-		openMakerInventory(LevelWeatherMenu.getInstance());
+		LevelWeatherMenu menu = LevelWeatherMenu.getInstance(plugin, getUniqueId());
+		menu.update();
+		openMakerInventory(menu);
 	}
 
 	private void openMakerInventory(AbstractMakerMenu toOpen) {
@@ -428,6 +428,10 @@ public class MakerPlayer implements Tickable {
 
 	public void openToolsSkullTypeMenu() {
 		openMakerInventory(ToolsSkullTypeMenu.getInstance());
+	}
+
+	public void openVIPLevelToolsMenu() {
+		openMakerInventory(VipLevelToolsMenu.getInstance());
 	}
 
 	public void removeTeamEntryFromScoreboard(String playerName) {

@@ -944,6 +944,8 @@ public class MakerDatabaseAdapter {
 			ResultSet dataResult = makerPlayerDataSt.executeQuery();
 			if (dataResult.first()) {
 				data.setSteveClear(dataResult.getBoolean("steve_clear"));
+				data.setRainyLevelUnlocked(dataResult.getBoolean("rainy_level"));
+				data.setMidnightLevelUnlocked(dataResult.getBoolean("midnight_level"));
 			} else {
 				// not found - create maker player data
 				if (Bukkit.getLogger().isLoggable(Level.INFO)) {
@@ -1681,6 +1683,58 @@ public class MakerDatabaseAdapter {
 		} catch (SQLException e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updatePlayersCount - error: %s", e.getMessage()));
 			e.printStackTrace();
+		}
+	}
+
+	public void unlockAsync(MakerPlayer mPlayer, MakerUnlockable unlockable) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> unlock(mPlayer, unlockable));
+	}
+
+	private void unlock(final MakerPlayer mPlayer, final MakerUnlockable unlockable) {
+		verifyNotPrimaryThread();
+		checkNotNull(mPlayer);
+		checkNotNull(unlockable);
+		Long balance = null;
+		UnlockOperationResult result = UnlockOperationResult.ERROR;
+		try {
+			String isUnlockedQuery = "SELECT `players`.`%s` FROM `mcmaker`.`players` WHERE `players`.`player_id` = UNHEX(?)";
+			try (PreparedStatement isUnlockedSt = getConnection().prepareStatement(String.format(isUnlockedQuery, unlockable.name().toLowerCase()))) {
+				isUnlockedSt.setString(1, mPlayer.getUniqueId().toString().replace("-", ""));
+				ResultSet resultSet = isUnlockedSt.executeQuery();
+				if (!resultSet.next()) {
+					result = UnlockOperationResult.NOT_FOUND;
+					return;
+				}
+				if (resultSet.getBoolean(unlockable.name().toLowerCase())) {
+					result = UnlockOperationResult.ALREADY_UNLOCKED;
+					return;
+				}
+			}
+			String description = plugin.getMessage("coin.transaction.unlock.description", mPlayer.getName(), unlockable.name().toLowerCase());
+			CoinTransaction transaction = new CoinTransaction(UUID.randomUUID(), mPlayer.getUniqueId(), -unlockable.getCost(), plugin.getServerUniqueId(), SourceType.SERVER, Reason.UNLOCKABLE, description);
+			switch (executeCoinTransaction(transaction, false)) {
+			case COMMITTED:
+				balance = getCoinBalance(mPlayer.getUniqueId());
+				break;
+			case INSUFFICIENT_COINS:
+				result = UnlockOperationResult.INSUFFICIENT_COINS;
+				return;
+			default:
+				return;
+			};
+			String unlockUpdate = "UPDATE `mcmaker`.`players` SET `players`.`%s` = 1 WHERE `players`.`player_id` = UNHEX(?)";
+			try (PreparedStatement unlockSt = getConnection().prepareStatement(String.format(unlockUpdate, unlockable.name().toLowerCase()))) {
+				unlockSt.setString(1, mPlayer.getUniqueId().toString().replace("-", ""));
+				unlockSt.executeUpdate();
+				result = UnlockOperationResult.SUCCESS;
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.unlock - error while unlocking: [%s] for player: [%s] - %s", unlockable.name(), mPlayer.getName(), e.getMessage()));
+			e.printStackTrace();
+		} finally {
+			final UnlockOperationResult finalResult = result;
+			final Long finalBalance = balance;
+			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().unlockCallback(mPlayer.getUniqueId(), unlockable, finalResult, finalBalance));
 		}
 	}
 

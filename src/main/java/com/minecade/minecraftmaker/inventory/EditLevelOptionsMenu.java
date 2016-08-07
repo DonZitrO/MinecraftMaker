@@ -70,11 +70,13 @@ public class EditLevelOptionsMenu extends AbstractSharedMenu {
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.TOOLS.getDisplayName())) {
 			if(!mPlayer.hasRank(Rank.VIP)){
 				mPlayer.sendMessage("upgrade.rank.build.tools");
-				return MenuClickResult.CANCEL_CLOSE;
 			} else {
-				mPlayer.updateInventory();
-				mPlayer.openLevelToolsMenu();
+				mPlayer.openVIPLevelToolsMenu();
 			}
+			return MenuClickResult.CANCEL_CLOSE;
+		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.CONFIG.getDisplayName())) {
+			mPlayer.openConfigLevelMenu();
+			return MenuClickResult.CANCEL_CLOSE;
 		} else if (ItemUtils.itemNameEquals(clickedItem, EditLevelOptionItem.INVITE.getDisplayName())) {
 			mPlayer.sendMessage("command.maker.invite.usage");
 			return MenuClickResult.CANCEL_CLOSE;

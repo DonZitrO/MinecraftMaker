@@ -20,6 +20,7 @@ import com.minecade.minecraftmaker.cmd.MakerCommandExecutor;
 import com.minecade.minecraftmaker.cmd.MakerLobbyCommandExecutor;
 import com.minecade.minecraftmaker.cmd.MakerTestCommandExecutor;
 import com.minecade.minecraftmaker.cmd.ReportCommandExecutor;
+import com.minecade.minecraftmaker.cmd.UnlockCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
@@ -132,6 +133,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		getCommand("report").setExecutor(new ReportCommandExecutor(this));
 		getCommand("makerlobby").setExecutor(new MakerLobbyCommandExecutor(this));
 		getCommand("makertest").setExecutor(new MakerTestCommandExecutor(this));
+		getCommand("unlock").setExecutor(new UnlockCommandExecutor(this));
 		databaseAdapter = new MakerDatabaseAdapter(this);
 		// async player data saver
 		asyncLevelSaver = new AsyncLevelSaverTask(this);
@@ -181,7 +183,7 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		try {
 			this.bukkitImplAdapter = new Spigot_v1_9_R2();
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MinecraftMakerPlugin.onLoad - Unable to initialize specific Spigot version's NBT tags adapter - %s", e.getMessage()));
+			Bukkit.getLogger().severe(String.format("MinecraftMakerPlugin.onLoad - Unable to initialize Spigot's version specific NBT tag adapter - %s", e.getMessage()));
 			e.printStackTrace();
 			// this is an extreme case, so shut the server down
 			Bukkit.shutdown();

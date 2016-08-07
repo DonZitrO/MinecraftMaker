@@ -58,7 +58,7 @@ public class GuestEditLevelOptionsMenu extends AbstractSharedMenu {
 				return MenuClickResult.CANCEL_CLOSE;
 			} else {
 				mPlayer.updateInventory();
-				mPlayer.openLevelToolsMenu();
+				mPlayer.openVIPLevelToolsMenu();
 			}
 		} else if (ItemUtils.itemNameEquals(clickedItem, GuestEditLevelOptionItem.EXIT.getDisplayName())) {
 			plugin.getController().addPlayerToMainLobby(mPlayer);

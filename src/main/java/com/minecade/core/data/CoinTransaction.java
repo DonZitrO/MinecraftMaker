@@ -8,27 +8,28 @@ public class CoinTransaction {
 	public static enum Reason {
 		FIRST_TIME_LEVEL_CLEAR,
 		FIRST_TIME_STEVE_CHALLENGE_CLEAR,
-		STEVE_CHALLENGE_CLEAR,
-		POPULAR_LEVEL_RECORD_BEAT,
 		LEVEL_DELETE,
 		LEVEL_UNPUBLISH,
-		OTHER;
+		OTHER,
+		POPULAR_LEVEL_RECORD_BEAT,
+		STEVE_CHALLENGE_CLEAR,
+		UNLOCKABLE;
 	}
 
 	public static enum SourceType {
-		SERVER,
+		OTHER,
 		PLAYER,
-		OTHER;
+		SERVER;
 	}
 
-	private final UUID transactionId;
-	private final UUID playerId;
 	private final long amount;
-	private final UUID source;
-	private final SourceType sourceType;
+	private Date dateCommitted;
+	private final UUID playerId;
 	private final Reason reason;
 	private final String reasonDescription;
-	private Date dateCommitted;
+	private final UUID source;
+	private final SourceType sourceType;
+	private final UUID transactionId;
 
 	public CoinTransaction(UUID transactionId, UUID playerId, long amount, UUID source, SourceType sourceType, Reason reason, String reasonDescription) {
 		this.transactionId = transactionId;

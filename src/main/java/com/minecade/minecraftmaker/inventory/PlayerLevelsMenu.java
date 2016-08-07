@@ -37,9 +37,9 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 	}
 
 	private final UUID viewerId;
-
 	private final Map<Integer, MakerDisplayableLevel> slotLevelMap = new HashMap<>();
 	private int levelCount = 0;
+
 	private PlayerLevelsMenu(MinecraftMakerPlugin plugin, UUID viewerId) {
 		super(plugin);
 		this.viewerId = viewerId;
