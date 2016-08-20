@@ -1,6 +1,7 @@
 package com.minecade.minecraftmaker.inventory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.minecade.core.util.BukkitUtils.verifyPrimaryThread;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,7 +11,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -72,9 +72,7 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 	}
 
 	public void loadLevelsCallback(int totalLevelCount, Collection<MakerDisplayableLevel> levels) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+		verifyPrimaryThread();
 		this.levelCount = totalLevelCount;
 		update(levels);
 	}
@@ -118,18 +116,14 @@ public class PlayerLevelsMenu extends AbstractDisplayableLevelMenu {
 
 	@Override
 	public void update() {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+		verifyPrimaryThread();
 		update(null);
 		plugin.getDatabaseAdapter().loadDisplayableLevelsPageByAuthorIdAsync(this, getPageOffset(currentPage), ITEMS_PER_PAGE);
 	}
 
 	@Override
 	public void update(Collection<MakerDisplayableLevel> currentPageLevels) {
-		if (!Bukkit.isPrimaryThread()) {
-			throw new RuntimeException("This method is meant to be called from the main thread ONLY");
-		}
+		verifyPrimaryThread();
 		slotLevelMap.clear();
 		updatePaginationItems();
 		for (int j = 10; j < 44; j++) {

@@ -9,7 +9,7 @@ import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
 
-public class AbstractMakerLevel {
+public abstract class AbstractMakerLevel {
 
 	protected final MinecraftMakerPlugin plugin;
 
@@ -31,11 +31,6 @@ public class AbstractMakerLevel {
 
 	protected WorldTimeAndWeather timeAndWeather = WorldTimeAndWeather.NOON_CLEAR;
 	protected WorldTimeAndWeather timeAndWeatherChangeRequest;
-//	protected boolean dirtyTimeAndWeather;
-//	protected long levelTime = 6000;
-//	protected WeatherType levelWeather = WeatherType.CLEAR;
-
-	//protected List<MakerLevelClearData> levelsClear = new ArrayList<MakerLevelClearData>();;
 
 	public AbstractMakerLevel(MinecraftMakerPlugin plugin) {
 		this.plugin = plugin;
@@ -92,14 +87,6 @@ public class AbstractMakerLevel {
 	public long getLikes() {
 		return likes;
 	}
-
-//	public long getLevelTime() {
-//		return levelTime;
-//	}
-//
-//	public WeatherType getLevelWeather() {
-//		return levelWeather;
-//	}
 
 	public MakerRelativeLocationData getRelativeEndLocation() {
 		return relativeEndLocation;
@@ -192,14 +179,6 @@ public class AbstractMakerLevel {
 	public void setLikes(long likes) {
 		this.likes = likes;
 	}
-
-//	public void setLevelTime(long levelTime) {
-//		this.levelTime = levelTime;
-//	}
-//
-//	public void setLevelWeather(WeatherType levelWeather) {
-//		this.levelWeather = levelWeather;
-//	}
 
 	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
 		this.relativeEndLocation = relativeEndLocation;

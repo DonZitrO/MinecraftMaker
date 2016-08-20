@@ -92,7 +92,7 @@ public class LevelWeatherMenu extends AbstractMakerMenu {
 		}
 		switch (weatherItem) {
 		case RAINY:
-			if (mPlayer.getData().isRainyLevelUnlocked()) {
+			if (mPlayer.hasUnlockable(MakerUnlockable.RAINY_LEVEL)) {
 				mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toRainy());
 			} else {
 				mPlayer.sendMessage("command.unlock.confirm1", MakerUnlockable.RAINY_LEVEL.getCost());
@@ -117,13 +117,15 @@ public class LevelWeatherMenu extends AbstractMakerMenu {
 		}
 		ItemMeta meta = items[23].getItemMeta();
 		List<String> lore = meta.getLore();
-		while (lore.size() < 5) {
+		while (lore.size() < 6) {
 			lore.add("");
 		}
-		if (mPlayer.getData().isRainyLevelUnlocked()) {
-			lore.set(4, plugin.getMessage("unlockable.unlocked"));
+		if (mPlayer.hasUnlockable(MakerUnlockable.RAINY_LEVEL)) {
+			lore.set(3, plugin.getMessage("unlockable.unlocked"));
+			lore.set(5, plugin.getMessage("unlockable.click-to-use"));
 		} else {
-			lore.set(4, plugin.getMessage("unlockable.cost", MakerUnlockable.RAINY_LEVEL.getCost()));
+			lore.set(3, plugin.getMessage("unlockable.cost", MakerUnlockable.RAINY_LEVEL.getCost()));
+			lore.set(5, plugin.getMessage("unlockable.click-to-unlock"));
 		}
 		meta.setLore(lore);
 		items[23].setItemMeta(meta);

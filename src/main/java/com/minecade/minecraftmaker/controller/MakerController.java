@@ -64,9 +64,9 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import com.minecade.core.data.CoinTransaction;
-import com.minecade.core.data.Rank;
 import com.minecade.core.data.CoinTransaction.Reason;
 import com.minecade.core.data.CoinTransaction.SourceType;
+import com.minecade.core.data.Rank;
 import com.minecade.core.event.AsyncAccountDataLoadEvent;
 import com.minecade.core.event.EventUtils;
 import com.minecade.core.item.ItemUtils;
@@ -77,6 +77,7 @@ import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.data.MakerUnlockable;
 import com.minecade.minecraftmaker.data.UnlockOperationResult;
+import com.minecade.minecraftmaker.inventory.LevelTemplatesMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageResult;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
@@ -85,6 +86,7 @@ import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
+import com.minecade.minecraftmaker.level.MakerLevelTemplate;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -290,7 +292,9 @@ public class MakerController implements Runnable, Tickable {
 		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
-	public void createEmptyLevel(MakerPlayer author, int floorBlockId) {
+	public void createEmptyLevel(MakerPlayer author, MakerLevelTemplate template) {
+		checkNotNull(author);
+		checkNotNull(template);
 		if (!author.isInLobby()) {
 			author.sendActionMessage("level.create.error.author-busy");
 			return;
@@ -313,18 +317,18 @@ public class MakerController implements Runnable, Tickable {
 		level.setAuthorId(author.getUniqueId());
 		level.setAuthorName(author.getName());
 		level.setAuthorRank(author.getData().getHighestRank());
-		level.setFloorBlockId(floorBlockId);
+		level.setLevelTemplate(template);
 		level.waitForBusyLevel(author, true, false, true);
 	}
 
-	public void createEmptyLevel(UUID authorId, short widthChunks, int floorBlockId) {
-		MakerPlayer author = getPlayer(authorId);
-		if (author == null) {
-			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
-			return;
-		}
-		createEmptyLevel(author, floorBlockId);
-	}
+//	public void createEmptyLevel(UUID authorId, short widthChunks, int floorBlockId) {
+//		MakerPlayer author = getPlayer(authorId);
+//		if (author == null) {
+//			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
+//			return;
+//		}
+//		createEmptyLevel(author, floorBlockId);
+//	}
 
 	public void deleteLevel(MakerPlayer mPlayer, long serial) {
 		long confirmSerial = mPlayer.getLevelToDeleteSerial();
@@ -535,6 +539,12 @@ public class MakerController implements Runnable, Tickable {
 		level.setLevelSerial(levelSerial);
 		level.setCurrentPlayerId(mPlayer.getUniqueId());
 		level.waitForBusyLevel(mPlayer, true, false, true);
+	}
+
+	public void loadLevelTemplatesCallback(Collection<MakerLevelTemplate> templates) {
+		verifyPrimaryThread();
+		checkNotNull(templates);
+		LevelTemplatesMenu.updateTemplates(templates);
 	}
 
 	public void loadPublishedLevelCallback(MakerDisplayableLevel level, int levelCount) {
@@ -1032,6 +1042,13 @@ public class MakerController implements Runnable, Tickable {
 			}
 			return MenuClickResult.ALLOW;
 		}
+		if (mPlayer.isCheckingTemplate()) {
+			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.CHECK_TEMPLATE_OPTIONS.getDisplayName())) {
+				mPlayer.openCheckTemplateOptionsMenu();
+				return MenuClickResult.CANCEL_UPDATE;
+			}
+			return MenuClickResult.ALLOW;
+		}
 		if (mPlayer.isInSteve()) {
 			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
 				if (mPlayer.isPlayingLevel()) {
@@ -1146,6 +1163,36 @@ public class MakerController implements Runnable, Tickable {
 		level.onPlayerDropItem(event);
 	}
 
+//	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
+//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
+//		// if the directory does not exist, create it
+//		if (!schematicsFolder.exists()) {
+//			try {
+//				schematicsFolder.mkdir();
+//			} catch (Exception e) {
+//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
+//				e.printStackTrace();
+//				return;
+//			}
+//		}
+//
+//		File f;
+//		try {
+//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
+//		} catch (FilenameException e) {
+//			// TODO notify player/sender
+//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
+//			e.printStackTrace();
+//			return;
+//		}
+//
+//		Region levelRegion = LevelUtils.getDefaultLevelRegion(chunkZ);
+//		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
+//		clipboard.setOrigin(levelRegion.getMinimumPoint());
+//		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
+//		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
+//	}
+
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerController.onPlayerInteract - Player:[%s]", event.getPlayer().getName()));
@@ -1187,36 +1234,6 @@ public class MakerController implements Runnable, Tickable {
 			}
 		}
 	}
-
-//	public void saveLevel(UUID authorId, String levelName, short chunkZ) {
-//		File schematicsFolder = new File(plugin.getDataFolder(), "test");
-//		// if the directory does not exist, create it
-//		if (!schematicsFolder.exists()) {
-//			try {
-//				schematicsFolder.mkdir();
-//			} catch (Exception e) {
-//				Bukkit.getLogger().severe(String.format("MakerController.loadLevel - unable to create test folder for schematics: %s", e.getMessage()));
-//				e.printStackTrace();
-//				return;
-//			}
-//		}
-//
-//		File f;
-//		try {
-//			f = FileUtils.getSafeFile(schematicsFolder, levelName, "schematic", "schematic");
-//		} catch (FilenameException e) {
-//			// TODO notify player/sender
-//			Bukkit.getLogger().severe(String.format("MakerController.loadLevel - schematic not found"));
-//			e.printStackTrace();
-//			return;
-//		}
-//
-//		Region levelRegion = LevelUtils.getDefaultLevelRegion(chunkZ);
-//		BlockArrayClipboard clipboard = new BlockArrayClipboard(levelRegion);
-//		clipboard.setOrigin(levelRegion.getMinimumPoint());
-//		ResumableForwardExtentCopy copy = new ResumableForwardExtentCopy(getMakerExtent(), levelRegion, clipboard, clipboard.getOrigin());
-//		plugin.getLevelOperatorTask().offer(new ResumableOperationQueue(copy, new SchematicWriteOperation(clipboard, getMainWorldData(), f)));
-//	}
 
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
 		final MakerPlayer mPlayer = getPlayer(event.getPlayer());
@@ -1298,7 +1315,7 @@ public class MakerController implements Runnable, Tickable {
 			event.setCancelled(true);
 			return;
 		}
-		if (mPlayer.isInLobby()) {
+		if (mPlayer.isInLobby() || mPlayer.isCheckingTemplate()) {
 			return;
 		}
 		if (mPlayer.isSpectating()) {
@@ -1592,20 +1609,9 @@ public class MakerController implements Runnable, Tickable {
 	public void unlock(MakerPlayer mPlayer, MakerUnlockable unlockable) {
 		checkNotNull(mPlayer);
 		checkNotNull(unlockable);
-		switch (unlockable) {
-		case MIDNIGHT_LEVEL:
-			if (mPlayer.getData().isMidnightLevelUnlocked()) {
-				mPlayer.sendMessage("command.unlock.already-unlocked");
-				return;
-			}
-			break;
-		case RAINY_LEVEL:
-			if (mPlayer.getData().isRainyLevelUnlocked()) {
-				mPlayer.sendMessage("command.unlock.already-unlocked");
-				return;
-			}
-		default:
-			break;
+		if (mPlayer.hasUnlockable(unlockable)) {
+			mPlayer.sendMessage("command.unlock.already-unlocked");
+			return;
 		}
 		plugin.getDatabaseAdapter().unlockAsync(mPlayer, unlockable);
 	}
@@ -1620,16 +1626,7 @@ public class MakerController implements Runnable, Tickable {
 			if (mPlayer == null) {
 				break;
 			}
-			switch (unlockable) {
-			case MIDNIGHT_LEVEL:
-				mPlayer.getData().setMidnightLevelUnlocked(true);
-				break;
-			case RAINY_LEVEL:
-				mPlayer.getData().setRainyLevelUnlocked(true);
-				break;
-			default:
-				break;
-			}
+			mPlayer.getData().addUnlockable(unlockable);
 			mPlayer.sendMessage("command.unlock.success", unlockable.name().toLowerCase());
 			//if (!mPlayer.hasRank(Rank.ADMIN)) {
 			mPlayer.sendMessage("coin.transaction.unlock.player", unlockable.getCost(), unlockable.name().toLowerCase());
@@ -1735,6 +1732,27 @@ public class MakerController implements Runnable, Tickable {
 		for (String playerName : entriesToRemoveFromScoreboardTeams) {
 			mPlayer.removeTeamEntryFromScoreboard(playerName);
 		}
+	}
+
+	public void checkTemplate(MakerPlayer mPlayer, MakerLevelTemplate template) {
+		checkNotNull(mPlayer);
+		checkNotNull(template);
+		if (!mPlayer.isInLobby()) {
+			mPlayer.sendActionMessage("template.check.error.player-busy");
+			return;
+		}
+		MakerPlayableLevel level = getEmptyLevelIfAvailable();
+		if (level == null) {
+			mPlayer.sendActionMessage("level.error.full");
+			return;
+		}
+		level.setLevelId(UUID.randomUUID());
+		level.setAuthorId(UUID.randomUUID());
+		level.setAuthorName(template.getAuthorName());
+		level.setAuthorRank(Rank.GUEST);
+		level.setLevelTemplate(template);
+		level.setTemplateCheckerId(mPlayer.getUniqueId());
+		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
 }

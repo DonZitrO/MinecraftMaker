@@ -15,8 +15,6 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public abstract class AbstractDisplayableLevelMenu extends AbstractPaginatedMenu {
 
-	protected static final int LEVELS_PER_PAGE = 28;
-
 	protected static ItemStack getLevelItem(Internationalizable plugin, MakerDisplayableLevel level) {
 		EntityType data = EntityType.GHAST;
 		if (level.getAuthorRank() != null) {

@@ -95,7 +95,7 @@ public class LevelTimeMenu extends AbstractMakerMenu {
 			mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toNoon());
 			break;
 		case MIDNIGHT:
-			if (mPlayer.getData().isMidnightLevelUnlocked()) {
+			if (mPlayer.hasUnlockable(MakerUnlockable.MIDNIGHT_LEVEL)) {
 				mPlayer.getCurrentLevel().requestTimeAndWeatherChange(mPlayer.getCurrentLevel().getTimeAndWeather().toMidnight());
 			} else {
 				mPlayer.sendMessage("command.unlock.confirm1", MakerUnlockable.MIDNIGHT_LEVEL.getCost());
@@ -117,13 +117,15 @@ public class LevelTimeMenu extends AbstractMakerMenu {
 		}
 		ItemMeta meta = items[23].getItemMeta();
 		List<String> lore = meta.getLore();
-		while (lore.size() < 5) {
+		while (lore.size() < 6) {
 			lore.add("");
 		}
-		if (mPlayer.getData().isMidnightLevelUnlocked()) {
-			lore.set(4, plugin.getMessage("unlockable.unlocked"));
+		if (mPlayer.hasUnlockable(MakerUnlockable.MIDNIGHT_LEVEL)) {
+			lore.set(3, plugin.getMessage("unlockable.unlocked"));
+			lore.set(5, plugin.getMessage("unlockable.click-to-use"));
 		} else {
-			lore.set(4, plugin.getMessage("unlockable.cost", MakerUnlockable.MIDNIGHT_LEVEL.getCost()));
+			lore.set(3, plugin.getMessage("unlockable.cost", MakerUnlockable.MIDNIGHT_LEVEL.getCost()));
+			lore.set(5, plugin.getMessage("unlockable.click-to-unlock"));
 		}
 		meta.setLore(lore);
 		items[23].setItemMeta(meta);

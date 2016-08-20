@@ -25,6 +25,7 @@ public class ToolsSkullMenu extends AbstractSharedMenu {
 		ToolsSkullMenu instance = BY_SKULL_TYPE.get(skullType);
 		if (instance == null) {
 			instance = new ToolsSkullMenu(MinecraftMakerPlugin.getInstance(), skullType);
+			BY_SKULL_TYPE.put(skullType, instance);
 			instance.init();
 		}
 		return instance;

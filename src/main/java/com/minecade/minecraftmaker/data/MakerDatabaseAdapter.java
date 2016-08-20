@@ -13,6 +13,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -28,16 +29,18 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 
 import com.minecade.core.data.CoinTransaction;
+import com.minecade.core.data.CoinTransaction.Reason;
+import com.minecade.core.data.CoinTransaction.SourceType;
 import com.minecade.core.data.DatabaseException;
 import com.minecade.core.data.MinecadeAccountData;
 import com.minecade.core.data.Rank;
-import com.minecade.core.data.CoinTransaction.Reason;
-import com.minecade.core.data.CoinTransaction.SourceType;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.level.AbstractMakerLevel;
+import com.minecade.minecraftmaker.level.ClipboardWrapper;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
+import com.minecade.minecraftmaker.level.MakerLevelTemplate;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -46,7 +49,6 @@ import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
 import com.minecade.minecraftmaker.schematic.io.ClipboardReader;
 import com.minecade.minecraftmaker.schematic.io.ClipboardWriter;
-import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
 
 public class MakerDatabaseAdapter {
@@ -251,41 +253,6 @@ public class MakerDatabaseAdapter {
 
 	public void executeCoinTransactionAsync(final CoinTransaction transaction) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> executeCoinTransaction(transaction, true));
-	}
-
-	private synchronized void fixTrendingScores() {
-		verifyNotPrimaryThread();
-		String query = "SELECT `levels`.`date_published`, `levels`.`trending_score`, `levels`.`level_id`, `levels`.`level_name` FROM `mcmaker`.`levels` ORDER BY `levels`.`level_serial` ASC LIMIT ?,?";
-		int offSet = 0;
-		try {
-			do {
-				try (PreparedStatement loadLevelIdsSt = getConnection().prepareStatement(String.format(query))) {
-					loadLevelIdsSt.setInt(1, offSet);
-					offSet += 100;
-					loadLevelIdsSt.setInt(2, 100);
-					ResultSet resultSet = loadLevelIdsSt.executeQuery();
-					if (!resultSet.next()) {
-						return;
-					}
-					do {
-						Date datePublished = resultSet.getTimestamp("date_published");
-						if (datePublished == null) {
-							continue;
-						}
-						ByteBuffer levelIdBytes = ByteBuffer.wrap(resultSet.getBytes("level_id"));
-						UUID levelId = new UUID(levelIdBytes.getLong(), levelIdBytes.getLong());
-						loadLevelLikesAndUnlikesAndUpdateTrendingScore(levelId);
-					} while (resultSet.next());
-				}
-			} while (true);
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.fixTrendingScores - error while fixing trending scores: %s", e.getMessage()));
-			e.printStackTrace();
-		}
-	}
-
-	public void fixTrendingScoresAsync() {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> fixTrendingScores());
 	}
 
 	private synchronized long getCoinBalance(final UUID uniqueId) throws SQLException {
@@ -595,6 +562,23 @@ public class MakerDatabaseAdapter {
 		//loadPlayerLevelsLikes(data);
 	}
 
+	private void loadClipboardIntoWrapper(ClipboardWrapper wrapper, UUID clipboardId) throws SQLException, DataException {
+		checkNotNull(wrapper);
+		checkNotNull(clipboardId);
+		String clipboardIdString = clipboardId.toString().replace("-", "");
+		try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`schematics` where `level_id` = UNHEX(?) order by `updated` desc limit 1"))) {
+			testQuery.setString(1, clipboardIdString);
+			ResultSet resultSet = testQuery.executeQuery();
+			if (!resultSet.next()) {
+				throw new DataException(String.format("Unable to find schematic with id: [%s]", clipboardId));
+			}
+			loadLevelClipboardFromResult(wrapper, resultSet);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadClipboardIntoWrapper - level clipboard loaded without errors: [%s]", clipboardId));
+			}
+		}
+	}
+
 	private synchronized void loadDisplayableLevelsPageByAuthorId(PlayerLevelsMenu levelBrowserMenu, int pageOffset, int levelsPerPage) {
 		verifyNotPrimaryThread();
 		checkNotNull(levelBrowserMenu);
@@ -640,49 +624,31 @@ public class MakerDatabaseAdapter {
 		loadLevelClipboard(level, level.getLevelId());
 	}
 
-	private synchronized void loadLevelClipboard(MakerPlayableLevel level, UUID copyFrom) {
+	private synchronized void loadLevelClipboard(MakerPlayableLevel level, UUID clipboardId) {
 		verifyNotPrimaryThread();
 		checkNotNull(level);
-		checkNotNull(copyFrom);
+		checkNotNull(clipboardId);
 		try {
 			level.tryStatusTransition(LevelStatus.CLIPBOARD_LOAD_READY, LevelStatus.CLIPBOARD_LOADING);
-			String levelId = copyFrom.toString().replace("-", "");
-			try (PreparedStatement testQuery = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`schematics` where `level_id` = UNHEX(?) order by `updated` desc limit 1"))) {
-				testQuery.setString(1, levelId);
-				ResultSet resultSet = testQuery.executeQuery();
-				if (!resultSet.next()) {
-					throw new DataException(String.format("Unable to find schematic for level with id: [%s]", level.getLevelId()));
-				}
-				loadLevelClipboardFromResult(level, resultSet);
-				level.tryStatusTransition(LevelStatus.CLIPBOARD_LOADING, LevelStatus.CLIPBOARD_LOADED);
-				if (plugin.isDebugMode()) {
-					Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadLevelClipboard - level clipboard loaded without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
-				}
+			loadClipboardIntoWrapper(level, clipboardId);
+			level.tryStatusTransition(LevelStatus.CLIPBOARD_LOADING, LevelStatus.CLIPBOARD_LOADED);
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadLevelClipboard - level clipboard loaded without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
 			}
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("loadLevelBySerial.loadLevelClipboard - error while loading level clipboard: %s", e.getMessage()));
+			Bukkit.getLogger().severe(String.format("loadLevelBySerial.loadLevelClipboard - error while loading level clipboard for level: [%s<%s>] - %s", level.getLevelName(), level.getLevelId(), e.getMessage()));
 			e.printStackTrace();
 			level.disable(e.getMessage(), e);
 		}
 	}
 
-	private void loadLevelClipboardFromResult(MakerPlayableLevel level, ResultSet resultSet) throws DataException {
+	private void loadLevelClipboardFromResult(ClipboardWrapper wrapper, ResultSet resultSet) throws DataException {
 		Blob data = null;
 		try {
 			data = resultSet.getBlob("data");
 			try (BufferedInputStream is = new BufferedInputStream(data.getBinaryStream()); ClipboardReader reader = ClipboardFormat.SCHEMATIC.getReader(is)) {
 				// note: this particular implementation doesn't need world data for anything. TODO: find other places where WorldData is not needed.
-				Clipboard clipboard = reader.read(null);
-				if (clipboard.getRegion().getHeight() > 128) {
-						Bukkit.getLogger().severe(String.format("remove this level: [%s]", level.getLevelName()));
-						clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()).add(0, -48, 0));
-					if (level.getRelativeEndLocation() != null) {
-						level.setRelativeEndLocation(new MakerRelativeLocationData(level.getEndLocation().add(0,-48,0),level.getRelativeEndLocation().getLocationId()));
-					}
-				} else {
-					clipboard.setOrigin(LevelUtils.getLevelOrigin(level.getChunkZ()));
-				}
-				level.setClipboard(clipboard);
+				wrapper.setClipboard(reader.read(null));
 			}
 		} catch (Exception e) {
 			throw new DataException(e);
@@ -703,7 +669,7 @@ public class MakerDatabaseAdapter {
 		level.setLevelId(new UUID(levelIdBytes.getLong(), levelIdBytes.getLong()));
 		level.setLevelSerial(result.getLong("level_serial"));
 		level.setLevelName(result.getString("level_name"));
-		level.requestTimeAndWeatherChange(loadTimeAndWeather(result));
+		level.requestTimeAndWeatherChange(loadTimeAndWeather(result, "level_time_and_weather"));
 		level.setAuthorId(new UUID(authorIdBytes.getLong(), authorIdBytes.getLong()));
 		level.setAuthorName(result.getString("author_name"));
 		level.setAuthorRank(loadRank(result));
@@ -769,56 +735,6 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-//	private synchronized void loadPlayerLevelsCleared(MakerPlayerData data) {
-//		if (Bukkit.isPrimaryThread()) {
-//			throw new RuntimeException("This method should NOT be called from the main thread");
-//		}
-//		String uniqueId = data.getUniqueId().toString().replace("-", "");
-//	// Cleared Levels
-//		try (PreparedStatement query = getConnection().prepareStatement(
-//				String.format("SELECT tries, time_cleared FROM mcmaker.level_clears WHERE player_id = UNHEX(?)"))) {
-//			query.setString(1, uniqueId);
-//			ResultSet resultSet = query.executeQuery();
-//	
-//			while (resultSet.next()) {
-//				MakerLevelClearData levelClear = new MakerLevelClearData();
-//				levelClear.setUniqueId(data.getUniqueId());
-//				levelClear.setUsername(data.getUsername());
-//				levelClear.setTries(resultSet.getInt("tries"));
-//				levelClear.setTimeCleared(resultSet.getInt("time_cleared"));
-//				data.getLevelsClear().add(levelClear);
-//			}
-//		} catch (Exception e) {
-//			Bukkit.getLogger().severe(String.format("loadLevelsCleared - error while getting player's cleared levels: %s", e.getMessage()));
-//			e.printStackTrace();
-//		}
-//	}
-
-//	private synchronized void loadPlayerLevelsCleared(MakerPlayerData data) {
-//		if (Bukkit.isPrimaryThread()) {
-//			throw new RuntimeException("This method should NOT be called from the main thread");
-//		}
-//		String uniqueId = data.getUniqueId().toString().replace("-", "");
-//		// Cleared Levels
-//		try (PreparedStatement query = getConnection().prepareStatement(
-//				String.format("SELECT tries, time_cleared FROM mcmaker.level_clears WHERE player_id = UNHEX(?)"))) {
-//			query.setString(1, uniqueId);
-//			ResultSet resultSet = query.executeQuery();
-//
-//			while (resultSet.next()) {
-//				MakerLevelClearData levelClear = new MakerLevelClearData();
-//				levelClear.setUniqueId(data.getUniqueId());
-//				levelClear.setUsername(data.getUsername());
-//				levelClear.setTries(resultSet.getInt("tries"));
-//				levelClear.setTimeCleared(resultSet.getInt("time_cleared"));
-//				data.getLevelsClear().add(levelClear);
-//			}
-//		} catch (Exception e) {
-//			Bukkit.getLogger().severe(String.format("loadLevelsCleared - error while getting player's cleared levels: %s", e.getMessage()));
-//			e.printStackTrace();
-//		}
-//	}
-
 	private synchronized void loadLevelPlayerBestClearData(MakerPlayableLevel level) throws SQLException {
 		verifyNotPrimaryThread();
 		if (level.getLevelId() == null || level.getCurrentPlayerId() == null) {
@@ -845,6 +761,79 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
+	private MakerLevelTemplate loadLevelTemplateFromResult(ResultSet result) throws SQLException, DataException {
+		MakerLevelTemplate template = new MakerLevelTemplate(plugin);
+		ByteBuffer templateIdBytes = ByteBuffer.wrap(result.getBytes("template_id"));
+		ByteBuffer authorIdBytes = ByteBuffer.wrap(result.getBytes("author_id"));
+		template.setTemplateId(new UUID(templateIdBytes.getLong(), templateIdBytes.getLong()));
+		template.setAuthorId(new UUID(authorIdBytes.getLong(), authorIdBytes.getLong()));
+		template.setTemplateName(result.getString("template_name"));
+		template.setAuthorName(result.getString("author_name"));
+		//template.setCoinCost(result.getInt("coin_cost"));
+		template.setFree(result.getBoolean("free"));
+		template.setVipOnly(result.getBoolean("vip_only"));
+		template.setTimeAndWeather(loadTimeAndWeather(result, "template_time_and_weather"));
+		byte[] locationId = result.getBytes("end_location_id");
+		if (locationId != null) {
+			ByteBuffer buffer = ByteBuffer.wrap(locationId);
+			template.setRelativeEndLocation(loadRelativeLocationById(new UUID(buffer.getLong(), buffer.getLong())));
+		}
+		loadClipboardIntoWrapper(template, template.getTemplateId());
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.loadLevelTemplateFromResult - template loaded without errors: [%s]", template.getTemplateName()));
+		}
+		return template;
+	}
+
+	private synchronized void loadLevelTemplates() {
+		verifyNotPrimaryThread();
+		final List<MakerLevelTemplate> templates = new ArrayList<>();
+		String query = "SELECT * from `mcmaker`.`level_templates` ORDER BY vip_only ASC, free DESC, template_name ASC";
+		try (PreparedStatement templateQuery = getConnection().prepareStatement(query)) {
+			ResultSet resultSet = templateQuery.executeQuery();
+			while (resultSet.next()) {
+				templates.add(loadLevelTemplateFromResult(resultSet));
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadLevelTemplates - error: %s", e.getMessage()));
+			e.printStackTrace();
+		} finally {
+			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().loadLevelTemplatesCallback(templates));
+		}
+	}
+
+//	public synchronized Set<MakerDisplayableLevel> loadPublishedLevelsBySerials(Set<Long> serials) {
+//		if (Bukkit.isPrimaryThread()) {
+//			throw new RuntimeException("This method should not be called from the main thread");
+//		}
+//		checkNotNull(serials);
+//		Set<MakerDisplayableLevel> levels = new LinkedHashSet<MakerDisplayableLevel>();
+//		if (serials.isEmpty()) {
+//			return levels;
+//		}
+//		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
+//				SELECT_ALL_FROM_LEVELS,
+//				"WHERE `levels`.`level_serial` IN (%s) AND `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0 AND `levels`.`unpublished` = 0", "");
+//		try (PreparedStatement loadLevelById = getConnection().prepareStatement(String.format(query, StringUtils.join(serials, ",")))) {
+//			ResultSet resultSet = loadLevelById.executeQuery();
+//			while (resultSet.next()) {
+//				MakerDisplayableLevel level = new MakerDisplayableLevel(plugin);
+//				loadLevelFromResult(level, resultSet);
+//				loadLevelRecords(level);
+//				levels.add(level);
+//			}
+//		} catch (Exception e) {
+//			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPublishedLevelsBySerials - error while loading level - %s", e.getMessage()));
+//			e.printStackTrace();
+//		}
+//		return levels;
+//	}
+
+
+	public void loadLevelTemplatesAsync() {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadLevelTemplates());
+	}
+
 	private synchronized void loadlLevelBestClearData(AbstractMakerLevel level) throws SQLException {
 		verifyNotPrimaryThread();
 		String levelIdString = level.getLevelId().toString().replace("-", "");
@@ -863,6 +852,14 @@ public class MakerDatabaseAdapter {
 				data.setPlayerName(resultSet.getString("username"));
 				data.setBestTimeCleared(resultSet.getLong("time_cleared"));
 				level.setLevelBestClearData(data);
+			}
+		}
+	}
+
+	private void loadMakerPlayerUnlockables(MakerPlayerData data, ResultSet result) throws SQLException {
+		for (MakerUnlockable unlockable: MakerUnlockable.values()) {
+			if (result.getBoolean(unlockable.name().toLowerCase())) {
+				data.addUnlockable(unlockable);
 			}
 		}
 	}
@@ -904,34 +901,6 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-//	public synchronized Set<MakerDisplayableLevel> loadPublishedLevelsBySerials(Set<Long> serials) {
-//		if (Bukkit.isPrimaryThread()) {
-//			throw new RuntimeException("This method should not be called from the main thread");
-//		}
-//		checkNotNull(serials);
-//		Set<MakerDisplayableLevel> levels = new LinkedHashSet<MakerDisplayableLevel>();
-//		if (serials.isEmpty()) {
-//			return levels;
-//		}
-//		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
-//				SELECT_ALL_FROM_LEVELS,
-//				"WHERE `levels`.`level_serial` IN (%s) AND `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0 AND `levels`.`unpublished` = 0", "");
-//		try (PreparedStatement loadLevelById = getConnection().prepareStatement(String.format(query, StringUtils.join(serials, ",")))) {
-//			ResultSet resultSet = loadLevelById.executeQuery();
-//			while (resultSet.next()) {
-//				MakerDisplayableLevel level = new MakerDisplayableLevel(plugin);
-//				loadLevelFromResult(level, resultSet);
-//				loadLevelRecords(level);
-//				levels.add(level);
-//			}
-//		} catch (Exception e) {
-//			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPublishedLevelsBySerials - error while loading level - %s", e.getMessage()));
-//			e.printStackTrace();
-//		}
-//		return levels;
-//	}
-
-
 	public void loadNextSteveLevelAsync(MakerPlayableLevel makerPlayableLevel, Set<Long> clearedAndSkipped) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadNextSteveLevel(makerPlayableLevel, clearedAndSkipped));
 	}
@@ -944,8 +913,7 @@ public class MakerDatabaseAdapter {
 			ResultSet dataResult = makerPlayerDataSt.executeQuery();
 			if (dataResult.first()) {
 				data.setSteveClear(dataResult.getBoolean("steve_clear"));
-				data.setRainyLevelUnlocked(dataResult.getBoolean("rainy_level"));
-				data.setMidnightLevelUnlocked(dataResult.getBoolean("midnight_level"));
+				loadMakerPlayerUnlockables(data, dataResult);
 			} else {
 				// not found - create maker player data
 				if (Bukkit.getLogger().isLoggable(Level.INFO)) {
@@ -987,30 +955,6 @@ public class MakerDatabaseAdapter {
 			return;
 		}
 	}
-
-//	public synchronized Set<Long> loadPublishedLevelSerialsPage(LevelSortBy sortBy, boolean reverse, int offset, int limit) {
-//		if (Bukkit.isPrimaryThread()) {
-//			throw new RuntimeException("This method should NOT be called from the main thread");
-//		}
-//		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
-//				"SELECT `levels`.`level_serial` ",
-//				"WHERE `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0 AND `levels`.`unpublished` = 0 ",
-//				"ORDER BY `%s` %s, `levels`.`level_serial` %s " +
-//				"LIMIT ?, ?");
-//		Set<Long> serials = new LinkedHashSet<Long>();
-//		try (PreparedStatement levelPageQuery = getConnection().prepareStatement(String.format(query, sortBy.name(), reverse ? "DESC" : "ASC", reverse ? "DESC" : "ASC"))) {
-//			levelPageQuery.setInt(1, offset);
-//			levelPageQuery.setInt(2, limit);
-//			ResultSet resultSet = levelPageQuery.executeQuery();
-//			while (resultSet.next()) {
-//				serials.add(resultSet.getLong("level_serial"));
-//			}
-//		} catch (Exception e) {
-//			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPublishedLevelSerialsPage - error while loading published level serials page - %s", e.getMessage()));
-//			e.printStackTrace();
-//		}
-//		return serials;
-//	}
 
 	public void loadPlayableLevelBySerialAsync(MakerPlayableLevel level) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadPlayableLevelBySerial(level));
@@ -1279,12 +1223,14 @@ public class MakerDatabaseAdapter {
 		}
 	}
 
-	private WorldTimeAndWeather loadTimeAndWeather(ResultSet result) {
+	private WorldTimeAndWeather loadTimeAndWeather(ResultSet result, String columnName) {
+		checkNotNull(result);
+		checkNotNull(columnName);
 		WorldTimeAndWeather timeAndWeather = WorldTimeAndWeather.NOON_CLEAR;
 		try {
-			timeAndWeather = WorldTimeAndWeather.valueOf(result.getString("level_time_and_weather"));
+			timeAndWeather = WorldTimeAndWeather.valueOf(result.getString(columnName));
 		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadWeather - unable to load level time and weather - %s", e.getMessage()));
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadTimeAndWeather - unable to load level time and weather - error: %s", e.getMessage()));
 		}
 		return timeAndWeather;
 	}
@@ -1557,6 +1503,58 @@ public class MakerDatabaseAdapter {
 		return CoinTransactionResult.COMMITTED;
 	}
 
+	private void unlock(final MakerPlayer mPlayer, final MakerUnlockable unlockable) {
+		verifyNotPrimaryThread();
+		checkNotNull(mPlayer);
+		checkNotNull(unlockable);
+		Long balance = null;
+		UnlockOperationResult result = UnlockOperationResult.ERROR;
+		try {
+			String isUnlockedQuery = "SELECT `players`.`%s` FROM `mcmaker`.`players` WHERE `players`.`player_id` = UNHEX(?)";
+			try (PreparedStatement isUnlockedSt = getConnection().prepareStatement(String.format(isUnlockedQuery, unlockable.name().toLowerCase()))) {
+				isUnlockedSt.setString(1, mPlayer.getUniqueId().toString().replace("-", ""));
+				ResultSet resultSet = isUnlockedSt.executeQuery();
+				if (!resultSet.next()) {
+					result = UnlockOperationResult.NOT_FOUND;
+					return;
+				}
+				if (resultSet.getBoolean(unlockable.name().toLowerCase())) {
+					result = UnlockOperationResult.ALREADY_UNLOCKED;
+					return;
+				}
+			}
+			String description = plugin.getMessage("coin.transaction.unlock.description", mPlayer.getName(), unlockable.name().toLowerCase());
+			CoinTransaction transaction = new CoinTransaction(UUID.randomUUID(), mPlayer.getUniqueId(), -unlockable.getCost(), plugin.getServerUniqueId(), SourceType.SERVER, Reason.UNLOCKABLE, description);
+			switch (executeCoinTransaction(transaction, false)) {
+			case COMMITTED:
+				balance = getCoinBalance(mPlayer.getUniqueId());
+				break;
+			case INSUFFICIENT_COINS:
+				result = UnlockOperationResult.INSUFFICIENT_COINS;
+				return;
+			default:
+				return;
+			};
+			String unlockUpdate = "UPDATE `mcmaker`.`players` SET `players`.`%s` = 1 WHERE `players`.`player_id` = UNHEX(?)";
+			try (PreparedStatement unlockSt = getConnection().prepareStatement(String.format(unlockUpdate, unlockable.name().toLowerCase()))) {
+				unlockSt.setString(1, mPlayer.getUniqueId().toString().replace("-", ""));
+				unlockSt.executeUpdate();
+				result = UnlockOperationResult.SUCCESS;
+			}
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.unlock - error while unlocking: [%s] for player: [%s] - %s", unlockable.name(), mPlayer.getName(), e.getMessage()));
+			e.printStackTrace();
+		} finally {
+			final UnlockOperationResult finalResult = result;
+			final Long finalBalance = balance;
+			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().unlockCallback(mPlayer.getUniqueId(), unlockable, finalResult, finalBalance));
+		}
+	}
+
+	public void unlockAsync(MakerPlayer mPlayer, MakerUnlockable unlockable) {
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> unlock(mPlayer, unlockable));
+	}
+
 	private synchronized void unpublishLevelBySerial(long levelSerial, MakerPlayer mPlayer) {
 		verifyNotPrimaryThread();
 		UUID authorId = null;
@@ -1683,58 +1681,6 @@ public class MakerDatabaseAdapter {
 		} catch (SQLException e) {
 			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updatePlayersCount - error: %s", e.getMessage()));
 			e.printStackTrace();
-		}
-	}
-
-	public void unlockAsync(MakerPlayer mPlayer, MakerUnlockable unlockable) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> unlock(mPlayer, unlockable));
-	}
-
-	private void unlock(final MakerPlayer mPlayer, final MakerUnlockable unlockable) {
-		verifyNotPrimaryThread();
-		checkNotNull(mPlayer);
-		checkNotNull(unlockable);
-		Long balance = null;
-		UnlockOperationResult result = UnlockOperationResult.ERROR;
-		try {
-			String isUnlockedQuery = "SELECT `players`.`%s` FROM `mcmaker`.`players` WHERE `players`.`player_id` = UNHEX(?)";
-			try (PreparedStatement isUnlockedSt = getConnection().prepareStatement(String.format(isUnlockedQuery, unlockable.name().toLowerCase()))) {
-				isUnlockedSt.setString(1, mPlayer.getUniqueId().toString().replace("-", ""));
-				ResultSet resultSet = isUnlockedSt.executeQuery();
-				if (!resultSet.next()) {
-					result = UnlockOperationResult.NOT_FOUND;
-					return;
-				}
-				if (resultSet.getBoolean(unlockable.name().toLowerCase())) {
-					result = UnlockOperationResult.ALREADY_UNLOCKED;
-					return;
-				}
-			}
-			String description = plugin.getMessage("coin.transaction.unlock.description", mPlayer.getName(), unlockable.name().toLowerCase());
-			CoinTransaction transaction = new CoinTransaction(UUID.randomUUID(), mPlayer.getUniqueId(), -unlockable.getCost(), plugin.getServerUniqueId(), SourceType.SERVER, Reason.UNLOCKABLE, description);
-			switch (executeCoinTransaction(transaction, false)) {
-			case COMMITTED:
-				balance = getCoinBalance(mPlayer.getUniqueId());
-				break;
-			case INSUFFICIENT_COINS:
-				result = UnlockOperationResult.INSUFFICIENT_COINS;
-				return;
-			default:
-				return;
-			};
-			String unlockUpdate = "UPDATE `mcmaker`.`players` SET `players`.`%s` = 1 WHERE `players`.`player_id` = UNHEX(?)";
-			try (PreparedStatement unlockSt = getConnection().prepareStatement(String.format(unlockUpdate, unlockable.name().toLowerCase()))) {
-				unlockSt.setString(1, mPlayer.getUniqueId().toString().replace("-", ""));
-				unlockSt.executeUpdate();
-				result = UnlockOperationResult.SUCCESS;
-			}
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.unlock - error while unlocking: [%s] for player: [%s] - %s", unlockable.name(), mPlayer.getName(), e.getMessage()));
-			e.printStackTrace();
-		} finally {
-			final UnlockOperationResult finalResult = result;
-			final Long finalBalance = balance;
-			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().unlockCallback(mPlayer.getUniqueId(), unlockable, finalResult, finalBalance));
 		}
 	}
 

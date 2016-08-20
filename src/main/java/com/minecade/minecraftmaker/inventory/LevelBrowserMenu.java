@@ -198,7 +198,7 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 		}
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | LevelBrowserMenu.update - viewer: [%s]", getViewerId()));
-			Bukkit.getLogger().info(String.format("[DEBUG] | LevelBrowserMenu.update - offset: [%s] - limit: [%s]", getPageOffset(currentPage), LEVELS_PER_PAGE));
+			Bukkit.getLogger().info(String.format("[DEBUG] | LevelBrowserMenu.update - offset: [%s] - limit: [%s]", getPageOffset(currentPage), ITEMS_PER_PAGE));
 		}
 		update(null);
 		plugin.getController().requestLevelPageUpdate(sortBy, reverseSortBy, currentPage, getViewerId());

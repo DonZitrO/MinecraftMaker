@@ -24,14 +24,16 @@ import com.minecade.core.data.Rank;
 import com.minecade.core.player.PlayerUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
+import com.minecade.minecraftmaker.data.MakerUnlockable;
 import com.minecade.minecraftmaker.inventory.AbstractMakerMenu;
+import com.minecade.minecraftmaker.inventory.CheckTemplateOptionsMenu;
+import com.minecade.minecraftmaker.inventory.LevelTemplatesMenu;
 import com.minecade.minecraftmaker.inventory.EditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.EditorPlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.GuestEditLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelConfigMenu;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
-import com.minecade.minecraftmaker.inventory.LevelTemplateMenu;
 import com.minecade.minecraftmaker.inventory.LevelTimeMenu;
 import com.minecade.minecraftmaker.inventory.LevelWeatherMenu;
 import com.minecade.minecraftmaker.inventory.MenuClickResult;
@@ -271,6 +273,10 @@ public class MakerPlayer implements Tickable {
 		return getHighestRank().includes(rank);
 	}
 
+	public boolean hasUnlockable(MakerUnlockable unlockable) {
+		return getData().hasUnlockable(unlockable);
+	}
+
 	public void initScoreboard(MinecraftMakerPlugin plugin) {
 		if (makerScoreboard != null) {
 			Bukkit.getLogger().warning(String.format("MakerPlayer.initScoreboard - scoreboard already initialized for player: %s", getDescription()));
@@ -282,6 +288,10 @@ public class MakerPlayer implements Tickable {
 
 	public boolean isAuthorEditingLevel() {
 		return currentLevel != null && LevelStatus.EDITING.equals(currentLevel.getStatus()) && getUniqueId().equals(currentLevel.getAuthorId());
+	}
+
+	public boolean isCheckingTemplate() {
+		return currentLevel != null && LevelStatus.CHECKING.equals(currentLevel.getStatus()) && getUniqueId().equals(currentLevel.getTemplateCheckerId());
 	}
 
 	@Override
@@ -347,6 +357,10 @@ public class MakerPlayer implements Tickable {
 		this.makerScoreboard.disable();
 	}
 
+	public void openCheckTemplateOptionsMenu() {
+		openMakerInventory(CheckTemplateOptionsMenu.getInstance());
+	}
+
 	public void openConfigLevelMenu() {
 		openMakerInventory(LevelConfigMenu.getInstance());
 	}
@@ -376,7 +390,9 @@ public class MakerPlayer implements Tickable {
 	}
 
 	public void openLevelTemplateMenu() {
-		openMakerInventory(LevelTemplateMenu.getInstance());
+		LevelTemplatesMenu menu = LevelTemplatesMenu.getInstance(plugin, this.getUniqueId());
+		menu.update();
+		openMakerInventory(menu);
 	}
 
 	public void openLevelTimeMenu() {
@@ -569,7 +585,7 @@ public class MakerPlayer implements Tickable {
 
 	public void spectate() {
 		//setCurrentLevel(null);
-		 clearInventory();
+		clearInventory();
 		player.setGameMode(GameMode.SPECTATOR);
 	}
 

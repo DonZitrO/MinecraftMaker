@@ -10,6 +10,7 @@ import com.minecade.core.item.SkullItemBuilder;
 
 public enum GeneralMenuItem implements TranslatableItem {
 
+	CHECK_TEMPLATE_OPTIONS(Material.ENDER_CHEST),
 	CONTINUE_EDITING(Material.EMPTY_MAP),
 	CURRENT_PAGE(Material.PAPER),
 	CUSTOM_HEAD,

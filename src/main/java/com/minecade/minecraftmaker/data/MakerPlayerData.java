@@ -1,5 +1,6 @@
 package com.minecade.minecraftmaker.data;
 
+import java.util.EnumSet;
 import java.util.UUID;
 
 import com.minecade.core.data.MinecadeAccountData;
@@ -10,11 +11,14 @@ public class MakerPlayerData extends MinecadeAccountData {
 	private int publishedLevelsCount;
 	private long uniqueLevelClearsCount;
 	private boolean steveClear;
-	private boolean rainyLevelUnlocked;
-	private boolean midnightLevelUnlocked;
+	private EnumSet<MakerUnlockable> unlockables = EnumSet.noneOf(MakerUnlockable.class);
 
 	public MakerPlayerData(UUID uniqueId, String username) {
 		super(uniqueId, username);
+	}
+
+	public void addUnlockable(MakerUnlockable unlockable) {
+		unlockables.add(unlockable);
 	}
 
 	public int getPublishedLevelsCount() {
@@ -29,28 +33,19 @@ public class MakerPlayerData extends MinecadeAccountData {
 		return unpublishedLevelsCount;
 	}
 
-	public boolean isMidnightLevelUnlocked() {
-		return midnightLevelUnlocked;
-	}
-
-	public boolean isRainyLevelUnlocked() {
-		return rainyLevelUnlocked;
+	public boolean hasUnlockable(MakerUnlockable unlockable) {
+		if (unlockable == null) {
+			return false;
+		}
+		return unlockables.contains(unlockable);
 	}
 
 	public boolean isSteveClear() {
 		return steveClear;
 	}
 
-	public void setMidnightLevelUnlocked(boolean midnightLevelUnlocked) {
-		this.midnightLevelUnlocked = midnightLevelUnlocked;
-	}
-
 	public void setPublishedLevelsCount(int publishedLevelsCount) {
 		this.publishedLevelsCount = publishedLevelsCount;
-	}
-
-	public void setRainyLevelUnlocked(boolean rainyLevelUnlocked) {
-		this.rainyLevelUnlocked = rainyLevelUnlocked;
 	}
 
 	public void setSteveClear(boolean steveClear) {

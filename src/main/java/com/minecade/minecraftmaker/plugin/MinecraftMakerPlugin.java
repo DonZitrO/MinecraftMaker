@@ -23,6 +23,7 @@ import com.minecade.minecraftmaker.cmd.ReportCommandExecutor;
 import com.minecade.minecraftmaker.cmd.UnlockCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
+import com.minecade.minecraftmaker.items.CheckTemplateOptionItem;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.EditorPlayLevelOptionItem;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
@@ -155,10 +156,8 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		announcer.runTaskTimer(this, 2400L, 2400L);
 		// register listeners
 		getServer().getPluginManager().registerEvents(new MakerListener(this), this);
-		// TODO: remove this after fixed
-		if (getConfig().getBoolean("fix-trending-scores", false)) {
-			databaseAdapter.fixTrendingScoresAsync();
-		}
+		// load level templates
+		databaseAdapter.loadLevelTemplatesAsync();
 		// TODO: remove this after rabbit
 		if (getServerBungeeId() > 100) {
 			return;
@@ -263,6 +262,10 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		}
 		// translate weather items
 		for (WeatherItem item : WeatherItem.values()) {
+			item.translate(this);
+		}
+		// translate check template option items
+		for (CheckTemplateOptionItem item : CheckTemplateOptionItem.values()) {
 			item.translate(this);
 		}
 	}

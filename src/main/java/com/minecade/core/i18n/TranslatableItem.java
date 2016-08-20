@@ -2,12 +2,29 @@ package com.minecade.core.i18n;
 
 import java.util.List;
 
+import org.bukkit.inventory.ItemStack;
+
 import com.minecade.core.item.ItemStackBuilder;
 
 public interface TranslatableItem extends Translatable {
 
 	ItemStackBuilder getBuilder();
 
+	@Override
+	default String getDisplayName() {
+		return getBuilder().getDisplayName() != null ? getBuilder().getDisplayName() : getName();
+	}
+
+	default ItemStack getItem() {
+		return getBuilder().build();
+	}
+
+	@Override
+	default void setDisplayName(String displayName) {
+		getBuilder().withDisplayName(displayName);
+	}
+
+	@Override
 	default void translate(Internationalizable plugin) {
 		String translationKey = String.format("%s.%s.display-name", getTranslationKeyBase().toLowerCase(), getName().toLowerCase().replace('_', '-'));
 		String displayName = plugin.getMessage(translationKey);
