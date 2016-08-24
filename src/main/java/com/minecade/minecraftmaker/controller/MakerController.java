@@ -57,6 +57,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -77,10 +78,10 @@ import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.data.MakerUnlockable;
 import com.minecade.minecraftmaker.data.UnlockOperationResult;
-import com.minecade.minecraftmaker.inventory.LevelTemplatesMenu;
 import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageResult;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
+import com.minecade.minecraftmaker.inventory.LevelTemplatesMenu;
 import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
@@ -224,6 +225,27 @@ public class MakerController implements Runnable, Tickable {
 		}
 	}
 
+	public void checkTemplate(MakerPlayer mPlayer, MakerLevelTemplate template) {
+		checkNotNull(mPlayer);
+		checkNotNull(template);
+		if (!mPlayer.isInLobby()) {
+			mPlayer.sendActionMessage("template.check.error.player-busy");
+			return;
+		}
+		MakerPlayableLevel level = getEmptyLevelIfAvailable();
+		if (level == null) {
+			mPlayer.sendActionMessage("level.error.full");
+			return;
+		}
+		level.setLevelId(UUID.randomUUID());
+		level.setAuthorId(UUID.randomUUID());
+		level.setAuthorName(template.getAuthorName());
+		level.setAuthorRank(Rank.GUEST);
+		level.setLevelTemplate(template);
+		level.setTemplateCheckerId(mPlayer.getUniqueId());
+		level.waitForBusyLevel(mPlayer, true, false, true);
+	}
+
 	public void clearSteveChallengeCallback(UUID playerId, String playerName) {
 		verifyPrimaryThread();
 		checkNotNull(playerId);
@@ -292,6 +314,15 @@ public class MakerController implements Runnable, Tickable {
 		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
+//	public void createEmptyLevel(UUID authorId, short widthChunks, int floorBlockId) {
+//		MakerPlayer author = getPlayer(authorId);
+//		if (author == null) {
+//			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
+//			return;
+//		}
+//		createEmptyLevel(author, floorBlockId);
+//	}
+
 	public void createEmptyLevel(MakerPlayer author, MakerLevelTemplate template) {
 		checkNotNull(author);
 		checkNotNull(template);
@@ -320,15 +351,6 @@ public class MakerController implements Runnable, Tickable {
 		level.setLevelTemplate(template);
 		level.waitForBusyLevel(author, true, false, true);
 	}
-
-//	public void createEmptyLevel(UUID authorId, short widthChunks, int floorBlockId) {
-//		MakerPlayer author = getPlayer(authorId);
-//		if (author == null) {
-//			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
-//			return;
-//		}
-//		createEmptyLevel(author, floorBlockId);
-//	}
 
 	public void deleteLevel(MakerPlayer mPlayer, long serial) {
 		long confirmSerial = mPlayer.getLevelToDeleteSerial();
@@ -1421,6 +1443,34 @@ public class MakerController implements Runnable, Tickable {
 		level.onPlayerTeleport(event);
 	}
 
+	public void onVehicleCreate(VehicleCreateEvent event) {
+		short slot = LevelUtils.getLocationSlot(event.getVehicle().getLocation());
+		if (slot < 0) {
+			event.getVehicle().remove();
+			Bukkit.getLogger().warning(String.format("MakerController.onVehicleCreate - cancelled vehicle creation outside level - type: [%s] - location: [%s]", event.getVehicle().getType(), event.getVehicle().getLocation().toVector()));
+			return;
+		}
+		MakerPlayableLevel level = levelMap.get(slot);
+		if (level == null) {
+			event.getVehicle().remove();
+			Bukkit.getLogger().warning(String.format("MakerController.onVehicleCreate - cancelled vehicle creation on unregistered level slot - type: [%s] - location: [%s]", event.getVehicle().getType(), event.getVehicle().getLocation().toVector()));
+			return;
+		}
+		level.onVehicleCreate(event);
+	}
+
+//	public void onVehicleDestroy(VehicleDestroyEvent event) {
+//		short slot = LevelUtils.getLocationSlot(event.getVehicle().getLocation());
+//		if (slot < 0) {
+//			return;
+//		}
+//		MakerPlayableLevel level = levelMap.get(slot);
+//		if (level == null) {
+//			return;
+//		}
+//		level.onVehicleDestroy(event);
+//	}
+
 	public void onVehicleMove(VehicleMoveEvent event) {
 		Entity passenger = event.getVehicle().getPassenger();
 		if (passenger == null || !(passenger instanceof Player) || ((Player) passenger).isDead()) {
@@ -1732,27 +1782,6 @@ public class MakerController implements Runnable, Tickable {
 		for (String playerName : entriesToRemoveFromScoreboardTeams) {
 			mPlayer.removeTeamEntryFromScoreboard(playerName);
 		}
-	}
-
-	public void checkTemplate(MakerPlayer mPlayer, MakerLevelTemplate template) {
-		checkNotNull(mPlayer);
-		checkNotNull(template);
-		if (!mPlayer.isInLobby()) {
-			mPlayer.sendActionMessage("template.check.error.player-busy");
-			return;
-		}
-		MakerPlayableLevel level = getEmptyLevelIfAvailable();
-		if (level == null) {
-			mPlayer.sendActionMessage("level.error.full");
-			return;
-		}
-		level.setLevelId(UUID.randomUUID());
-		level.setAuthorId(UUID.randomUUID());
-		level.setAuthorName(template.getAuthorName());
-		level.setAuthorRank(Rank.GUEST);
-		level.setLevelTemplate(template);
-		level.setTemplateCheckerId(mPlayer.getUniqueId());
-		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
 }

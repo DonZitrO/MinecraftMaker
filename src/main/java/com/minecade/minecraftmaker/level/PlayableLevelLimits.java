@@ -6,25 +6,21 @@ import com.minecade.core.data.Rank;
 
 public class PlayableLevelLimits {
 
-	public static int getRankUnpublishedLevelsLimit(Rank rank) {
+	public static int getRankDroppedItemsLimit(Rank rank) {
 		checkNotNull(rank);
-		if (rank.equals(Rank.GUEST)) {
-			return 5;
+		if (rank.includes(Rank.TITAN)) {
+			return 50;
 		}
-		return 28;
-//		if (rank.includes(Rank.TITAN)) {
-//			return 28;
-//		}
-//		if (rank.includes(Rank.ELITE)) {
-//			return 21;
-//		}
-//		if (rank.includes(Rank.PRO)) {
-//			return 14;
-//		}
-//		if (rank.includes(Rank.VIP)) {
-//			return 7;
-//		}
-//		return 5;
+		if (rank.includes(Rank.ELITE)) {
+			return 40;
+		}
+		if (rank.includes(Rank.PRO)) {
+			return 30;
+		}
+		if (rank.includes(Rank.VIP)) {
+			return 20;
+		}
+		return 10;
 	}
 
 	public static int getRankGuestEditorsLimit(Rank rank) {
@@ -44,7 +40,7 @@ public class PlayableLevelLimits {
 		return 0;
 	}
 
-	public static int getRankDroppedItemsLimit(Rank rank) {
+	public static int getRankLivingEntitiesLimit(Rank rank) {
 		checkNotNull(rank);
 		if (rank.includes(Rank.TITAN)) {
 			return 50;
@@ -61,7 +57,7 @@ public class PlayableLevelLimits {
 		return 10;
 	}
 
-	public static int getRankLivingEntitiesLimit(Rank rank) {
+	public static int getRankVehiclesLimit(Rank rank) {
 		checkNotNull(rank);
 		if (rank.includes(Rank.TITAN)) {
 			return 50;
@@ -93,6 +89,27 @@ public class PlayableLevelLimits {
 			return 25;
 		}
 		return 5;
+	}
+
+	public static int getRankUnpublishedLevelsLimit(Rank rank) {
+		checkNotNull(rank);
+		if (rank.equals(Rank.GUEST)) {
+			return 5;
+		}
+		return 28;
+//		if (rank.includes(Rank.TITAN)) {
+//			return 28;
+//		}
+//		if (rank.includes(Rank.ELITE)) {
+//			return 21;
+//		}
+//		if (rank.includes(Rank.PRO)) {
+//			return 14;
+//		}
+//		if (rank.includes(Rank.VIP)) {
+//			return 7;
+//		}
+//		return 5;
 	}
 
 	private PlayableLevelLimits() {

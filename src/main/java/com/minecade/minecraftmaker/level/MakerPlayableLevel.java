@@ -27,6 +27,8 @@ import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.Vehicle;
+import org.bukkit.entity.minecart.ExplosiveMinecart;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
@@ -39,7 +41,9 @@ import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.BlockVector;
 
 import com.minecade.core.data.CoinTransaction;
 import com.minecade.core.data.CoinTransaction.Reason;
@@ -84,6 +88,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 
 	//private Map<BlockVector, LevelRedstoneInteraction> cancelledRedstoneInteractions = new LinkedHashMap<>();
 	private final Set<Entity> problematicEntities = new LinkedHashSet<>();
+	//private final Set<BlockVector> problematicVehicles = new HashSet<>();
 	private final Set<String> guestEditors = new HashSet<>();
 
 	private final Short chunkZ;
@@ -92,6 +97,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 	private UUID currentPlayerId;
 	private long currentTick;
 	private int lastItemCount;
+	private int lastVehicleCount;
 	private int lastMobCount;
 	private long startTime;
 	private LevelStatus status;
@@ -123,8 +129,50 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		mPlayer.setFlying(true);
 		mPlayer.clearInventory();
 		mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getItem());
-
 	}
+
+	private void checkForProblematicEntities() {
+		// TODO: maybe improve this to enforce ranked counts by removing the remaining entities (could potentially break many levels)
+		final Set<BlockVector> problematicVehicles = new HashSet<>();
+		for (Entity entity : getEntities()) {
+			switch (entity.getType()) {
+			case ENDERMAN:
+			case SHULKER:
+				problematicEntities.add(entity);
+				break;
+			default:
+				// minecarts and boats specific exploit
+				if (entity instanceof Vehicle) {
+					if (hasSameTypeEntityNearby(entity)) {
+						BlockVector loc = entity.getLocation().toVector().toBlockVector();
+						if (problematicVehicles.contains(loc)) {
+							entity.remove();
+							Bukkit.getLogger().warning(String.format("MakerPlayableLevel.checkForProblematicEntities - detected several vehicles of the same type on the same location - level: {%s}", getDescription()));
+						} else {
+							problematicVehicles.add(loc);
+						}
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	private boolean hasSameTypeEntityNearby(Entity entity) {
+		checkNotNull(entity);
+		for (Entity other : entity.getNearbyEntities(.5d, .5d, .5d)) {
+			if (entity.getType().equals(other.getType())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+//	public void checkLevelVoidBorder(Location to) {
+//		if (to.getBlockY() < -1) {
+//			restartPlaying();
+//		}
+//	}
 
 	public void checkLevelEnd(Location location) {
 		if (relativeEndLocation == null) {
@@ -135,12 +183,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 			clearLevel();
 		}
 	}
-
-//	public void checkLevelVoidBorder(Location to) {
-//		if (to.getBlockY() < -1) {
-//			restartPlaying();
-//		}
-//	}
 
 	private void clearBlocksAboveEndBeacon() throws MinecraftMakerException {
 		if (relativeEndLocation == null) {
@@ -268,14 +310,14 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		}
 	}
 
+//	public void clearCancelledRedstoneInteractions() {
+//		cancelledRedstoneInteractions.clear();
+//	}
+
 	@Override
 	public void disable() {
 		status = LevelStatus.DISABLE_READY;
 	}
-
-//	public void clearCancelledRedstoneInteractions() {
-//		cancelledRedstoneInteractions.clear();
-//	}
 
 	public synchronized void exitChecking() {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(currentTemplateCheckerId);
@@ -399,6 +441,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 	public List<org.bukkit.entity.Entity> getEntities() {
 		List<org.bukkit.entity.Entity> entities = new ArrayList<>();
 		lastItemCount = 0;
+		lastVehicleCount = 0;
 		lastMobCount = 0;
 		Region region = getLevelRegion();
 		if (region == null) {
@@ -417,6 +460,9 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 				default:
 					if (entity instanceof LivingEntity) {
 						lastMobCount++;
+					}
+					if (entity instanceof Vehicle) {
+						lastVehicleCount++;
 					}
 					entities.add(entity);
 					break;
@@ -848,6 +894,68 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		}
 	}
 
+	public void onVehicleCreate(VehicleCreateEvent event) {
+		if (LevelStatus.EDITING.equals(getStatus())) {
+			// vehicle count restriction
+			getEntities();
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onVehicleCreate - level: [%s] - current vehicle count: [%s]", getDescription(), lastVehicleCount));
+			}
+			if (lastVehicleCount >= PlayableLevelLimits.getRankVehiclesLimit(getAuthorRank())) {
+				event.getVehicle().remove();
+				sendActionMessageToEditorsIfPresent("level.create.error.vehicle-limit", lastVehicleCount);
+				if (!getAuthorRank().includes(Rank.TITAN)) {
+					plugin.getController().sendMessageToPlayerIfPresent(authorId, "upgrade.rank.increase.limits");
+					plugin.getController().sendMessageToPlayerIfPresent(authorId, "upgrade.rank.vehicles.limits");
+				}
+				return;
+			}
+			if (hasSameTypeEntityNearby(event.getVehicle())) {
+				event.getVehicle().remove();
+				sendActionMessageToEditorsIfPresent("level.create.error.vehicle-same-block");
+				return;
+			}
+//			BlockVector loc = event.getVehicle().getLocation().toVector().toBlockVector();
+//			if (problematicVehicles.contains(loc)) {
+//			event.getVehicle().remove();
+//			sendActionMessageToEditorsIfPresent("level.create.error.vehicle-same-block");
+//			} else {
+//				problematicVehicles.add(loc);
+//			}
+			return;
+		}
+		if (LevelStatus.CLIPBOARD_PASTE_COMMITTING.equals(getStatus()) || LevelStatus.PLAYING.equals(getStatus())) {
+			getEntities();
+			if (plugin.isDebugMode()) {
+				Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.onVehicleCreate - level: [%s] - current mob count: [%s]", getDescription(), lastVehicleCount));
+			}
+			if (lastVehicleCount >= PlayableLevelLimits.getRankVehiclesLimit(getAuthorRank())) {
+				event.getVehicle().remove();
+				Bukkit.getLogger().warning(String.format("MakerLevel.onVehicleCreate - cancelled vehicle creation on level: {%s} with author rank: [%s] to comply with vehicle limit: [%s]", getDescription(), getAuthorRank(), lastVehicleCount));
+				return;
+			}
+			if (hasSameTypeEntityNearby(event.getVehicle())) {
+				event.getVehicle().remove();
+				Bukkit.getLogger().warning(String.format("MakerLevel.onVehicleCreate - cancelled vehicle creation because another vehicle already exists on that location: [%s] on level: {%s}", event.getVehicle().getLocation().toVector(), getDescription()));
+				return;
+			}
+//			BlockVector loc = event.getVehicle().getLocation().toVector().toBlockVector();
+//			if (problematicVehicles.contains(loc)) {
+//				event.getVehicle().remove();
+//				Bukkit.getLogger().warning(String.format("MakerLevel.onVehicleCreate - cancelled vehicle creation because another vehicle already exists on that location: [%s] on level: {%s}", loc, getDescription()));
+//			} else {
+//				problematicVehicles.add(loc);
+//			}
+			return;
+		}
+		Bukkit.getLogger().warning(String.format("MakerLevel.onVehicleCreate - illegal vehicle creation on level: [%s] with status: [%s]", getLevelName(), getStatus()));
+		event.getVehicle().remove();
+	}
+
+//	public void onVehicleDestroy(VehicleDestroyEvent event) {
+//		problematicVehicles.remove(event.getVehicle().getLocation().toVector().toBlockVector());
+//	}
+
 	private void openLevelOptionsAfterClear(UUID playerId) {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(playerId);
 		if (mPlayer != null && LevelStatus.CLEARED.equals(getStatus())) {
@@ -908,13 +1016,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 	}
 
 	private void removeEntities(boolean all) {
-
 		for (org.bukkit.entity.Entity entity : getEntities()) {
 			switch (entity.getType()) {
 			case PLAYER:
 				break;
 			default:
-				if (all || entity instanceof LivingEntity || entity instanceof Projectile) {
+				if (all || entity instanceof LivingEntity || entity instanceof Projectile || entity instanceof ExplosiveMinecart) {
 					removeEntity(entity);
 					if (plugin.isDebugMode()) {
 						Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.removeEntities - removed entity type: [%s]  from level: [%s]", entity.getType(), getLevelName()));
@@ -932,6 +1039,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 			removeEntity(iter.next());
 			iter.remove();
 		}
+//		problematicVehicles.clear();
 	}
 
 	private void removeEntity(Entity entity) {
@@ -939,21 +1047,6 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 			((ItemFrame)entity).setItem(null);
 		}
 		entity.remove();
-	}
-
-	public boolean removeGuestEditor(String guestName) {
-		checkNotNull(guestName);
-		Player guestEditorBukkit = Bukkit.getPlayerExact(guestName);
-		if (guestEditorBukkit == null) {
-			return false;
-		}
-		MakerPlayer guestEditor = getPlayerIsInThisLevel(guestEditorBukkit.getUniqueId());
-		if (guestEditor != null) {
-			guestEditor.sendActionMessage("player.guest-edit.finished");
-			plugin.getController().addPlayerToMainLobby(guestEditor);
-			return true;
-		}
-		return false;
 	}
 
 //	public void restoreRedstoneInteraction(LevelRedstoneInteraction cancelled) {
@@ -981,6 +1074,21 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 //		}
 //		cancelledRedstoneInteractions.clear();
 //	}
+
+	public boolean removeGuestEditor(String guestName) {
+		checkNotNull(guestName);
+		Player guestEditorBukkit = Bukkit.getPlayerExact(guestName);
+		if (guestEditorBukkit == null) {
+			return false;
+		}
+		MakerPlayer guestEditor = getPlayerIsInThisLevel(guestEditorBukkit.getUniqueId());
+		if (guestEditor != null) {
+			guestEditor.sendActionMessage("player.guest-edit.finished");
+			plugin.getController().addPlayerToMainLobby(guestEditor);
+			return true;
+		}
+		return false;
+	}
 
 	public boolean removeGuestEditorInvitation(String guestName) {
 		checkNotNull(guestName);
@@ -1431,6 +1539,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 
 	private void tickClipboardPasted() {
 		// restoreRedstoneInteractions();
+		checkForProblematicEntities();
 		try {
 			setupLevelInfoSign();
 		} catch (Exception e) {

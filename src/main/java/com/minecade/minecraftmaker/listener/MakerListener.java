@@ -43,6 +43,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -405,6 +406,22 @@ public class MakerListener implements Listener {
 		// remove projectiles 3 seconds after they hit
 		Bukkit.getScheduler().runTaskLater(plugin, () -> event.getEntity().remove(), 60);
 	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onVehicleCreate(VehicleCreateEvent event) {
+		if (plugin.isDebugMode()) {
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onVehicleCreate - Vehicle type: [%s] - Location: [%s]", event.getVehicle().getType(), event.getVehicle().getLocation()));
+		}
+		plugin.getController().onVehicleCreate(event);
+	}
+
+//	@EventHandler
+//	public void onVehicleDestroy(VehicleDestroyEvent event) {
+//		if (plugin.isDebugMode()) {
+//			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onVehicleDestroy - Vehicle type: [%s] - Location: [%s]", event.getVehicle().getType(), event.getVehicle().getLocation()));
+//		}
+//		plugin.getController().onVehicleDestroy(event);
+//	}
 
 	@EventHandler
 	public void onVehicleMove(VehicleMoveEvent event) {
