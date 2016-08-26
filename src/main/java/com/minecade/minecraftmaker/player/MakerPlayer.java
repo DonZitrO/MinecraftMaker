@@ -20,8 +20,10 @@ import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.scoreboard.Scoreboard;
 
-import com.minecade.core.data.Rank;
-import com.minecade.core.player.PlayerUtils;
+import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.player.PlayerUtils;
+import com.minecade.mcore.util.Tickable;
+import com.minecade.mcore.util.TickableUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.data.MakerUnlockable;
@@ -53,8 +55,6 @@ import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.level.PlayableLevelLimits;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.scoreboard.MakerScoreboard;
-import com.minecade.minecraftmaker.util.Tickable;
-import com.minecade.minecraftmaker.util.TickableUtils;
 import com.minecade.nms.NMSUtils;
 
 public class MakerPlayer implements Tickable {

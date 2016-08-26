@@ -48,8 +48,8 @@ import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.minecade.core.event.AsyncAccountDataLoadEvent;
-import com.minecade.core.event.EventUtils;
+import com.minecade.mcore.event.AsyncAccountDataLoadEvent;
+import com.minecade.mcore.event.EventUtils;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 

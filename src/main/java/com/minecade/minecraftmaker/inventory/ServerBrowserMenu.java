@@ -11,12 +11,12 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.minecade.core.data.Rank;
-import com.minecade.core.data.ServerData;
-import com.minecade.core.data.ServerStatus;
-import com.minecade.core.item.ItemBuilder;
-import com.minecade.core.item.ItemStackBuilder;
-import com.minecade.core.util.BungeeUtils;
+import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.data.ServerData;
+import com.minecade.mcore.data.ServerStatus;
+import com.minecade.mcore.item.ItemBuilder;
+import com.minecade.mcore.item.ItemStackBuilder;
+import com.minecade.mcore.util.BungeeUtils;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 

@@ -1,6 +1,6 @@
 package com.minecade.minecraftmaker.level;
 
-import com.minecade.core.i18n.Translatable;
+import com.minecade.mcore.i18n.Translatable;
 
 public enum LevelSortBy implements Translatable {
 

@@ -5,9 +5,9 @@ import java.util.Map;
 import org.bukkit.inventory.ItemStack;
 
 import com.google.common.collect.Maps;
-import com.minecade.core.i18n.TranslatableItem;
-import com.minecade.core.item.ItemBuilder;
-import com.minecade.core.item.ItemStackBuilder;
+import com.minecade.mcore.i18n.TranslatableItem;
+import com.minecade.mcore.item.ItemBuilder;
+import com.minecade.mcore.item.ItemStackBuilder;
 
 public enum SkullTypeItem implements TranslatableItem {
 

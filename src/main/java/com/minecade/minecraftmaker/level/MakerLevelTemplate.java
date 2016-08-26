@@ -2,9 +2,9 @@ package com.minecade.minecraftmaker.level;
 
 import java.util.UUID;
 
+import com.minecade.mcore.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
-import com.minecade.minecraftmaker.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
 
 public class MakerLevelTemplate implements ClipboardWrapper {

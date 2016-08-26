@@ -3,7 +3,7 @@ package com.minecade.minecraftmaker.level;
 import java.util.Date;
 import java.util.UUID;
 
-import com.minecade.core.data.Rank;
+import com.minecade.mcore.data.Rank;
 import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;

@@ -6,18 +6,14 @@ import java.lang.reflect.Field;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.craftbukkit.v1_9_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftCaveSpider;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftItem;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftSpider;
-import org.bukkit.craftbukkit.v1_9_R2.inventory.CraftItemStack;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -30,8 +26,6 @@ import net.minecraft.server.v1_9_R2.EntityItem;
 import net.minecraft.server.v1_9_R2.EntitySpider;
 import net.minecraft.server.v1_9_R2.IChatBaseComponent;
 import net.minecraft.server.v1_9_R2.IChatBaseComponent.ChatSerializer;
-import net.minecraft.server.v1_9_R2.NBTTagCompound;
-import net.minecraft.server.v1_9_R2.NBTTagList;
 import net.minecraft.server.v1_9_R2.PacketPlayInClientCommand;
 import net.minecraft.server.v1_9_R2.PacketPlayInClientCommand.EnumClientCommand;
 import net.minecraft.server.v1_9_R2.PacketPlayOutChat;
@@ -84,76 +78,6 @@ public class NMSUtils {
 			e.printStackTrace();
 			p.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
 		}
-	}
-
-	public static ItemStack createSkull(ItemStack item, String uniqueId, String value) {
-		if(!Material.SKULL_ITEM.equals(item.getType())) {
-			return null;
-		}
-
-		net.minecraft.server.v1_9_R2.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
-
-		// Set textures
-		NBTTagCompound texture = new NBTTagCompound();
-		texture.setString("Value", value);
-
-		NBTTagList textures = new NBTTagList();
-		textures.add(texture);
-
-		NBTTagCompound properties = new NBTTagCompound();
-		properties.set("textures", textures);
-
-		// Set unique id and textures
-		NBTTagCompound owner = new NBTTagCompound();
-		owner.setString("Id", uniqueId);
-		owner.set("Properties", properties);
-
-		NBTTagCompound tag = nmsItem.getTag();
-		if(tag == null) tag = new NBTTagCompound();
-		tag.set("SkullOwner", owner);
-		nmsItem.setTag(tag);
-
-		return CraftItemStack.asCraftMirror(nmsItem);
-	}
-
-	@SuppressWarnings("deprecation")
-	public static ItemStack createSpawnEgg(ItemStack item, EntityType type) {
-		if (!Material.MONSTER_EGG.equals(item.getType())) {
-			return item;
-		}
-
-		try {
-
-			net.minecraft.server.v1_9_R2.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
-
-			NBTTagCompound tag = nmsItem.getTag();
-			if (tag == null) {
-				tag = new NBTTagCompound();
-				NBTTagCompound entityTag = new NBTTagCompound();
-				entityTag.setString("id", type.getName());
-				entityTag.setString("CustomName", "");
-				entityTag.setBoolean("CustomNameVisible", false);
-				tag.set("EntityTag", entityTag);
-			} else {
-				NBTTagCompound existing = tag.getCompound("EntityTag");
-				if (existing != null) {
-					existing.setString("id", type.getName());
-					tag.set("EntityTag", existing);
-				} else {
-					NBTTagCompound entityTag = new NBTTagCompound();
-					entityTag.setString("id", type.getName());
-					entityTag.setString("CustomName", "");
-					entityTag.setBoolean("CustomNameVisible", false);
-					tag.set("EntityTag", entityTag);
-				}
-			}
-			nmsItem.setTag(tag);
-			return CraftItemStack.asCraftMirror(nmsItem);
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("NMSUtils.createSpawnEgg - error: %s", e.getMessage()));
-			e.printStackTrace();
-		}
-		return item;
 	}
 
 	public static void sendPacket(Player player, Object packet) {

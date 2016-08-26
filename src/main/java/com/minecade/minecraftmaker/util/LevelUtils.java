@@ -7,24 +7,24 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
-import com.minecade.minecraftmaker.function.block.BlockReplace;
-import com.minecade.minecraftmaker.function.operation.Operation;
-import com.minecade.minecraftmaker.function.operation.ResumableForwardExtentCopy;
-import com.minecade.minecraftmaker.function.pattern.BlockPattern;
-import com.minecade.minecraftmaker.function.visitor.ResumableRegionVisitor;
+import com.minecade.mcore.function.block.BlockReplace;
+import com.minecade.mcore.function.operation.Operation;
+import com.minecade.mcore.function.operation.ResumableForwardExtentCopy;
+import com.minecade.mcore.function.pattern.BlockPattern;
+import com.minecade.mcore.function.visitor.ResumableRegionVisitor;
+import com.minecade.mcore.schematic.block.BaseBlock;
+import com.minecade.mcore.schematic.block.BlockID;
+import com.minecade.mcore.schematic.extent.Extent;
+import com.minecade.mcore.schematic.io.BlockArrayClipboard;
+import com.minecade.mcore.schematic.io.Clipboard;
+import com.minecade.mcore.schematic.transform.Identity;
+import com.minecade.mcore.schematic.transform.Transform;
+import com.minecade.mcore.schematic.world.BlockTransformExtent;
+import com.minecade.mcore.schematic.world.CuboidRegion;
+import com.minecade.mcore.schematic.world.Region;
+import com.minecade.mcore.schematic.world.Vector;
+import com.minecade.mcore.schematic.world.WorldData;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
-import com.minecade.minecraftmaker.schematic.block.BaseBlock;
-import com.minecade.minecraftmaker.schematic.block.BlockID;
-import com.minecade.minecraftmaker.schematic.extent.Extent;
-import com.minecade.minecraftmaker.schematic.io.BlockArrayClipboard;
-import com.minecade.minecraftmaker.schematic.io.Clipboard;
-import com.minecade.minecraftmaker.schematic.transform.Identity;
-import com.minecade.minecraftmaker.schematic.transform.Transform;
-import com.minecade.minecraftmaker.schematic.world.BlockTransformExtent;
-import com.minecade.minecraftmaker.schematic.world.CuboidRegion;
-import com.minecade.minecraftmaker.schematic.world.Region;
-import com.minecade.minecraftmaker.schematic.world.Vector;
-import com.minecade.minecraftmaker.schematic.world.WorldData;
 
 public class LevelUtils {
 

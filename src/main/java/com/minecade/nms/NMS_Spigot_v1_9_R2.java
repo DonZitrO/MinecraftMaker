@@ -23,26 +23,29 @@ import org.bukkit.craftbukkit.v1_9_R2.CraftServer;
 import org.bukkit.craftbukkit.v1_9_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_9_R2.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_9_R2.inventory.CraftItemStack;
+import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.inventory.ItemStack;
 
-import com.minecade.minecraftmaker.schematic.block.BaseBlock;
-import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
-import com.minecade.minecraftmaker.schematic.bukkit.Constants;
-import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
-import com.minecade.minecraftmaker.schematic.jnbt.ByteArrayTag;
-import com.minecade.minecraftmaker.schematic.jnbt.ByteTag;
-import com.minecade.minecraftmaker.schematic.jnbt.CompoundTag;
-import com.minecade.minecraftmaker.schematic.jnbt.DoubleTag;
-import com.minecade.minecraftmaker.schematic.jnbt.EndTag;
-import com.minecade.minecraftmaker.schematic.jnbt.FloatTag;
-import com.minecade.minecraftmaker.schematic.jnbt.IntArrayTag;
-import com.minecade.minecraftmaker.schematic.jnbt.IntTag;
-import com.minecade.minecraftmaker.schematic.jnbt.ListTag;
-import com.minecade.minecraftmaker.schematic.jnbt.LongTag;
-import com.minecade.minecraftmaker.schematic.jnbt.NBTConstants;
-import com.minecade.minecraftmaker.schematic.jnbt.ShortTag;
-import com.minecade.minecraftmaker.schematic.jnbt.StringTag;
-import com.minecade.minecraftmaker.schematic.jnbt.Tag;
+import com.minecade.mcore.nmsapi.NMSAdapter;
+import com.minecade.mcore.schematic.block.BaseBlock;
+import com.minecade.mcore.schematic.bukkit.Constants;
+import com.minecade.mcore.schematic.entity.BaseEntity;
+import com.minecade.mcore.schematic.jnbt.ByteArrayTag;
+import com.minecade.mcore.schematic.jnbt.ByteTag;
+import com.minecade.mcore.schematic.jnbt.CompoundTag;
+import com.minecade.mcore.schematic.jnbt.DoubleTag;
+import com.minecade.mcore.schematic.jnbt.EndTag;
+import com.minecade.mcore.schematic.jnbt.FloatTag;
+import com.minecade.mcore.schematic.jnbt.IntArrayTag;
+import com.minecade.mcore.schematic.jnbt.IntTag;
+import com.minecade.mcore.schematic.jnbt.ListTag;
+import com.minecade.mcore.schematic.jnbt.LongTag;
+import com.minecade.mcore.schematic.jnbt.NBTConstants;
+import com.minecade.mcore.schematic.jnbt.ShortTag;
+import com.minecade.mcore.schematic.jnbt.StringTag;
+import com.minecade.mcore.schematic.jnbt.Tag;
 
 import net.minecraft.server.v1_9_R2.BiomeBase;
 import net.minecraft.server.v1_9_R2.BlockPosition;
@@ -65,7 +68,7 @@ import net.minecraft.server.v1_9_R2.TileEntity;
 import net.minecraft.server.v1_9_R2.World;
 import net.minecraft.server.v1_9_R2.WorldServer;
 
-public final class Spigot_v1_9_R2 implements BukkitImplAdapter {
+public final class NMS_Spigot_v1_9_R2 implements NMSAdapter {
 
     private final Logger logger = Logger.getLogger(getClass().getCanonicalName());
 
@@ -76,7 +79,7 @@ public final class Spigot_v1_9_R2 implements BukkitImplAdapter {
     // Code that may break between versions of Minecraft
     // ------------------------------------------------------------------------
 
-    public Spigot_v1_9_R2() throws NoSuchFieldException, NoSuchMethodException {
+    public NMS_Spigot_v1_9_R2() throws NoSuchFieldException, NoSuchMethodException {
         // A simple test
         CraftServer.class.cast(Bukkit.getServer());
 
@@ -416,5 +419,75 @@ public final class Spigot_v1_9_R2 implements BukkitImplAdapter {
             throw new IllegalArgumentException("Don't know how to make NMS " + foreign.getClass().getCanonicalName());
         }
     }
+
+	@Override
+	public ItemStack createSkull(ItemStack item, String uniqueId, String value) {
+		if(!Material.SKULL_ITEM.equals(item.getType())) {
+			return null;
+		}
+
+		net.minecraft.server.v1_9_R2.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
+
+		// Set textures
+		NBTTagCompound texture = new NBTTagCompound();
+		texture.setString("Value", value);
+
+		NBTTagList textures = new NBTTagList();
+		textures.add(texture);
+
+		NBTTagCompound properties = new NBTTagCompound();
+		properties.set("textures", textures);
+
+		// Set unique id and textures
+		NBTTagCompound owner = new NBTTagCompound();
+		owner.setString("Id", uniqueId);
+		owner.set("Properties", properties);
+
+		NBTTagCompound tag = nmsItem.getTag();
+		if(tag == null) tag = new NBTTagCompound();
+		tag.set("SkullOwner", owner);
+		nmsItem.setTag(tag);
+
+		return CraftItemStack.asCraftMirror(nmsItem);
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public ItemStack createSpawnEgg(ItemStack item, EntityType type) {
+		if (!Material.MONSTER_EGG.equals(item.getType())) {
+			return item;
+		}
+
+		try {
+			net.minecraft.server.v1_9_R2.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
+			NBTTagCompound tag = nmsItem.getTag();
+			if (tag == null) {
+				tag = new NBTTagCompound();
+				NBTTagCompound entityTag = new NBTTagCompound();
+				entityTag.setString("id", type.getName());
+				entityTag.setString("CustomName", "");
+				entityTag.setBoolean("CustomNameVisible", false);
+				tag.set("EntityTag", entityTag);
+			} else {
+				NBTTagCompound existing = tag.getCompound("EntityTag");
+				if (existing != null) {
+					existing.setString("id", type.getName());
+					tag.set("EntityTag", existing);
+				} else {
+					NBTTagCompound entityTag = new NBTTagCompound();
+					entityTag.setString("id", type.getName());
+					entityTag.setString("CustomName", "");
+					entityTag.setBoolean("CustomNameVisible", false);
+					tag.set("EntityTag", entityTag);
+				}
+			}
+			nmsItem.setTag(tag);
+			return CraftItemStack.asCraftMirror(nmsItem);
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("NMSUtils.createSpawnEgg - error: %s", e.getMessage()));
+			e.printStackTrace();
+		}
+		return item;
+	}
 
 }

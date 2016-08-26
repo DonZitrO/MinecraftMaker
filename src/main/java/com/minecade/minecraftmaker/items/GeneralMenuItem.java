@@ -3,10 +3,10 @@ package com.minecade.minecraftmaker.items;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import com.minecade.core.i18n.TranslatableItem;
-import com.minecade.core.item.ItemBuilder;
-import com.minecade.core.item.ItemStackBuilder;
-import com.minecade.core.item.SkullItemBuilder;
+import com.minecade.mcore.i18n.TranslatableItem;
+import com.minecade.mcore.item.ItemBuilder;
+import com.minecade.mcore.item.ItemStackBuilder;
+import com.minecade.mcore.item.SkullItemBuilder;
 
 public enum GeneralMenuItem implements TranslatableItem {
 

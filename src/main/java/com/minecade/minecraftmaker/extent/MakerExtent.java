@@ -1,4 +1,4 @@
-package com.minecade.minecraftmaker.schematic.extent;
+package com.minecade.minecraftmaker.extent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -8,23 +8,29 @@ import javax.annotation.Nullable;
 
 import org.bukkit.Bukkit;
 
-import com.minecade.minecraftmaker.function.operation.Operation;
+import com.minecade.mcore.function.operation.Operation;
+import com.minecade.mcore.schematic.block.BaseBlock;
+import com.minecade.mcore.schematic.bukkit.BukkitUtil;
+import com.minecade.mcore.schematic.entity.BaseEntity;
+import com.minecade.mcore.schematic.entity.Entity;
+import com.minecade.mcore.schematic.exception.DataException;
+import com.minecade.mcore.schematic.exception.MinecraftMakerException;
+import com.minecade.mcore.schematic.extent.BlockQuirkExtent;
+import com.minecade.mcore.schematic.extent.ChunkLoadingExtent;
+import com.minecade.mcore.schematic.extent.DataValidatorExtent;
+import com.minecade.mcore.schematic.extent.Extent;
+import com.minecade.mcore.schematic.extent.FastModeExtent;
+import com.minecade.mcore.schematic.extent.MultiStageReorder;
+import com.minecade.mcore.schematic.util.Location;
+import com.minecade.mcore.schematic.world.BaseBiome;
+import com.minecade.mcore.schematic.world.LastAccessExtentCache;
+import com.minecade.mcore.schematic.world.Region;
+import com.minecade.mcore.schematic.world.SurvivalModeExtent;
+import com.minecade.mcore.schematic.world.Vector;
+import com.minecade.mcore.schematic.world.Vector2D;
+import com.minecade.mcore.schematic.world.World;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
-import com.minecade.minecraftmaker.schematic.block.BaseBlock;
-import com.minecade.minecraftmaker.schematic.bukkit.BukkitUtil;
-import com.minecade.minecraftmaker.schematic.entity.BaseEntity;
-import com.minecade.minecraftmaker.schematic.entity.Entity;
-import com.minecade.minecraftmaker.schematic.exception.DataException;
-import com.minecade.minecraftmaker.schematic.exception.MinecraftMakerException;
-import com.minecade.minecraftmaker.schematic.util.Location;
-import com.minecade.minecraftmaker.schematic.world.BaseBiome;
-import com.minecade.minecraftmaker.schematic.world.LastAccessExtentCache;
-import com.minecade.minecraftmaker.schematic.world.Region;
-import com.minecade.minecraftmaker.schematic.world.SurvivalModeExtent;
-import com.minecade.minecraftmaker.schematic.world.Vector;
-import com.minecade.minecraftmaker.schematic.world.Vector2D;
-import com.minecade.minecraftmaker.schematic.world.World;
 
 public class MakerExtent implements Extent {
 

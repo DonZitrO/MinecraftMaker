@@ -19,7 +19,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.google.common.collect.Iterators;
-import com.minecade.core.item.ItemUtils;
+import com.minecade.mcore.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;

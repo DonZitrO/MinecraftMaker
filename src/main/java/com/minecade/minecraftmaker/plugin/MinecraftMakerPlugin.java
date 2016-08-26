@@ -1,20 +1,12 @@
 package com.minecade.minecraftmaker.plugin;
 
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.UUID;
-
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
-import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import com.minecade.core.config.ServerPropertyFilesConfigurator;
-import com.minecade.core.data.Rank;
-import com.minecade.core.i18n.Internationalizable;
-import com.minecade.core.util.BungeeUtils;
-import com.minecade.core.util.EmptyGenerator;
+import com.minecade.mcore.config.ServerPropertyFilesConfigurator;
+import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.nmsapi.NMS;
+import com.minecade.mcore.plugin.MPlugin;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.cmd.MakerCommandExecutor;
 import com.minecade.minecraftmaker.cmd.MakerLobbyCommandExecutor;
@@ -41,15 +33,14 @@ import com.minecade.minecraftmaker.items.WeatherItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
-import com.minecade.minecraftmaker.schematic.bukkit.BukkitImplAdapter;
 import com.minecade.minecraftmaker.task.AnnouncerTask;
 import com.minecade.minecraftmaker.task.AsyncLevelBrowserUpdaterTask;
 import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
 import com.minecade.minecraftmaker.task.AsyncPlayerCounterUpdaterTask;
 import com.minecade.minecraftmaker.task.LevelOperatorTask;
-import com.minecade.nms.Spigot_v1_9_R2;
+import com.minecade.nms.NMS_Spigot_v1_9_R2;
 
-public class MinecraftMakerPlugin extends JavaPlugin implements Internationalizable {
+public class MinecraftMakerPlugin extends MPlugin {
 
 	private static MinecraftMakerPlugin instance;
 
@@ -57,26 +48,14 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		return instance;
 	}
 
-	private final UUID uniqueId = UUID.randomUUID();
-
-	private final ChunkGenerator emptyGenerator = new EmptyGenerator();
-
 	private MakerDatabaseAdapter databaseAdapter;
 	private MakerController controller;
 	private AsyncLevelSaverTask asyncLevelSaver;
 	private AsyncLevelBrowserUpdaterTask asyncLevelBrowserUpdater;
 	private LevelOperatorTask levelOperatorTask;
-	private BukkitImplAdapter bukkitImplAdapter;
-	private ResourceBundle messages;
-
-	private boolean debugMode;
 
 	public AsyncLevelBrowserUpdaterTask getAsyncLevelBrowserUpdater() {
 		return asyncLevelBrowserUpdater;
-	}
-
-	public BukkitImplAdapter getBukkitImplAdapter() {
-		return bukkitImplAdapter;
 	}
 
 	public MakerController getController() {
@@ -87,47 +66,19 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		return databaseAdapter;
 	}
 
-	@Override
-	public ChunkGenerator getDefaultWorldGenerator(String world, String id) {
-		return emptyGenerator;
-	}
-
 	public LevelOperatorTask getLevelOperatorTask() {
 		return levelOperatorTask;
 	}
 
 	@Override
-	public String getMessage(String key, Object... args) {
-		if (messages.containsKey(key)) {
-			return String.format(ChatColor.translateAlternateColorCodes('&', messages.getString(key)), args);
-		}
-		return key;
-	}
-
-	public int getServerBungeeId() {
-		return getConfig().getInt("server.id", 0);
-	}
-
-	public UUID getServerUniqueId() {
-		return uniqueId;
-	}
-
-	public boolean isDebugMode() {
-		return debugMode; 
-	}
-
-	@Override
-	public void onDisable() {
+	protected void onMPluginDisable() {
 		if (controller != null) {
 			controller.disable();
 		}
-		this.getServer().getScheduler().cancelTasks(this);
 	}
 
 	@Override
-	public void onEnable() {
-		// BungeeCord communication
-		getServer().getMessenger().registerOutgoingPluginChannel(this, BungeeUtils.BUNGEECORD_CHANNEL);
+	public void onMPluginEnable() {
 		// register commands
 		getCommand("level").setExecutor(new LevelCommandExecutor(this));
 		getCommand("maker").setExecutor(new MakerCommandExecutor(this));
@@ -166,12 +117,8 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 	}
 
 	@Override
-	public void onLoad() {
+	public void onMPluginLoad() {
 		instance = this;
-		// default config
-		saveDefaultConfig();
-		// server custom config should override this
-		getConfig().options().copyDefaults(false);
 		// configure server files first and reboot if necessary
 		ServerPropertyFilesConfigurator.configureServerProperties();
 		ServerPropertyFilesConfigurator.configureBukkitYML();
@@ -179,20 +126,8 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		//ServerPropertyFilesConfigurator.configurePermissionsYML();
 		// server specific config
 		getServer().setDefaultGameMode(GameMode.ADVENTURE);
-		try {
-			this.bukkitImplAdapter = new Spigot_v1_9_R2();
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MinecraftMakerPlugin.onLoad - Unable to initialize Spigot's version specific NBT tag adapter - %s", e.getMessage()));
-			e.printStackTrace();
-			// this is an extreme case, so shut the server down
-			Bukkit.shutdown();
-		}
-		// i18n config
-		messages = ResourceBundle.getBundle("messages", new Locale(getConfig().getString("locale", "en")));
 		// translate
 		translateGeneralStuff();
-		// debug mode
-		debugMode = getConfig().getBoolean("debug-mode", false);
 	}
 
 	public void saveLevelAsync(MakerPlayableLevel level) {
@@ -267,6 +202,18 @@ public class MinecraftMakerPlugin extends JavaPlugin implements Internationaliza
 		// translate check template option items
 		for (CheckTemplateOptionItem item : CheckTemplateOptionItem.values()) {
 			item.translate(this);
+		}
+	}
+
+	@Override
+	protected void setupNMSAdapter() {
+		try {
+			NMS.setAdapter(new NMS_Spigot_v1_9_R2());
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("MinecraftMakerPlugin.setupNMSAdapter - unable to setup NSM adapter - shutting down server - %s", e.getMessage()));
+			e.printStackTrace();
+			// this is an extreme case, so shut the server down
+			Bukkit.shutdown();
 		}
 	}
 

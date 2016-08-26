@@ -8,8 +8,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 
-import com.minecade.core.i18n.Internationalizable;
-import com.minecade.core.item.ItemBuilder;
+import com.minecade.mcore.i18n.Internationalizable;
+import com.minecade.mcore.item.ItemBuilder;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 

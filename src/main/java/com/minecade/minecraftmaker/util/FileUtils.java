@@ -3,9 +3,9 @@ package com.minecade.minecraftmaker.util;
 import java.io.File;
 import java.io.IOException;
 
-import com.minecade.minecraftmaker.schematic.exception.FilenameException;
-import com.minecade.minecraftmaker.schematic.exception.FilenameResolutionException;
-import com.minecade.minecraftmaker.schematic.exception.InvalidFilenameException;
+import com.minecade.mcore.schematic.exception.FilenameException;
+import com.minecade.mcore.schematic.exception.FilenameResolutionException;
+import com.minecade.mcore.schematic.exception.InvalidFilenameException;
 
 public class FileUtils {
 

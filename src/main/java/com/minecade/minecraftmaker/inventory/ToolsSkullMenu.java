@@ -9,7 +9,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import com.google.common.collect.Maps;
-import com.minecade.core.item.ItemUtils;
+import com.minecade.mcore.item.ItemUtils;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.items.SkullItem;
 import com.minecade.minecraftmaker.items.SkullTypeItem;

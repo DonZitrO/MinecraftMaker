@@ -7,7 +7,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.minecade.core.item.ItemUtils;
+import com.minecade.mcore.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;

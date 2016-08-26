@@ -6,8 +6,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import com.minecade.core.data.Rank;
-import com.minecade.core.item.SkullItemBuilder;
+import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.item.SkullItemBuilder;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.PlayableLevelLimits;
 import com.minecade.minecraftmaker.player.MakerPlayer;

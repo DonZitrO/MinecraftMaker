@@ -13,7 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
-import com.minecade.core.item.ItemUtils;
+import com.minecade.mcore.item.ItemUtils;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;

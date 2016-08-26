@@ -7,9 +7,9 @@ import java.util.concurrent.TimeUnit;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.minecade.minecraftmaker.function.operation.LimitedTimeRunContext;
-import com.minecade.minecraftmaker.function.operation.Operation;
-import com.minecade.minecraftmaker.function.operation.ResumableOperationQueue;
+import com.minecade.mcore.function.operation.LimitedTimeRunContext;
+import com.minecade.mcore.function.operation.Operation;
+import com.minecade.mcore.function.operation.ResumableOperationQueue;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class LevelOperatorTask extends BukkitRunnable {

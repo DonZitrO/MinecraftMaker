@@ -3,7 +3,7 @@ package com.minecade.minecraftmaker.data;
 import java.util.EnumSet;
 import java.util.UUID;
 
-import com.minecade.core.data.MinecadeAccountData;
+import com.minecade.mcore.data.MinecadeAccountData;
 
 public class MakerPlayerData extends MinecadeAccountData {
 

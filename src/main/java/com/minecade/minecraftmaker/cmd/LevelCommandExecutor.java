@@ -11,7 +11,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.google.common.base.Joiner;
-import com.minecade.core.data.Rank;
+import com.minecade.mcore.data.Rank;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 

@@ -5,7 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.bukkit.Material;
 import org.bukkit.material.MaterialData;
 
-import com.minecade.minecraftmaker.schematic.world.BlockVector;
+import com.minecade.mcore.schematic.world.BlockVector;
 
 public class LevelRedstoneInteraction {
 

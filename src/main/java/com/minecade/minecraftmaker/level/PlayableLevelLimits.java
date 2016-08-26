@@ -2,7 +2,7 @@ package com.minecade.minecraftmaker.level;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.minecade.core.data.Rank;
+import com.minecade.mcore.data.Rank;
 
 public class PlayableLevelLimits {
 

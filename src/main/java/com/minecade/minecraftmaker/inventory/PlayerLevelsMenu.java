@@ -1,7 +1,7 @@
 package com.minecade.minecraftmaker.inventory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.minecade.core.util.BukkitUtils.verifyPrimaryThread;
+import static com.minecade.mcore.util.BukkitUtils.verifyPrimaryThread;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,8 +15,8 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
-import com.minecade.core.data.Rank;
-import com.minecade.core.item.ItemBuilder;
+import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.item.ItemBuilder;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;

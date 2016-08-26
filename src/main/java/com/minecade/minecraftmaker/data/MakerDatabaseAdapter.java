@@ -1,7 +1,7 @@
 package com.minecade.minecraftmaker.data;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.minecade.core.util.BukkitUtils.verifyNotPrimaryThread;
+import static com.minecade.mcore.util.BukkitUtils.verifyNotPrimaryThread;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -28,12 +28,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 
-import com.minecade.core.data.CoinTransaction;
-import com.minecade.core.data.CoinTransaction.Reason;
-import com.minecade.core.data.CoinTransaction.SourceType;
-import com.minecade.core.data.DatabaseException;
-import com.minecade.core.data.MinecadeAccountData;
-import com.minecade.core.data.Rank;
+import com.minecade.mcore.data.CoinTransaction;
+import com.minecade.mcore.data.CoinTransaction.Reason;
+import com.minecade.mcore.data.CoinTransaction.SourceType;
+import com.minecade.mcore.schematic.exception.DataException;
+import com.minecade.mcore.schematic.io.Clipboard;
+import com.minecade.mcore.schematic.io.ClipboardFormat;
+import com.minecade.mcore.schematic.io.ClipboardReader;
+import com.minecade.mcore.schematic.io.ClipboardWriter;
+import com.minecade.mcore.data.DatabaseException;
+import com.minecade.mcore.data.MinecadeAccountData;
+import com.minecade.mcore.data.Rank;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.level.AbstractMakerLevel;
 import com.minecade.minecraftmaker.level.ClipboardWrapper;
@@ -44,11 +49,6 @@ import com.minecade.minecraftmaker.level.MakerLevelTemplate;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
-import com.minecade.minecraftmaker.schematic.exception.DataException;
-import com.minecade.minecraftmaker.schematic.io.Clipboard;
-import com.minecade.minecraftmaker.schematic.io.ClipboardFormat;
-import com.minecade.minecraftmaker.schematic.io.ClipboardReader;
-import com.minecade.minecraftmaker.schematic.io.ClipboardWriter;
 import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
 
 public class MakerDatabaseAdapter {

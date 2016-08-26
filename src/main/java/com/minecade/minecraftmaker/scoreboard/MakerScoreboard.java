@@ -7,8 +7,8 @@ import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.scoreboard.DisplaySlot;
 
-import com.minecade.core.data.Rank;
-import com.minecade.core.scoreboard.BaseScoreboard;
+import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.scoreboard.BaseScoreboard;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 

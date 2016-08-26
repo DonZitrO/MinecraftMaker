@@ -4,7 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
-import com.minecade.core.item.ItemUtils;
+import com.minecade.mcore.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
 import com.minecade.minecraftmaker.items.SteveLevelOptionItem;

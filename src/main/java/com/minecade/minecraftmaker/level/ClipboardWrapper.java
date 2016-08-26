@@ -1,6 +1,6 @@
 package com.minecade.minecraftmaker.level;
 
-import com.minecade.minecraftmaker.schematic.io.Clipboard;
+import com.minecade.mcore.schematic.io.Clipboard;
 
 public interface ClipboardWrapper {
 

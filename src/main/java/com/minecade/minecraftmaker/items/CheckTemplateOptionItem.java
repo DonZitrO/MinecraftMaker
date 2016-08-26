@@ -2,9 +2,9 @@ package com.minecade.minecraftmaker.items;
 
 import org.bukkit.Material;
 
-import com.minecade.core.i18n.TranslatableItem;
-import com.minecade.core.item.ItemBuilder;
-import com.minecade.core.item.ItemStackBuilder;
+import com.minecade.mcore.i18n.TranslatableItem;
+import com.minecade.mcore.item.ItemBuilder;
+import com.minecade.mcore.item.ItemStackBuilder;
 
 public enum CheckTemplateOptionItem implements TranslatableItem {
 
