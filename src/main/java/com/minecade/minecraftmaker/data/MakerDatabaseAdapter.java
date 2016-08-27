@@ -28,15 +28,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 
+import com.minecade.mcore.data.AbstractDatabaseAdapter;
 import com.minecade.mcore.data.CoinTransaction;
 import com.minecade.mcore.data.CoinTransaction.Reason;
 import com.minecade.mcore.data.CoinTransaction.SourceType;
+import com.minecade.mcore.data.CoinTransactionResult;
 import com.minecade.mcore.schematic.exception.DataException;
 import com.minecade.mcore.schematic.io.Clipboard;
 import com.minecade.mcore.schematic.io.ClipboardFormat;
 import com.minecade.mcore.schematic.io.ClipboardReader;
 import com.minecade.mcore.schematic.io.ClipboardWriter;
 import com.minecade.mcore.data.DatabaseException;
+import com.minecade.mcore.data.LevelOperationResult;
 import com.minecade.mcore.data.MinecadeAccountData;
 import com.minecade.mcore.data.Rank;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
@@ -49,9 +52,9 @@ import com.minecade.minecraftmaker.level.MakerLevelTemplate;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
-import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
+import com.minecade.mcore.world.WorldTimeAndWeather;
 
-public class MakerDatabaseAdapter {
+public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 
 	private static final Random RANDOM = new Random(System.currentTimeMillis());
 	//private static final int MAX_SEARCH_RESULTS = 28;

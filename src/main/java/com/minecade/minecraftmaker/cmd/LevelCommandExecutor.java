@@ -15,7 +15,7 @@ import com.minecade.mcore.data.Rank;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelCommandExecutor extends AbstractCommandExecutor {
+public class LevelCommandExecutor extends AbstractMakerCommandExecutor {
 
 	private static long validateLevelSerial(String[] args, int index) {
 		if (args.length > index) {

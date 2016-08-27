@@ -7,7 +7,7 @@ import com.minecade.mcore.data.Rank;
 import com.minecade.minecraftmaker.data.MakerLevelClearData;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
-import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
+import com.minecade.mcore.world.WorldTimeAndWeather;
 
 public abstract class AbstractMakerLevel {
 

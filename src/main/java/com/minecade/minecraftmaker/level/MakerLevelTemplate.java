@@ -5,7 +5,7 @@ import java.util.UUID;
 import com.minecade.mcore.schematic.io.Clipboard;
 import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
-import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
+import com.minecade.mcore.world.WorldTimeAndWeather;
 
 public class MakerLevelTemplate implements ClipboardWrapper {
 

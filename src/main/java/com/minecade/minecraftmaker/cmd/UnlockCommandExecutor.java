@@ -9,7 +9,7 @@ import com.minecade.minecraftmaker.data.MakerUnlockable;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class UnlockCommandExecutor extends AbstractCommandExecutor {
+public class UnlockCommandExecutor extends AbstractMakerCommandExecutor {
 
 	private static MakerUnlockable validateUnlockable(String[] args, int index) {
 		if (args.length > index) {

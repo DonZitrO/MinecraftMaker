@@ -8,7 +8,7 @@ import com.minecade.mcore.data.Rank;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class MakerTestCommandExecutor extends AbstractCommandExecutor {
+public class MakerTestCommandExecutor extends AbstractMakerCommandExecutor {
 
 	public MakerTestCommandExecutor(MinecraftMakerPlugin plugin) {
 		super(plugin);

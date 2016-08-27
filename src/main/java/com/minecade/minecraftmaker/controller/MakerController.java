@@ -64,9 +64,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+import com.minecade.mcore.controller.AbstractController;
 import com.minecade.mcore.data.CoinTransaction;
 import com.minecade.mcore.data.CoinTransaction.Reason;
 import com.minecade.mcore.data.CoinTransaction.SourceType;
+import com.minecade.mcore.data.CoinTransactionResult;
+import com.minecade.mcore.data.LevelOperationResult;
 import com.minecade.mcore.data.Rank;
 import com.minecade.mcore.event.AsyncAccountDataLoadEvent;
 import com.minecade.mcore.event.EventUtils;
@@ -76,8 +79,7 @@ import com.minecade.mcore.schematic.world.WorldData;
 import com.minecade.mcore.util.BungeeUtils;
 import com.minecade.mcore.util.Tickable;
 import com.minecade.mcore.util.TickableUtils;
-import com.minecade.minecraftmaker.data.CoinTransactionResult;
-import com.minecade.minecraftmaker.data.LevelOperationResult;
+import com.minecade.mcore.world.WorldTimeAndWeather;
 import com.minecade.minecraftmaker.data.MakerPlayerData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.data.MakerUnlockable;
@@ -97,10 +99,9 @@ import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.util.LevelUtils;
 import com.minecade.minecraftmaker.util.MakerWorldUtils;
-import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
 import com.minecade.nms.NMSUtils;
 
-public class MakerController implements Runnable, Tickable {
+public class MakerController extends AbstractController<MakerPlayer> implements Runnable, Tickable {
 
 	private static final int FAST_RELOGIN_DELAY_SECONDS = 5;
 	private static final int DOUBLE_LOGIN_DELAY_SECONDS = 2;
@@ -191,12 +192,13 @@ public class MakerController implements Runnable, Tickable {
 		mPlayer.initScoreboard(plugin);
 		entriesToAddToScoreboardTeams.add(mPlayer.getUniqueId());
 		// add the player to the lobby
-		addPlayerToMainLobby(mPlayer);
+		addPlayerToGameLobby(mPlayer);
 		// welcome message
 		Bukkit.getScheduler().runTask(plugin, () -> sendBruteForceWelcomeMessage(mPlayer));
 	}
 
-	public void addPlayerToMainLobby(MakerPlayer mPlayer) {
+	@Override
+	public void addPlayerToGameLobby(MakerPlayer mPlayer) {
 		// reset player
 		mPlayer.resetPlayer(GameMode.ADVENTURE);
 		// teleport to spawn point
@@ -1423,7 +1425,7 @@ public class MakerController implements Runnable, Tickable {
 		}
 		event.setRespawnLocation(getDefaultSpawnLocation());
 		if (mPlayer.isInLobby()) {
-			Bukkit.getScheduler().runTask(plugin, () -> addPlayerToMainLobby(mPlayer));
+			Bukkit.getScheduler().runTask(plugin, () -> addPlayerToGameLobby(mPlayer));
 		}
 	}
 

@@ -21,6 +21,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.scoreboard.Scoreboard;
 
 import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.player.MPlayer;
 import com.minecade.mcore.player.PlayerUtils;
 import com.minecade.mcore.util.Tickable;
 import com.minecade.mcore.util.TickableUtils;
@@ -57,7 +58,7 @@ import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.scoreboard.MakerScoreboard;
 import com.minecade.nms.NMSUtils;
 
-public class MakerPlayer implements Tickable {
+public class MakerPlayer extends MPlayer implements Tickable {
 
 	private static final int MIN_TIME_BETWEEN_SEARCHES_MILLIS = 3000;
 

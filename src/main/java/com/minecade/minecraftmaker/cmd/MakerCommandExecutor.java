@@ -13,7 +13,7 @@ import com.minecade.minecraftmaker.level.PlayableLevelLimits;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class MakerCommandExecutor extends AbstractCommandExecutor {
+public class MakerCommandExecutor extends AbstractMakerCommandExecutor {
 
 	public MakerCommandExecutor(MinecraftMakerPlugin plugin) {
 		super(plugin);

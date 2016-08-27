@@ -3,15 +3,15 @@ package com.minecade.minecraftmaker.plugin;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 
+import com.minecade.mcore.cmd.GameLobbyCommandExecutor;
+import com.minecade.mcore.cmd.ReportCommandExecutor;
 import com.minecade.mcore.config.ServerPropertyFilesConfigurator;
 import com.minecade.mcore.data.Rank;
 import com.minecade.mcore.nmsapi.NMS;
 import com.minecade.mcore.plugin.MPlugin;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
 import com.minecade.minecraftmaker.cmd.MakerCommandExecutor;
-import com.minecade.minecraftmaker.cmd.MakerLobbyCommandExecutor;
 import com.minecade.minecraftmaker.cmd.MakerTestCommandExecutor;
-import com.minecade.minecraftmaker.cmd.ReportCommandExecutor;
 import com.minecade.minecraftmaker.cmd.UnlockCommandExecutor;
 import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
@@ -58,14 +58,18 @@ public class MinecraftMakerPlugin extends MPlugin {
 		return asyncLevelBrowserUpdater;
 	}
 
-	public MakerController getController() {
+	@Override
+	public final MakerController getController() {
 		return controller;
 	}
 
+	@Override
 	public MakerDatabaseAdapter getDatabaseAdapter() {
 		return databaseAdapter;
 	}
 
+
+	
 	public LevelOperatorTask getLevelOperatorTask() {
 		return levelOperatorTask;
 	}
@@ -83,7 +87,7 @@ public class MinecraftMakerPlugin extends MPlugin {
 		getCommand("level").setExecutor(new LevelCommandExecutor(this));
 		getCommand("maker").setExecutor(new MakerCommandExecutor(this));
 		getCommand("report").setExecutor(new ReportCommandExecutor(this));
-		getCommand("makerlobby").setExecutor(new MakerLobbyCommandExecutor(this));
+		getCommand("makerlobby").setExecutor(new GameLobbyCommandExecutor(this));
 		getCommand("makertest").setExecutor(new MakerTestCommandExecutor(this));
 		getCommand("unlock").setExecutor(new UnlockCommandExecutor(this));
 		databaseAdapter = new MakerDatabaseAdapter(this);

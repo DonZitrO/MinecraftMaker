@@ -72,7 +72,7 @@ import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.util.LevelUtils;
-import com.minecade.minecraftmaker.world.WorldTimeAndWeather;
+import com.minecade.mcore.world.WorldTimeAndWeather;
 import com.minecade.nms.NMSUtils;
 
 public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardWrapper, Tickable {
@@ -322,7 +322,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 	public synchronized void exitChecking() {
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(currentTemplateCheckerId);
 		if (mPlayer != null) {
-			plugin.getController().addPlayerToMainLobby(mPlayer);
+			plugin.getController().addPlayerToGameLobby(mPlayer);
 		}
 		this.status = LevelStatus.DISABLE_READY;
 	}
@@ -331,7 +331,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		// TODO: maybe verify EDITING status
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(authorId);
 		if (mPlayer != null) {
-			plugin.getController().addPlayerToMainLobby(mPlayer);
+			plugin.getController().addPlayerToGameLobby(mPlayer);
 		}
 		removeGuestEditors();
 		this.status = LevelStatus.DISABLE_READY;
@@ -341,7 +341,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		// TODO: maybe verify PLAYING status
 		MakerPlayer mPlayer = getPlayerIsInThisLevel(currentPlayerId);
 		if (mPlayer != null) {
-			plugin.getController().addPlayerToMainLobby(mPlayer);
+			plugin.getController().addPlayerToGameLobby(mPlayer);
 		}
 		this.status = LevelStatus.DISABLE_READY;
 	}
@@ -380,7 +380,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		// TODO: persist steve data
 		steveData = null;
 		mPlayer.sendTitleAndSubtitle(title, subtitle);
-		plugin.getController().addPlayerToMainLobby(mPlayer);
+		plugin.getController().addPlayerToGameLobby(mPlayer);
 		status = LevelStatus.DISABLE_READY;
 	}
 
@@ -993,7 +993,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		}
 		status = LevelStatus.PUBLISH_READY;
 		plugin.getDatabaseAdapter().publishLevelAsync(this);
-		plugin.getController().addPlayerToMainLobby(mPlayer);
+		plugin.getController().addPlayerToGameLobby(mPlayer);
 	}
 
 	private void removeCrystalFromBorders() throws MinecraftMakerException {
@@ -1084,7 +1084,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		MakerPlayer guestEditor = getPlayerIsInThisLevel(guestEditorBukkit.getUniqueId());
 		if (guestEditor != null) {
 			guestEditor.sendActionMessage("player.guest-edit.finished");
-			plugin.getController().addPlayerToMainLobby(guestEditor);
+			plugin.getController().addPlayerToGameLobby(guestEditor);
 			return true;
 		}
 		return false;
@@ -1104,7 +1104,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 			MakerPlayer guestEditor = getPlayerIsInThisLevel(guestBukkit.getUniqueId());
 			if (guestEditor != null) {
 				guestEditor.sendMessage("player.guest-edit.finished");
-				plugin.getController().addPlayerToMainLobby(guestEditor);
+				plugin.getController().addPlayerToGameLobby(guestEditor);
 			}
 		}
 		guestEditors.clear();
@@ -1568,14 +1568,14 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		if (checker != null) {
 			checker.sendMessage("level.error.disable");
 			checker.sendMessage("level.error.report");
-			plugin.getController().addPlayerToMainLobby(checker);
+			plugin.getController().addPlayerToGameLobby(checker);
 		}
 		this.currentTemplateCheckerId = null;
 		MakerPlayer author = getPlayerIsInThisLevel(authorId);
 		if (author != null) {
 			author.sendMessage("level.error.disable");
 			author.sendMessage("level.error.report");
-			plugin.getController().addPlayerToMainLobby(author);
+			plugin.getController().addPlayerToGameLobby(author);
 		}
 		this.authorId = null;
 		for (String guestEditorName : guestEditors) {
@@ -1587,7 +1587,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 			if (guestEditor != null) {
 				guestEditor.sendMessage("level.error.disable");
 				guestEditor.sendMessage("level.error.report");
-				plugin.getController().addPlayerToMainLobby(guestEditor);
+				plugin.getController().addPlayerToGameLobby(guestEditor);
 			}
 		}
 		guestEditors.clear();
@@ -1595,7 +1595,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		if (currentLevelPlayer != null) {
 			currentLevelPlayer.sendMessage("level.error.disable");
 			currentLevelPlayer.sendMessage("level.error.report");
-			plugin.getController().addPlayerToMainLobby(currentLevelPlayer);
+			plugin.getController().addPlayerToGameLobby(currentLevelPlayer);
 		}
 		this.currentPlayerId = null;
 		removeEntities();
