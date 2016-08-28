@@ -4,12 +4,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.minecade.mcore.util.BukkitUtils.verifyNotPrimaryThread;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,7 +14,6 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -26,22 +21,19 @@ import java.util.logging.Level;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.ConfigurationSection;
 
 import com.minecade.mcore.data.AbstractDatabaseAdapter;
 import com.minecade.mcore.data.CoinTransaction;
 import com.minecade.mcore.data.CoinTransaction.Reason;
 import com.minecade.mcore.data.CoinTransaction.SourceType;
-import com.minecade.mcore.data.CoinTransactionResult;
-import com.minecade.mcore.schematic.exception.DataException;
-import com.minecade.mcore.schematic.io.Clipboard;
-import com.minecade.mcore.schematic.io.ClipboardFormat;
-import com.minecade.mcore.schematic.io.ClipboardReader;
-import com.minecade.mcore.schematic.io.ClipboardWriter;
 import com.minecade.mcore.data.DatabaseException;
 import com.minecade.mcore.data.LevelOperationResult;
 import com.minecade.mcore.data.MinecadeAccountData;
 import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.schematic.exception.DataException;
+import com.minecade.mcore.schematic.io.ClipboardFormat;
+import com.minecade.mcore.schematic.io.ClipboardReader;
+import com.minecade.mcore.world.WorldTimeAndWeather;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.level.AbstractMakerLevel;
 import com.minecade.minecraftmaker.level.ClipboardWrapper;
@@ -52,12 +44,8 @@ import com.minecade.minecraftmaker.level.MakerLevelTemplate;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
-import com.minecade.mcore.world.WorldTimeAndWeather;
 
 public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
-
-	private static final Random RANDOM = new Random(System.currentTimeMillis());
-	//private static final int MAX_SEARCH_RESULTS = 28;
 
 	private static final String LOAD_LEVEL_WITH_DATA_QUERY_BASE =
 			"%s " + // select placeholder
@@ -80,26 +68,11 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 	}
 
 	private final MinecraftMakerPlugin plugin;
-
-	private final String jdbcUrl;
-	private final String dbUsername;
-	private final String dbpassword;
-	private final String networkSchema;
-	private final String coinsColumn;
-
-	private Connection connection;
-
 	private int lastCount = 0;
 
 	public MakerDatabaseAdapter(MinecraftMakerPlugin plugin) {
+		super(plugin);
 		this.plugin = plugin;
-
-		ConfigurationSection databaseConfig = plugin.getConfig().getConfigurationSection("database");
-		this.networkSchema = databaseConfig.getString("network-schema", "test_network");
-		this.coinsColumn = databaseConfig.getString("coins-column", "coins");
-		this.jdbcUrl = databaseConfig.getString("url");
-		this.dbUsername = databaseConfig.getString("username");
-		this.dbpassword = databaseConfig.getString("password");
 	}
 
 	private synchronized void clearSteveChallenge(UUID playerId, String playerName) {
@@ -123,14 +96,6 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 
 	public void clearSteveChallengeAsync(UUID playerId, String playerName) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> clearSteveChallenge(playerId, playerName));
-	}
-
-	private synchronized MakerRelativeLocationData copyEndLocationByLevelId(UUID copyFromLocationId) throws DataException, SQLException {
-		verifyNotPrimaryThread();
-		MakerRelativeLocationData copy = loadRelativeLocationById(copyFromLocationId);
-		// it's a copy, will have a new id assigned when saved
-		copy.setLocationId(null);
-		return copy;
 	}
 
 	private synchronized void copyLevelBySerial(MakerPlayableLevel level, long copyFromSerial) {
@@ -221,97 +186,6 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> deleteLevelBySerial(levelSerial, mPlayer));
 	}
 
-	public synchronized void disconnect() {
-		if (null != connection) {
-			try {
-				connection.close();
-			} catch (SQLException e) {
-				// no-op
-			}
-		}
-	}
-
-	private synchronized CoinTransactionResult executeCoinTransaction(final CoinTransaction transaction, final boolean callback) {
-		verifyNotPrimaryThread();
-		CoinTransactionResult result = CoinTransactionResult.ERROR;
-		long balance = -1;
-		try {
-			result = tryToCommitCoinTransaction(transaction.getPlayerId(), transaction.getAmount());
-			Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.executeCoinsTransaction - transaction: [%s] - result: [%s]", transaction, result));
-			if (callback) {
-				balance = getCoinBalance(transaction.getPlayerId());
-			}
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.executeCoinsTransaction - error on transaction: [%s] - %s", transaction, e.getMessage()));
-			e.printStackTrace();
-		} finally {
-			if (callback) {
-				final CoinTransactionResult finalResult = result;
-				final long finalBalance = balance;
-				Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().coinTransactionCallback(transaction, finalResult, finalBalance));
-			}
-		}
-		return result;
-	}
-
-	public void executeCoinTransactionAsync(final CoinTransaction transaction) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> executeCoinTransaction(transaction, true));
-	}
-
-	private synchronized long getCoinBalance(final UUID uniqueId) throws SQLException {
-		// returns the new coin balance
-		String uuid = uniqueId.toString().replace("-", "");
-		try (PreparedStatement getBalanceSt = getConnection().prepareStatement(String.format("SELECT %s FROM %s.accounts WHERE unique_id = UNHEX(?)", coinsColumn, networkSchema))) {
-			getBalanceSt.setString(1, uuid);
-			ResultSet result = getBalanceSt.executeQuery();
-			if (!result.next()) {
-				return 0;
-			}
-			return result.getLong(coinsColumn);
-		}
-	}
-
-	private synchronized Connection getConnection() throws SQLException {
-		if (null != connection) {
-			if (connection.isValid(1)) {
-				return connection;
-			} else {
-				connection.close();
-			}
-		}
-		connection = DriverManager.getConnection(jdbcUrl, dbUsername, dbpassword);
-		return connection;
-	}
-
-	private synchronized void insertClipboard(String levelId, Clipboard clipboard) throws SQLException, IOException {
-		verifyNotPrimaryThread();
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.insertClipboard - inserting clipboard data for level: <%s>", levelId));
-		}
-		checkNotNull(levelId);
-		checkNotNull(clipboard);
-		Blob data = getConnection().createBlob();
-		try (PreparedStatement insertLevelBinaryData = getConnection().prepareStatement("INSERT INTO `mcmaker`.`schematics` (level_id, data) VALUES (UNHEX(?), ?)")) {
-			try (BufferedOutputStream bos = new BufferedOutputStream(data.setBinaryStream(1)); ClipboardWriter writer = ClipboardFormat.SCHEMATIC.getWriter(bos);) {
-				writer.write(clipboard, null);
-			}
-			insertLevelBinaryData.setString(1, levelId);
-			insertLevelBinaryData.setBlob(2, data);
-			insertLevelBinaryData.executeUpdate();
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.insertClipboard - inserted clipboard data for level: <%s>", levelId));
-			}
-		} finally {
-			if (data != null) {
-				try {
-					data.free();
-				} catch (SQLException sqle) {
-					// no-op
-				}
-			}
-		}
-	}
-
 	private synchronized void insertLevel(AbstractMakerLevel level) throws SQLException {
 		verifyNotPrimaryThread();
 		if (plugin.isDebugMode()) {
@@ -373,53 +247,6 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 		}
 	}
 
-	private UUID insertOrUpdateRelativeLocation(MakerRelativeLocationData relativeEndLocation) throws SQLException {
-		if (relativeEndLocation.getLocationId() == null) {
-			relativeEndLocation.setLocationId(UUID.randomUUID());
-			String locationId = relativeEndLocation.getLocationId().toString().replace("-", "");
-			try (PreparedStatement insterLocationData = getConnection().prepareStatement(
-			        "INSERT INTO `mcmaker`.`locations` (location_id, location_x, location_y, location_z, location_yaw, location_pitch) VALUES (UNHEX(?), ?, ?, ?, ?, ?)")) {
-				insterLocationData.setString(1, locationId);
-				insterLocationData.setDouble(2, relativeEndLocation.getX());
-				insterLocationData.setDouble(3, relativeEndLocation.getY());
-				insterLocationData.setDouble(4, relativeEndLocation.getZ());
-				insterLocationData.setFloat(5, relativeEndLocation.getYaw());
-				insterLocationData.setFloat(6, relativeEndLocation.getPitch());
-				insterLocationData.executeUpdate();
-			}
-		} else {
-			try (PreparedStatement insterLocationData = getConnection().prepareStatement(
-			        "UPDATE `mcmaker`.`locations` set `location_x` = ?, `location_y`= ?, `location_z` = ?, `location_yaw` = ?, `location_pitch` = ? WHERE location_id = UNHEX(?)")) {
-				insterLocationData.setDouble(1, relativeEndLocation.getX());
-				insterLocationData.setDouble(2, relativeEndLocation.getY());
-				insterLocationData.setDouble(3, relativeEndLocation.getZ());
-				insterLocationData.setFloat(4, relativeEndLocation.getYaw());
-				insterLocationData.setFloat(5, relativeEndLocation.getPitch());
-				String locationId = relativeEndLocation.getLocationId().toString().replace("-", "");
-				insterLocationData.setString(6, locationId);
-				insterLocationData.executeUpdate();
-			}
-		}
-		return relativeEndLocation.getLocationId();
-	}
-
-	private synchronized void insertReport(UUID playerId, String playerName, String report) {
-		verifyNotPrimaryThread();
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerDatabaseAdapter.insertReport - inserting report from player: [%s<%s>] - %s", playerId, playerName, report));
-		}
-		String playerIdString = playerId.toString().replace("-", "");
-		try (PreparedStatement insertReportSt = getConnection().prepareStatement("INSERT INTO `mcmaker`.`reports` (player_id, player_name, report) VALUES (UNHEX(?), ?, ?)")) {
-			insertReportSt.setString(1, playerIdString);
-			insertReportSt.setString(2, playerName);
-			insertReportSt.setString(3, report);
-			insertReportSt.executeUpdate();
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("[DEBUG] | MakerDatabaseAdapter.insertReport - unable to insert report: [%s] - from player: [%s<%s>] - %s", report, playerId, playerName, e.getMessage()));
-			e.printStackTrace();
-		}
-	}
-
 	private synchronized void likeLevel(UUID levelId, UUID playerId, boolean dislike) {
 		verifyNotPrimaryThread();
 		try {
@@ -466,101 +293,14 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 		return null;
 	}
 
-	private synchronized void loadAccountDataFromResult(MinecadeAccountData account, ResultSet result, boolean createColumnIfNotFound) throws SQLException {
-		// load coins if not already loaded
-		if (0 == account.getCoins()) {
-			try {
-				account.setCoins(result.getLong(coinsColumn));
-			} catch (SQLException e) {
-				Bukkit.getLogger().severe(String.format("Coins column not found: %s - %s", coinsColumn, e.getMessage()));
-				throw new DatabaseException(e);
-			}
-		}
-		// load ranks
-		for (Rank rank : Rank.values()) {
-			try {
-				if (null == rank.getColumnName()) {
-					continue;
-				}
-				if (result.getBoolean(rank.getColumnName())) {
-					account.setHighestRank(rank);
-				}
-			} catch (SQLException e) {
-				Bukkit.getLogger().warning(String.format("Rank column not found: %s - %s", rank.getColumnName(), e.getMessage()));
-			}
-		}
-	}
-
-	/**
-	 * This loads general Minecade Account data or creates it
-	 */
-	protected synchronized <T extends MinecadeAccountData> T loadAccountDataInternal(T data) throws SQLException {
-		long start = 0;
-		if (plugin.isDebugMode()) {
-			start = System.nanoTime();
-		}
-		String uuid = data.getUniqueId().toString().replace("-", "");
-		// try to find player by binary UUID first
-		try (PreparedStatement byBinaryUUID = getConnection().prepareStatement(String.format("SELECT * FROM %s.accounts WHERE unique_id = UNHEX(?)", networkSchema))) {
-			byBinaryUUID.setString(1, uuid);
-			ResultSet byBinaryUUIDResult = byBinaryUUID.executeQuery();
-			if (!byBinaryUUIDResult.first()) {
-				// not found by binary UUID - let's try to find player by the UUID as string (say thanks to n00b devs for this)
-				try (PreparedStatement byStringUUID = getConnection().prepareStatement(String.format("SELECT * FROM %s.accounts WHERE uuid = ?", networkSchema))) {
-					byStringUUID.setString(1, uuid);
-					ResultSet byStringUUIDResult = byStringUUID.executeQuery();
-					if (!byStringUUIDResult.first()) {
-						// not found - create player on the database from scratch
-						if (Bukkit.getLogger().isLoggable(Level.INFO)) {
-							Bukkit.getLogger().info(String.format("No Minecade data - inserting Minecade data for first time Player: [%s<%s>]", data.getUsername(), data.getUniqueId()));
-						}
-						try (PreparedStatement insertAccount = getConnection().prepareStatement(String.format("INSERT INTO %s.accounts(unique_id, uuid, username) VALUES (UNHEX(?), ?, ?)", networkSchema))) {
-							insertAccount.setString(1, uuid);
-							insertAccount.setString(2, uuid);
-							insertAccount.setString(3, data.getUsername());
-							insertAccount.executeUpdate();
-						}
-						if (Bukkit.getLogger().isLoggable(Level.INFO)) {
-							Bukkit.getLogger().info(String.format("Inserted Minecade data for first time Player: [%s<%s>]", data.getUsername(), data.getUniqueId()));
-						}
-					} else {
-						// found by string UUID - update binary UUID column
-						if (Bukkit.getLogger().isLoggable(Level.INFO)) {
-							Bukkit.getLogger().info(String.format("Minecade data found by STRING UUID - Updating binary UUID for Player: [%s<%s>]", data.getUsername(), data.getUniqueId()));
-						}
-						try (PreparedStatement updateUUID = getConnection().prepareStatement(String.format("UPDATE %s.accounts SET unique_id = UNHEX(?) WHERE uuid = ?", networkSchema))) {
-							updateUUID.setString(1, uuid);
-							updateUUID.setString(2, uuid);
-							updateUUID.executeUpdate();
-						}
-						if (Bukkit.getLogger().isLoggable(Level.INFO)) {
-							Bukkit.getLogger().info(String.format("Updated BINARY UUID for Player: [%s<%s>]", data.getUsername(), data.getUniqueId()));
-						}
-						// load existing data
-						loadAccountDataFromResult(data, byStringUUIDResult, true);
-					}
-				}
-			} else {
-				if (Bukkit.getLogger().isLoggable(Level.INFO)) {
-					Bukkit.getLogger().info(String.format("Minecade data found by BINARY UUID - Player: [%s<%s>]", data.getUsername(), data.getUniqueId()));
-				}
-				loadAccountDataFromResult(data, byBinaryUUIDResult, true);
-			}
-			loadAdditionalData((MakerPlayerData)data);
-		}
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | SCBDatabase.loadAccountDataInternal - loading player: [%s<%s>] data from DB took: [%s] nanoseconds", data.getUsername(), data.getUniqueId(), System.nanoTime() - start));
-		}
-		return data;
-	}
-
 	/**
 	 * This loads specific MCMaker Account data or creates it
 	 */
-	protected synchronized void loadAdditionalData(MakerPlayerData data) throws SQLException {
-		loadOrCreateMakerPlayerData(data);
-		loadPlayerLevelsCounts(data);
-		loadUniqueLevelClearsCount(data);
+	@Override
+	protected <T extends MinecadeAccountData> void loadAdditionalData(T data) throws SQLException {
+		loadOrCreateMakerPlayerData((MakerPlayerData)data);
+		loadPlayerLevelsCounts((MakerPlayerData)data);
+		loadUniqueLevelClearsCount((MakerPlayerData)data);
 		// FIXME: review this
 		//loadPlayerLevelsLikes(data);
 	}
@@ -1201,43 +941,6 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 		return 0;
 	}
 
-	private Rank loadRank(ResultSet result) {
-		Rank rank = Rank.GUEST;
-		try {
-			rank = Rank.valueOf(result.getString("author_rank"));
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadRank - unable to load level author rank - %s", e.getMessage()));
-		}
-		return rank;
-	}
-
-	private MakerRelativeLocationData loadRelativeLocationById(UUID locationUUID) throws SQLException, DataException {
-		checkNotNull(locationUUID);
-		String locationIdString = locationUUID.toString().replace("-", "");
-		try (PreparedStatement loadLocationByIdSt = getConnection().prepareStatement(String.format("SELECT * FROM `mcmaker`.`locations` where `location_id` = UNHEX(?)"))) {
-			loadLocationByIdSt.setString(1, locationIdString);
-			ResultSet resultSet = loadLocationByIdSt.executeQuery();
-			if (!resultSet.next()) {
-				throw new DataException(String.format("Unable to find maker location with id: [%s]", locationUUID));
-			}
-			MakerRelativeLocationData location = new MakerRelativeLocationData(resultSet.getDouble("location_x"), resultSet.getDouble("location_y"), resultSet.getDouble("location_z"), resultSet.getFloat("location_yaw"), resultSet.getFloat("location_pitch"));
-			location.setLocationId(locationUUID);
-			return location;
-		}
-	}
-
-	private WorldTimeAndWeather loadTimeAndWeather(ResultSet result, String columnName) {
-		checkNotNull(result);
-		checkNotNull(columnName);
-		WorldTimeAndWeather timeAndWeather = WorldTimeAndWeather.NOON_CLEAR;
-		try {
-			timeAndWeather = WorldTimeAndWeather.valueOf(result.getString(columnName));
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadTimeAndWeather - unable to load level time and weather - error: %s", e.getMessage()));
-		}
-		return timeAndWeather;
-	}
-
 	private synchronized void loadUniqueLevelClearsCount(MakerPlayerData data) {
 		verifyNotPrimaryThread();
 		data.setUniqueLevelClearsCount(loadUniqueLevelClearsCount(data.getUniqueId(), false));
@@ -1400,10 +1103,6 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> insertLevelClear(levelId, playerId, clearTimeMillis));
 	}
 
-	public void saveReportAsync(UUID playerId, String playerName, String report) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> insertReport(playerId, playerName, report));
-	}
-
 	private int searchPublishedLevelsCountByName(String searchString) {
 		verifyNotPrimaryThread();
 		int levelCount = 0;
@@ -1483,27 +1182,6 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 			e.printStackTrace();
 		}
 		return false;
-	}
-
-	private synchronized CoinTransactionResult tryToCommitCoinTransaction(final UUID uniqueId, long coins) throws SQLException {
-		verifyNotPrimaryThread();
-		String uuid = uniqueId.toString().replace("-", "");
-		try (PreparedStatement findAccountSt = getConnection().prepareStatement(String.format("SELECT %s FROM %s.accounts WHERE unique_id = UNHEX(?)", coinsColumn, networkSchema))) {
-			findAccountSt.setString(1, uuid);
-			ResultSet result = findAccountSt.executeQuery();
-			if (!result.first()) {
-				return CoinTransactionResult.ACCOUNT_NOT_FOUND;
-			}
-			try (PreparedStatement updateCoinsSt = getConnection().prepareStatement(String.format("UPDATE %s.accounts SET %s = %s + ? WHERE (%s + ?) >= 0 AND unique_id = UNHEX(?) ", networkSchema, coinsColumn, coinsColumn, coinsColumn))) {
-				updateCoinsSt.setLong(1, coins);
-				updateCoinsSt.setLong(2, coins);
-				updateCoinsSt.setString(3, uuid);
-				if (updateCoinsSt.executeUpdate() == 0) {
-					return CoinTransactionResult.INSUFFICIENT_COINS;
-				}
-			}
-		}
-		return CoinTransactionResult.COMMITTED;
 	}
 
 	private void unlock(final MakerPlayer mPlayer, final MakerUnlockable unlockable) {

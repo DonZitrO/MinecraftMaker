@@ -48,6 +48,7 @@ import org.bukkit.util.BlockVector;
 import com.minecade.mcore.data.CoinTransaction;
 import com.minecade.mcore.data.CoinTransaction.Reason;
 import com.minecade.mcore.data.CoinTransaction.SourceType;
+import com.minecade.mcore.data.MRelativeLocationData;
 import com.minecade.mcore.data.Rank;
 import com.minecade.mcore.item.ItemUtils;
 import com.minecade.mcore.schematic.block.BaseBlock;
@@ -62,8 +63,8 @@ import com.minecade.mcore.schematic.world.Vector;
 import com.minecade.mcore.schematic.world.Vector2D;
 import com.minecade.mcore.schematic.world.WorldData;
 import com.minecade.mcore.util.Tickable;
+import com.minecade.mcore.world.WorldTimeAndWeather;
 import com.minecade.minecraftmaker.data.MakerLevelClearData;
-import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
 import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.function.operation.LevelClipboardCopyOperation;
 import com.minecade.minecraftmaker.function.operation.LevelClipboardPasteOperation;
@@ -72,7 +73,6 @@ import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.util.LevelUtils;
-import com.minecade.mcore.world.WorldTimeAndWeather;
 import com.minecade.nms.NMSUtils;
 
 public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardWrapper, Tickable {
@@ -84,7 +84,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 	public static final short MAX_LEVEL_HEIGHT = 67;
 	public static final short FLOOR_LEVEL_Y = 16;
 
-	private static final MakerRelativeLocationData RELATIVE_START_LOCATION = new MakerRelativeLocationData(2.5, 17, 6.5, -90f, 0);
+	private static final MRelativeLocationData RELATIVE_START_LOCATION = new MRelativeLocationData(2.5, 17, 6.5, -90f, 0);
 
 	//private Map<BlockVector, LevelRedstoneInteraction> cancelledRedstoneInteractions = new LinkedHashMap<>();
 	private final Set<Entity> problematicEntities = new LinkedHashSet<>();
@@ -1271,7 +1271,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		updateBeaconBase(location.getBlock().getRelative(BlockFace.DOWN), Material.IRON_BLOCK);
 		updateBeaconTop(location.getBlock().getRelative(BlockFace.UP));
 		// reuse object on DB by inheriting the UUID when possible
-		relativeEndLocation = new MakerRelativeLocationData(location, relativeEndLocation != null ? relativeEndLocation.getLocationId() : null);
+		relativeEndLocation = new MRelativeLocationData(location, relativeEndLocation != null ? relativeEndLocation.getLocationId() : null);
 		if (plugin.isDebugMode()) {
 			Bukkit.getLogger().info(String.format("[DEBUG] | MakerLevel.setupEndLocation took: [%s] ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos)));
 		}

@@ -2,10 +2,10 @@ package com.minecade.minecraftmaker.level;
 
 import java.util.UUID;
 
+import com.minecade.mcore.data.MRelativeLocationData;
 import com.minecade.mcore.schematic.io.Clipboard;
-import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
-import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.mcore.world.WorldTimeAndWeather;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public class MakerLevelTemplate implements ClipboardWrapper {
 
@@ -17,7 +17,7 @@ public class MakerLevelTemplate implements ClipboardWrapper {
 	protected String authorName;
 	protected UUID templateId;
 	protected String templateName;
-	protected MakerRelativeLocationData relativeEndLocation;
+	protected MRelativeLocationData relativeEndLocation;
 	protected WorldTimeAndWeather timeAndWeather = WorldTimeAndWeather.NOON_CLEAR;
 	//protected int coinCost;
 	protected boolean free;
@@ -44,7 +44,7 @@ public class MakerLevelTemplate implements ClipboardWrapper {
 		return clipboard;
 	}
 
-	public MakerRelativeLocationData getRelativeEndLocation() {
+	public MRelativeLocationData getRelativeEndLocation() {
 		return relativeEndLocation;
 	}
 
@@ -88,7 +88,7 @@ public class MakerLevelTemplate implements ClipboardWrapper {
 		this.free = free;
 	}
 
-	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
+	public void setRelativeEndLocation(MRelativeLocationData relativeEndLocation) {
 		this.relativeEndLocation = relativeEndLocation;
 	}
 

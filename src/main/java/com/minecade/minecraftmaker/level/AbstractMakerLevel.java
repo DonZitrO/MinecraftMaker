@@ -3,11 +3,11 @@ package com.minecade.minecraftmaker.level;
 import java.util.Date;
 import java.util.UUID;
 
+import com.minecade.mcore.data.MRelativeLocationData;
 import com.minecade.mcore.data.Rank;
-import com.minecade.minecraftmaker.data.MakerLevelClearData;
-import com.minecade.minecraftmaker.data.MakerRelativeLocationData;
-import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.mcore.world.WorldTimeAndWeather;
+import com.minecade.minecraftmaker.data.MakerLevelClearData;
+import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
 public abstract class AbstractMakerLevel {
 
@@ -24,7 +24,7 @@ public abstract class AbstractMakerLevel {
 	protected String levelName;
 	protected long levelSerial;
 	protected long likes;
-	protected MakerRelativeLocationData relativeEndLocation;
+	protected MRelativeLocationData relativeEndLocation;
 	protected long trendingScore;
 	protected MakerLevelClearData levelBestClearData;
 	protected boolean unpublished;
@@ -88,7 +88,7 @@ public abstract class AbstractMakerLevel {
 		return likes;
 	}
 
-	public MakerRelativeLocationData getRelativeEndLocation() {
+	public MRelativeLocationData getRelativeEndLocation() {
 		return relativeEndLocation;
 	}
 
@@ -180,7 +180,7 @@ public abstract class AbstractMakerLevel {
 		this.likes = likes;
 	}
 
-	public void setRelativeEndLocation(MakerRelativeLocationData relativeEndLocation) {
+	public void setRelativeEndLocation(MRelativeLocationData relativeEndLocation) {
 		this.relativeEndLocation = relativeEndLocation;
 	}
 
