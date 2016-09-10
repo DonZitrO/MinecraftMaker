@@ -135,7 +135,7 @@ public class MakerCommandExecutor extends AbstractMakerCommandExecutor {
 			mPlayer.sendMessage("command.error.rank.upgrade");
 			return;
 		}
-		if (!mPlayer.isEditingLevel()) {
+		if (!mPlayer.isEditing()) {
 			mPlayer.sendMessage("command.error.edit-only");
 			return;
 		}

@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
+import com.minecade.mcore.inventory.MenuClickResult;
 import com.minecade.mcore.item.ItemUtils;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
@@ -44,7 +45,7 @@ public class VipLevelToolsMenu extends AbstractSharedMenu {
 
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;
-		} else if (!mPlayer.isEditingLevel()) {
+		} else if (!mPlayer.isEditing()) {
 			Bukkit.getLogger().warning(String.format("VipLevelToolsMenu.onClick - This menu should be available to level editors while editing only! - clicked by: [%s]", mPlayer.getName()));
 			return MenuClickResult.CANCEL_CLOSE;
 		}

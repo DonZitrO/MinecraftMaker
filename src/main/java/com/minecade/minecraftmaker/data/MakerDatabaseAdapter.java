@@ -28,7 +28,6 @@ import com.minecade.mcore.data.CoinTransaction.Reason;
 import com.minecade.mcore.data.CoinTransaction.SourceType;
 import com.minecade.mcore.data.DatabaseException;
 import com.minecade.mcore.data.LevelOperationResult;
-import com.minecade.mcore.data.MinecadeAccountData;
 import com.minecade.mcore.data.Rank;
 import com.minecade.mcore.schematic.exception.DataException;
 import com.minecade.mcore.schematic.io.ClipboardFormat;
@@ -45,7 +44,7 @@ import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
+public class MakerDatabaseAdapter extends AbstractDatabaseAdapter<MakerPlayerData> {
 
 	private static final String LOAD_LEVEL_WITH_DATA_QUERY_BASE =
 			"%s " + // select placeholder
@@ -297,10 +296,10 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter {
 	 * This loads specific MCMaker Account data or creates it
 	 */
 	@Override
-	protected <T extends MinecadeAccountData> void loadAdditionalData(T data) throws SQLException {
-		loadOrCreateMakerPlayerData((MakerPlayerData)data);
-		loadPlayerLevelsCounts((MakerPlayerData)data);
-		loadUniqueLevelClearsCount((MakerPlayerData)data);
+	protected void loadAdditionalData(MakerPlayerData data) throws SQLException {
+		loadOrCreateMakerPlayerData(data);
+		loadPlayerLevelsCounts(data);
+		loadUniqueLevelClearsCount(data);
 		// FIXME: review this
 		//loadPlayerLevelsLikes(data);
 	}

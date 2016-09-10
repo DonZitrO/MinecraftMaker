@@ -33,6 +33,7 @@ import com.minecade.minecraftmaker.items.WeatherItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerPlayableLevel;
 import com.minecade.minecraftmaker.listener.MakerListener;
+import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.task.AnnouncerTask;
 import com.minecade.minecraftmaker.task.AsyncLevelBrowserUpdaterTask;
 import com.minecade.minecraftmaker.task.AsyncLevelSaverTask;
@@ -40,7 +41,7 @@ import com.minecade.minecraftmaker.task.AsyncPlayerCounterUpdaterTask;
 import com.minecade.minecraftmaker.task.LevelOperatorTask;
 import com.minecade.nms.NMS_Spigot_v1_9_R2;
 
-public class MinecraftMakerPlugin extends MPlugin {
+public class MinecraftMakerPlugin extends MPlugin<MakerController, MakerPlayer> {
 
 	private static MinecraftMakerPlugin instance;
 

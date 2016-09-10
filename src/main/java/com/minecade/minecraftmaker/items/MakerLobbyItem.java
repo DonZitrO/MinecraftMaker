@@ -1,7 +1,6 @@
 package com.minecade.minecraftmaker.items;
 
 import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
 
 import com.minecade.mcore.i18n.TranslatableItem;
 import com.minecade.mcore.item.ItemBuilder;
@@ -31,14 +30,6 @@ public enum MakerLobbyItem implements TranslatableItem {
 		this.builder = new ItemBuilder(material, amount, data);
 	}
 
-	public ItemStack getItem() {
-		return builder.build();
-	}
-
-	public String getDisplayName() {
-		return builder.getDisplayName() != null ? builder.getDisplayName() : name();
-	}
-
 	@Override
 	public String getTranslationKeyBase() {
 		return "lobby.item";
@@ -52,11 +43,6 @@ public enum MakerLobbyItem implements TranslatableItem {
 	@Override
 	public ItemStackBuilder getBuilder() {
 		return builder;
-	}
-
-	@Override
-	public void setDisplayName(String displayName) {
-		getBuilder().withDisplayName(displayName);
 	}
 
 }

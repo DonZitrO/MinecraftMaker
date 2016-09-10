@@ -217,10 +217,10 @@ public class MakerListener implements Listener {
 		event.setCancelled(true);
 	}
 
-	@EventHandler(ignoreCancelled = true)
+	@EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
 	public void onInventoryClick(InventoryClickEvent event) {
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | MainListener.onInventoryClick - Player: [%s] - Inventory: [%s] - Slot type: [%s] - Slot: [%s]", event.getWhoClicked().getName(), event.getInventory().getName(), event.getSlotType(), event.getSlot()));
+			Bukkit.getLogger().info(String.format("[DEBUG] | MakerListener.onInventoryClick - Player: [%s] - Inventory: [%s] - Slot type: [%s] - Slot: [%s]", event.getWhoClicked().getName(), event.getInventory().getName(), event.getSlotType(), event.getSlot()));
 		}
 		plugin.getController().onInventoryClick(event);
 	}

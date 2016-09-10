@@ -44,9 +44,6 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
@@ -73,6 +70,7 @@ import com.minecade.mcore.data.LevelOperationResult;
 import com.minecade.mcore.data.Rank;
 import com.minecade.mcore.event.AsyncAccountDataLoadEvent;
 import com.minecade.mcore.event.EventUtils;
+import com.minecade.mcore.inventory.MenuClickResult;
 import com.minecade.mcore.item.ItemUtils;
 import com.minecade.mcore.schematic.bukkit.BukkitUtil;
 import com.minecade.mcore.schematic.world.WorldData;
@@ -88,7 +86,6 @@ import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageResult;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplatesMenu;
-import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
@@ -103,21 +100,11 @@ import com.minecade.nms.NMSUtils;
 
 public class MakerController extends AbstractController<MakerPlayer> implements Runnable, Tickable {
 
-	private static final int FAST_RELOGIN_DELAY_SECONDS = 5;
-	private static final int DOUBLE_LOGIN_DELAY_SECONDS = 2;
-	//private static final int DEFAULT_MAX_PLAYERS = 40;
-	//private static final int DEFAULT_MAX_LEVELS = 50;
-	private static final int MAX_ACCOUNT_DATA_ENTRIES = 40;
-	private static final int MAX_ALLOWED_LOGIN_ENTRIES = 200;
-
-	//private static final int MIN_STEVE_LEVELS = 16;
-
-	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-16.0d, 35.0d, 78.5d);
+	private static final Vector DEFAULT_SPAWN_VECTOR = new Vector(-25.5d, 35.0d, 63.5d);
 	private static final float DEFAULT_SPAWN_YAW = 90.0f;
 	private static final float DEFAULT_SPAWN_PITCH = -15.0f;
 	private static final int DEFAULT_PLAYERS_EXTRA_SLOTS = 10;
-	//private static final String DEFAULT_WORLD_NAME = "mcmaker";
-	private static final WorldTimeAndWeather DEFAULT_TIME_AND_WEATHER = WorldTimeAndWeather.NOON_CLEAR;
+	private static final String DEFAULT_WORLD_NAME = "mcmaker";
 
 	private final MinecraftMakerPlugin plugin;
 	private final int maxPlayers;
@@ -125,7 +112,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 	private BukkitTask globalTickerTask;
 	//private World mainWorld;
 	// configurable fields (config.yml)
-	// private String mainWorldName;
+	private String mainWorldName;
 	private Vector spawnVector;
 	private float spawnYaw;
 	private float spawnPitch;
@@ -173,7 +160,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 	public MakerController(MinecraftMakerPlugin plugin, ConfigurationSection config) {
 		this.plugin = plugin;
 		this.maxPlayers = Bukkit.getMaxPlayers();
-		//this.mainWorldName = config != null ? config.getString("main-world", DEFAULT_WORLD_NAME) : DEFAULT_WORLD_NAME;
+		this.mainWorldName = config != null ? config.getString("main-world", DEFAULT_WORLD_NAME) : DEFAULT_WORLD_NAME;
 		//this.maxPlayers = config != null ? config.getInt("max-players", DEFAULT_MAX_PLAYERS) : DEFAULT_MAX_PLAYERS;
 		//this.maxLevels = config != null ? (short)config.getInt("max-levels", DEFAULT_MAX_LEVELS) : DEFAULT_MAX_LEVELS;
 		this.spawnVector = config != null ? config.getVector("spawn-vector", DEFAULT_SPAWN_VECTOR) : DEFAULT_SPAWN_VECTOR;
@@ -316,15 +303,6 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		level.waitForBusyLevel(mPlayer, true, false, true);
 	}
 
-//	public void createEmptyLevel(UUID authorId, short widthChunks, int floorBlockId) {
-//		MakerPlayer author = getPlayer(authorId);
-//		if (author == null) {
-//			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
-//			return;
-//		}
-//		createEmptyLevel(author, floorBlockId);
-//	}
-
 	public void createEmptyLevel(MakerPlayer author, MakerLevelTemplate template) {
 		checkNotNull(author);
 		checkNotNull(template);
@@ -353,6 +331,15 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		level.setLevelTemplate(template);
 		level.waitForBusyLevel(author, true, false, true);
 	}
+
+//	public void createEmptyLevel(UUID authorId, short widthChunks, int floorBlockId) {
+//		MakerPlayer author = getPlayer(authorId);
+//		if (author == null) {
+//			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
+//			return;
+//		}
+//		createEmptyLevel(author, floorBlockId);
+//	}
 
 	public void deleteLevel(MakerPlayer mPlayer, long serial) {
 		long confirmSerial = mPlayer.getLevelToDeleteSerial();
@@ -457,6 +444,10 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		return getWorld(DEFAULT_TIME_AND_WEATHER);
 	}
 
+	public String getMainWorldName() {
+		return mainWorldName;
+	}
+
 	public MakerPlayer getPlayer(Player player) {
 		checkNotNull(player);
 		return getPlayer(player.getUniqueId());
@@ -475,7 +466,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		checkNotNull(timeAndWeather);
 		World world = worlds.get(timeAndWeather);
 		if (world == null) {
-			world = MakerWorldUtils.createOrLoadWorld(this.plugin, timeAndWeather.getWorldName(), this.spawnVector);
+			world = MakerWorldUtils.createOrLoadWorld(this.plugin, String.format("%s%s", getMainWorldName(), timeAndWeather.getWorldSufix(), this.spawnVector));
 			world.setStorm(timeAndWeather.isStorm());
 			world.setTime(timeAndWeather.getTime());
 			world.setThundering(false);
@@ -712,7 +703,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 			event.setCancelled(true);
 			return;
 		}
-		if (!mPlayer.isEditingLevel()) {
+		if (!mPlayer.isEditing()) {
 			event.setCancelled(true);
 			return;
 		}
@@ -825,7 +816,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 			event.setCancelled(true);
 			return;
 		}
-		if (!mPlayer.isEditingLevel()) {
+		if (!mPlayer.isEditing()) {
 			event.setCancelled(true);
 			return;
 		}
@@ -894,7 +885,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 			event.setCancelled(true);
 			return;
 		}
-		if (mPlayer.isEditingLevel() && event.getEntity() instanceof LivingEntity) {
+		if (mPlayer.isEditing() && event.getEntity() instanceof LivingEntity) {
 			event.getEntity().remove();
 			event.setCancelled(true);
 			return;
@@ -951,79 +942,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		level.onEntityTeleport(event);
 	}
 
-	public void onInventoryClick(InventoryClickEvent event) {
-		Player bukkitPlayer = (Player) event.getWhoClicked();
-		final MakerPlayer mPlayer = getPlayer(bukkitPlayer);
-		if (mPlayer == null) {
-			event.setCancelled(true);
-			return;
-		}
-		if (mPlayer.isInLobby()) {
-			if (event.getClick().equals(ClickType.NUMBER_KEY)) {
-				event.setCancelled(true);
-				mPlayer.updateInventory();
-				return;
-			}
-		} else {
-			if (event.getClick().equals(ClickType.NUMBER_KEY) && event.getHotbarButton() == 8) {
-				event.setCancelled(true);
-				mPlayer.updateInventory();
-				return;
-			}
-		}
-
-		// priority for custom menu items
-		switch (onMenuItemClick(mPlayer, event.getCurrentItem())) {
-		case CANCEL_CLOSE:
-			event.setCancelled(true);
-			mPlayer.closeInventory();
-			return;
-		case CANCEL_UPDATE:
-			event.setCancelled(true);
-			mPlayer.updateInventory();
-			return;
-		default:
-			break;
-		}
-		// specific options for editors
-		if (mPlayer.isEditingLevel()) {
-			// allow editors to interact with creative inventory
-			if(event.getInventory().getName().equals("container.inventory")) {
-				if (ItemUtils.itemNameEquals(event.getCurrentItem(), GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName()) || ItemUtils.itemNameEquals(event.getCurrentItem(), GeneralMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getDisplayName())) {
-					event.setCancelled(true);
-					mPlayer.updateInventory();
-				}
-				return;
-			}
-		}
-		// cancel inventory right click entirely on the rest of scenarios
-//		if (event.isRightClick()) {
-//			event.setCancelled(true);
-//			mPlayer.updateInventory();
-//			return;
-//		}
-		// we are only interested on clicks on container type slots for custom menus and inventories
-		if (event.getSlotType() == SlotType.CONTAINER) {
-			final ItemStack clicked = event.getCurrentItem();
-			if (clicked != null && clicked.getType() != Material.AIR) {
-				switch (mPlayer.onInventoryClick(event.getInventory(), event.getRawSlot(), event.getClick())) {
-				case CANCEL_CLOSE:
-					event.setCancelled(true);
-					mPlayer.closeInventory();
-					return;
-				case CANCEL_UPDATE:
-					event.setCancelled(true);
-					mPlayer.updateInventory();
-					return;
-				default:
-					break;
-				}
-			}
-			return;
-		}
-	}
-
-	private MenuClickResult onMenuItemClick(MakerPlayer mPlayer, ItemStack item) {
+	protected MenuClickResult onMenuItemClick(MakerPlayer mPlayer, ItemStack item) {
 		if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
 			return MenuClickResult.ALLOW;
 		}
@@ -1130,7 +1049,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 			return;
 		}
 		// level creator back to spawn from void
-		if (mPlayer.isEditingLevel()) {
+		if (mPlayer.isEditing()) {
 			if (event.getCause() == DamageCause.VOID) {
 				mPlayer.teleportOnNextTick(mPlayer.getCurrentLevel().getStartLocation());
 			}
@@ -1249,7 +1168,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 				break;
 			}
 		}
-		if (mPlayer.isEditingLevel()) {
+		if (mPlayer.isEditing()) {
 			if (EventUtils.isItemRightClick(event, Material.LAVA_BUCKET)) {
 				mPlayer.sendActionMessage("level.create.error.disabled-block");
 				event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
@@ -1271,7 +1190,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 			return;
 		}
 		// TODO: enhance this code and move it to level when needed
-		if (mPlayer.isEditingLevel() && event.getRightClicked().getType().equals(EntityType.HORSE)) {
+		if (mPlayer.isEditing() && event.getRightClicked().getType().equals(EntityType.HORSE)) {
 			Horse horse = (Horse) event.getRightClicked();
 			if (!horse.isAdult()) {
 				return;
@@ -1368,7 +1287,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 			}
 			return;
 		}
-		if (mPlayer.isEditingLevel()) {
+		if (mPlayer.isEditing()) {
 			if (!mPlayer.getCurrentLevel().contains(event.getTo().toVector())) {
 				event.setTo(event.getFrom());
 				event.setCancelled(true);

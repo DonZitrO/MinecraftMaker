@@ -21,6 +21,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.scoreboard.Scoreboard;
 
 import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.inventory.MenuClickResult;
 import com.minecade.mcore.player.MPlayer;
 import com.minecade.mcore.player.PlayerUtils;
 import com.minecade.mcore.util.Tickable;
@@ -39,7 +40,6 @@ import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplatesMenu;
 import com.minecade.minecraftmaker.inventory.LevelTimeMenu;
 import com.minecade.minecraftmaker.inventory.LevelWeatherMenu;
-import com.minecade.minecraftmaker.inventory.MenuClickResult;
 import com.minecade.minecraftmaker.inventory.PlayLevelOptionsMenu;
 import com.minecade.minecraftmaker.inventory.PlayerLevelsMenu;
 import com.minecade.minecraftmaker.inventory.ServerBrowserMenu;
@@ -300,7 +300,7 @@ public class MakerPlayer extends MPlayer implements Tickable {
 		return disabled;
 	}
 
-	public boolean isEditingLevel() {
+	public boolean isEditing() {
 		return isAuthorEditingLevel() || isGuestEditingLevel();
 	}
 

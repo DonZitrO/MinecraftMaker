@@ -9,6 +9,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import com.google.common.collect.Maps;
+import com.minecade.mcore.inventory.MenuClickResult;
 import com.minecade.mcore.item.ItemUtils;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.items.SkullItem;
@@ -60,7 +61,7 @@ public class ToolsSkullMenu extends AbstractSharedMenu {
 		MenuClickResult result = super.onClick(mPlayer, slot, clickType);
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;
-		} else if (!mPlayer.isEditingLevel()) {
+		} else if (!mPlayer.isEditing()) {
 			Bukkit.getLogger().warning(String.format("ToolsSkullMenu.onClick - This menu should be available to level editors while editing only! - clicked by: [%s]", mPlayer.getName()));
 			return MenuClickResult.CANCEL_CLOSE;
 		}

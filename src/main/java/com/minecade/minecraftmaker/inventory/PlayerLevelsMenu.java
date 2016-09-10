@@ -16,6 +16,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.inventory.MenuClickResult;
 import com.minecade.mcore.item.ItemBuilder;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
