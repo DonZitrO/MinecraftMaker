@@ -576,7 +576,7 @@ public class MakerPlayer extends MPlayer implements Tickable {
 		this.steveData = steveData;
 	}
 
-	public void setUnblishedLevelsCount(int unpublishedCount) {
+	public void setUnpublishedLevelsCount(int unpublishedCount) {
 		data.setUnpublishedLevelsCount(unpublishedCount);
 	}
 

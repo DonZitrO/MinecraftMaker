@@ -90,7 +90,7 @@ public class MakerScoreboard extends BaseScoreboard {
 
 	private void updateCreateAndPlayLevelTexts() {
 		this.updateSidebarText(12, plugin.getMessage("scoreboard.server.title"));
-		this.updateSidebarText(11, plugin.getMessage("scoreboard.server.name", plugin.getServerBungeeId()));
+		this.updateSidebarText(11, plugin.getMessage("scoreboard.server.value", plugin.getServerBungeeId()));
 		this.updateSidebarText(9, plugin.getMessage("scoreboard.level-name.title"));
 		this.updateSidebarText(8, plugin.getMessage("scoreboard.level-name.name", StringUtils.isEmpty(makerPlayer.getCurrentLevel().getLevelName()) ?
 				plugin.getMessage("general.empty") : makerPlayer.getCurrentLevel().getLevelName()));
@@ -102,9 +102,9 @@ public class MakerScoreboard extends BaseScoreboard {
 
 	private void updatePlayerTexts() {
 		this.updateSidebarText(12, plugin.getMessage("scoreboard.server.title"));
-		this.updateSidebarText(11, plugin.getMessage("scoreboard.server.name", plugin.getServerBungeeId()));
+		this.updateSidebarText(11, plugin.getMessage("scoreboard.server.value", plugin.getServerBungeeId()));
 		this.updateSidebarText(9, plugin.getMessage("scoreboard.coins.title"));
-		this.updateSidebarText(8, plugin.getMessage("scoreboard.coins.name", makerPlayer.getData().getCoins()));
+		this.updateSidebarText(8, plugin.getMessage("scoreboard.coins.value", makerPlayer.getData().getCoins()));
 		this.updateSidebarText(6, plugin.getMessage("scoreboard.level-clear.title"));
 		this.updateSidebarText(5, plugin.getMessage("scoreboard.level-clear.name", makerPlayer.getData().getUniqueLevelClearsCount()));
 		// TODO: put some stuff there
@@ -118,9 +118,9 @@ public class MakerScoreboard extends BaseScoreboard {
 
 	private void updateSpectatorTexts() {
 		this.updateSidebarText(12, plugin.getMessage("scoreboard.server.title"));
-		this.updateSidebarText(11, plugin.getMessage("scoreboard.server.name", plugin.getServerBungeeId()));
+		this.updateSidebarText(11, plugin.getMessage("scoreboard.server.value", plugin.getServerBungeeId()));
 		this.updateSidebarText(9, plugin.getMessage("scoreboard.coins.title"));
-		this.updateSidebarText(8, plugin.getMessage("scoreboard.coins.name", makerPlayer.getData().getCoins()));
+		this.updateSidebarText(8, plugin.getMessage("scoreboard.coins.value", makerPlayer.getData().getCoins()));
 		this.updateSidebarText(6, plugin.getMessage("scoreboard.level-clear.title"));
 		this.updateSidebarText(5, plugin.getMessage("scoreboard.level-clear.name", makerPlayer.getData().getUniqueLevelClearsCount()));
 		this.updateSidebarText(3, plugin.getMessage("scoreboard.spectator.exit.title"));
@@ -129,7 +129,7 @@ public class MakerScoreboard extends BaseScoreboard {
 
 	private void updatePlayLevelTexts() {
 		this.updateSidebarText(12, plugin.getMessage("scoreboard.server.title"));
-		this.updateSidebarText(11, plugin.getMessage("scoreboard.server.name", plugin.getServerBungeeId()));
+		this.updateSidebarText(11, plugin.getMessage("scoreboard.server.value", plugin.getServerBungeeId()));
 		this.updateSidebarText(9, plugin.getMessage("scoreboard.level-player.title"));
 		this.updateSidebarText(8, plugin.getMessage("scoreboard.level-player.name", makerPlayer.getLevelRecordUsername()));
 		this.updateSidebarText(6, plugin.getMessage("scoreboard.level-time.title"));

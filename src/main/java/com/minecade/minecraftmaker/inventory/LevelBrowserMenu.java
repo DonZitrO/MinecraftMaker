@@ -20,8 +20,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.google.common.collect.Iterators;
 import com.minecade.mcore.inventory.MenuClickResult;
+import com.minecade.mcore.item.CommonMenuItem;
 import com.minecade.mcore.item.ItemUtils;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.player.MakerPlayer;
@@ -104,8 +104,8 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 	@Override
 	protected void init() {
 		super.init();
-		items[2] = GeneralMenuItem.SEARCH.getItem();
-		items[6] = GeneralMenuItem.SORT.getItem();
+		items[2] = CommonMenuItem.SEARCH.getItem();
+		items[6] = CommonMenuItem.SORT.getItem();
 		updateSortItems();
 	}
 
@@ -149,13 +149,13 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 			}
 			plugin.getController().loadLevelForPlayingBySerial(mPlayer, Long.valueOf(serial));
 			return MenuClickResult.CANCEL_CLOSE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SEARCH.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.SEARCH.getDisplayName())) {
 			mPlayer.sendMessage("command.level.search.usage");
 			return MenuClickResult.CANCEL_CLOSE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.SORT.getDisplayName())) {
 			sortByNext();
 			return MenuClickResult.CANCEL_UPDATE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.SORT_DIRECTION_UP.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.SORT_DIRECTION_UP.getDisplayName())) {
 			// both items have the same display name
 			if (reverseSortBy) {
 				sortAscending();
@@ -212,12 +212,12 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 	}
 
 	private void updateSortDirectionItem() {
-		items[7] = this.sortBy.isReversible() ? this.reverseSortBy ? GeneralMenuItem.SORT_DIRECTION_DOWN.getItem() : GeneralMenuItem.SORT_DIRECTION_UP.getItem() : getGlassPane();
+		items[7] = this.sortBy.isReversible() ? this.reverseSortBy ? CommonMenuItem.SORT_DIRECTION_DOWN.getItem() : CommonMenuItem.SORT_DIRECTION_UP.getItem() : getGlassPane();
 	}
 
 	private void updateSortItem() {
 		if (items[6] == null) {
-			items[6] = GeneralMenuItem.SORT.getItem();
+			items[6] = CommonMenuItem.SORT.getItem();
 		}
 
 		ItemMeta sortMeta = items[6].getItemMeta();

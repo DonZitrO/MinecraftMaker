@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import com.minecade.mcore.data.MRelativeLocationData;
 import com.minecade.mcore.schematic.io.Clipboard;
+import com.minecade.mcore.schematic.io.ClipboardWrapper;
 import com.minecade.mcore.world.WorldTimeAndWeather;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 

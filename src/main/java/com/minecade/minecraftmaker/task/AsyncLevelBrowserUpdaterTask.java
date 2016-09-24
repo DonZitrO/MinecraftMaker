@@ -1,5 +1,7 @@
 package com.minecade.minecraftmaker.task;
 
+import static com.minecade.mcore.util.BukkitUtils.*;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -29,10 +31,7 @@ public class AsyncLevelBrowserUpdaterTask extends BukkitRunnable {
 		if (busy) {
 			return;
 		}
-		if (Bukkit.isPrimaryThread()) {
-			Bukkit.getLogger().severe(String.format("AsyncLevelBrowserUpdaterTask.run - running in primary thread!"));
-			return;
-		}
+		verifyNotPrimaryThread();
 		try {
 			busy = true;
 			LevelPageUpdateRequest request = null;
@@ -49,7 +48,7 @@ public class AsyncLevelBrowserUpdaterTask extends BukkitRunnable {
 				Bukkit.getLogger().info(String.format("[DEBUG] | AsyncLevelBrowserUpdaterTask.run - with callback: %s", result));
 			}
 			result.addLevels(plugin.getDatabaseAdapter().loadPublishedLevelsPage(request.getLevelSortBy(), request.isReverseOrder(), LevelBrowserMenu.getPageOffset(request.getPage()), LevelBrowserMenu.ITEMS_PER_PAGE));
-			result.setLevelCount(plugin.getDatabaseAdapter().loadPublishedLevelsCount());
+			result.setLevelCount(plugin.getDatabaseAdapter().loadPublishedStagesCount("level"));
 			final LevelPageResult finalPageResult = result;
 			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().levelPageResultCallback(finalPageResult));
 		} finally {

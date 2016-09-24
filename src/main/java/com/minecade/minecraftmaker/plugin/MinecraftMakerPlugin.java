@@ -7,6 +7,7 @@ import com.minecade.mcore.cmd.GameLobbyCommandExecutor;
 import com.minecade.mcore.cmd.ReportCommandExecutor;
 import com.minecade.mcore.config.ServerPropertyFilesConfigurator;
 import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.item.CommonMenuItem;
 import com.minecade.mcore.nmsapi.NMS;
 import com.minecade.mcore.plugin.MPlugin;
 import com.minecade.minecraftmaker.cmd.LevelCommandExecutor;
@@ -18,7 +19,7 @@ import com.minecade.minecraftmaker.data.MakerDatabaseAdapter;
 import com.minecade.minecraftmaker.items.CheckTemplateOptionItem;
 import com.minecade.minecraftmaker.items.EditLevelOptionItem;
 import com.minecade.minecraftmaker.items.EditorPlayLevelOptionItem;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
+import com.minecade.minecraftmaker.items.MakerMenuItem;
 import com.minecade.minecraftmaker.items.GuestEditLevelOptionItem;
 import com.minecade.minecraftmaker.items.LevelTemplateItem;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
@@ -144,16 +145,20 @@ public class MinecraftMakerPlugin extends MPlugin<MakerController, MakerPlayer> 
 		for (Rank rank : Rank.values()) {
 			rank.translate(this);
 		}
+		// translate common menu items
+		for (CommonMenuItem item: CommonMenuItem.values()) {
+			item.translate(this);
+		}
+		// translate maker general menu items
+		for (MakerMenuItem item : MakerMenuItem.values()) {
+			item.translate(this);
+		}
 		// translate lobby items
 		for (MakerLobbyItem item : MakerLobbyItem.values()) {
 			item.translate(this);
 		}
 		// translate level template items
 		for (LevelTemplateItem item : LevelTemplateItem.values()) {
-			item.translate(this);
-		}
-		// translate general menu items
-		for (GeneralMenuItem item : GeneralMenuItem.values()) {
 			item.translate(this);
 		}
 		// translate edit level option menu items

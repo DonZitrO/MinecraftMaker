@@ -66,8 +66,8 @@ import com.minecade.mcore.data.CoinTransaction;
 import com.minecade.mcore.data.CoinTransaction.Reason;
 import com.minecade.mcore.data.CoinTransaction.SourceType;
 import com.minecade.mcore.data.CoinTransactionResult;
-import com.minecade.mcore.data.LevelOperationResult;
 import com.minecade.mcore.data.Rank;
+import com.minecade.mcore.data.StageOperationResult;
 import com.minecade.mcore.event.AsyncAccountDataLoadEvent;
 import com.minecade.mcore.event.EventUtils;
 import com.minecade.mcore.inventory.MenuClickResult;
@@ -86,8 +86,8 @@ import com.minecade.minecraftmaker.inventory.LevelBrowserMenu;
 import com.minecade.minecraftmaker.inventory.LevelPageResult;
 import com.minecade.minecraftmaker.inventory.LevelSearchMenu;
 import com.minecade.minecraftmaker.inventory.LevelTemplatesMenu;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.MakerLobbyItem;
+import com.minecade.minecraftmaker.items.MakerMenuItem;
 import com.minecade.minecraftmaker.level.LevelSortBy;
 import com.minecade.minecraftmaker.level.MakerDisplayableLevel;
 import com.minecade.minecraftmaker.level.MakerLevelTemplate;
@@ -332,15 +332,6 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		level.waitForBusyLevel(author, true, false, true);
 	}
 
-//	public void createEmptyLevel(UUID authorId, short widthChunks, int floorBlockId) {
-//		MakerPlayer author = getPlayer(authorId);
-//		if (author == null) {
-//			Bukkit.getLogger().warning(String.format("MakerController.createEmptyLevel - author must be online in order to create a level!"));
-//			return;
-//		}
-//		createEmptyLevel(author, floorBlockId);
-//	}
-
 	public void deleteLevel(MakerPlayer mPlayer, long serial) {
 		long confirmSerial = mPlayer.getLevelToDeleteSerial();
 		if (confirmSerial != serial) {
@@ -355,7 +346,8 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		}
 	}
 
-	public void deleteLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, Long playerCoinBalance, Integer totalPublishedLevelsCount) {
+	@Override
+	public void deleteStageBySerialCallback(long levelSerial, UUID playerId, StageOperationResult result, Long playerCoinBalance, Integer totalPublishedLevelsCount) {
 		verifyPrimaryThread();
 		switch (result) {
 		case SUCCESS:
@@ -592,11 +584,11 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		case STEVE_CHALLENGE_CLEAR:
 			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.steve-challenge-clear.player", transaction.getAmount());
 			break;
-		case LEVEL_UNPUBLISH:
-			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.level-unpublish.player", transaction.getAmount());
+		case STAGE_UNPUBLISH:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.stage-unpublish.player", transaction.getAmount());
 			break;
-		case LEVEL_DELETE:
-			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.level-delete.player", transaction.getAmount());
+		case STAGE_DELETE:
+			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.stage-delete.player", transaction.getAmount());
 			break;
 		case FIRST_TIME_STEVE_CHALLENGE_CLEAR:
 			sendMessageToPlayerIfPresent(transaction.getPlayerId(), "coin.transaction.first-time-steve-challenge-clear.player", transaction.getAmount());
@@ -986,14 +978,14 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 			return MenuClickResult.ALLOW;
 		}
 		if (mPlayer.isCheckingTemplate()) {
-			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.CHECK_TEMPLATE_OPTIONS.getDisplayName())) {
+			if (ItemUtils.itemNameEquals(item, MakerMenuItem.CHECK_TEMPLATE_OPTIONS.getDisplayName())) {
 				mPlayer.openCheckTemplateOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			}
 			return MenuClickResult.ALLOW;
 		}
 		if (mPlayer.isInSteve()) {
-			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
+			if (ItemUtils.itemNameEquals(item, MakerMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
 				if (mPlayer.isPlayingLevel()) {
 					mPlayer.openSteveLevelOptionsMenu();
 				} else if (mPlayer.hasClearedLevel()) {
@@ -1004,24 +996,24 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 			return MenuClickResult.ALLOW;
 		}
 		if (mPlayer.isAuthorEditingLevel()) {
-			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
+			if (ItemUtils.itemNameEquals(item, MakerMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 				mPlayer.openEditLevelOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			}
 			return MenuClickResult.ALLOW;
 		}
 		if (mPlayer.isGuestEditingLevel()) {
-			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getDisplayName())) {
+			if (ItemUtils.itemNameEquals(item, MakerMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getDisplayName())) {
 				mPlayer.openGuestEditLevelOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			}
 			return MenuClickResult.ALLOW;
 		}
 		if (mPlayer.isPlayingLevel() || mPlayer.hasClearedLevel()) {
-			if (ItemUtils.itemNameEquals(item, GeneralMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
+			if (ItemUtils.itemNameEquals(item, MakerMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
 				mPlayer.openPlayLevelOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
-			} else if (ItemUtils.itemNameEquals(item, GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
+			} else if (ItemUtils.itemNameEquals(item, MakerMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
 				mPlayer.openEditorPlayLevelOptionsMenu();
 				return MenuClickResult.CANCEL_UPDATE;
 			}
@@ -1421,17 +1413,18 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		mPlayer.setUniqueLevelClearsCount(result);
 	}
 
-	public void playerLevelsCountCallback(UUID authorId, int publishedCount, int unpublishedCount) {
+	@Override
+	public void playerStagesCountCallback(UUID authorId, int publishedCount, int unpublishedCount) {
 		verifyPrimaryThread();
 		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.playerLevelsCountCallback - maker: [%s] - published count: [%s] - unpublished count: [%s]", authorId, publishedCount, unpublishedCount));
+			Bukkit.getLogger().warning(String.format("[DEBUG] | MakerController.playerStagesCountCallback - player id: [%s] - published count: [%s] - unpublished count: [%s]", authorId, publishedCount, unpublishedCount));
 		}
 		MakerPlayer mPlayer = getPlayer(authorId);
 		if (mPlayer == null) {
 			return;
 		}
 		mPlayer.setPublishedLevelsCount(publishedCount);
-		mPlayer.setUnblishedLevelsCount(unpublishedCount);
+		mPlayer.setUnpublishedLevelsCount(unpublishedCount);
 	}
 
 	public void removeLevelFromSlot(MakerPlayableLevel makerLevel) {
@@ -1642,7 +1635,8 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		}
 	}
 
-	public void unpublishLevelBySerialCallback(long levelSerial, UUID playerId, LevelOperationResult result, Long playerCoinBalance, Integer totalPublishedLevelsCount) {
+	@Override
+	public void unpublishStageBySerialCallback(long levelSerial, UUID playerId, StageOperationResult result, Long playerCoinBalance, Integer totalPublishedLevelsCount) {
 		verifyPrimaryThread();
 		switch (result) {
 		case SUCCESS:

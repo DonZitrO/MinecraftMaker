@@ -5,8 +5,8 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.mcore.inventory.MenuClickResult;
+import com.minecade.mcore.item.CommonMenuItem;
 import com.minecade.mcore.item.ItemUtils;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.items.SkullTypeItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
@@ -45,7 +45,7 @@ public class ToolsSkullTypeMenu extends AbstractSharedMenu {
 		items[22] = SkullTypeItem.POKEMON.getItem();
 		items[24] = SkullTypeItem.COLORS.getItem();
 		items[26] = SkullTypeItem.HALLOWEEN.getItem();
-		items[31] = GeneralMenuItem.CUSTOM_HEAD.getItem();
+		items[31] = CommonMenuItem.CUSTOM_HEAD.getItem();
 		items[44] = LevelToolsItem.EXIT.getItem();
 		inventory.setContents(items);
 	}
@@ -65,7 +65,7 @@ public class ToolsSkullTypeMenu extends AbstractSharedMenu {
 			mPlayer.openVIPLevelToolsMenu();
 			return MenuClickResult.CANCEL_CLOSE;
 		}
-		if (ItemUtils.itemNameEquals(itemStack, GeneralMenuItem.CUSTOM_HEAD.getDisplayName())) {
+		if (ItemUtils.itemNameEquals(itemStack, CommonMenuItem.CUSTOM_HEAD.getDisplayName())) {
 			mPlayer.sendMessage("command.maker.head.usage");
 			return MenuClickResult.CANCEL_CLOSE;
 		}

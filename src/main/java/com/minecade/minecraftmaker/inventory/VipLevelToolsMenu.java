@@ -5,8 +5,8 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.mcore.inventory.MenuClickResult;
+import com.minecade.mcore.item.CommonMenuItem;
 import com.minecade.mcore.item.ItemUtils;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.LevelToolsItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -30,7 +30,7 @@ public class VipLevelToolsMenu extends AbstractSharedMenu {
 	private void init() {
 		loadGlassPanes(items);
 		items[22] = LevelToolsItem.SKULL.getItem();
-		items[44] = GeneralMenuItem.EXIT_MENU.getItem();
+		items[44] = CommonMenuItem.EXIT_MENU.getItem();
 		inventory.setContents(items);
 	}
 

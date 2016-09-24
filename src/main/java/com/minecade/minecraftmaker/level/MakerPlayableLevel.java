@@ -57,6 +57,7 @@ import com.minecade.mcore.schematic.bukkit.BukkitUtil;
 import com.minecade.mcore.schematic.exception.DataException;
 import com.minecade.mcore.schematic.exception.MinecraftMakerException;
 import com.minecade.mcore.schematic.io.Clipboard;
+import com.minecade.mcore.schematic.io.ClipboardWrapper;
 import com.minecade.mcore.schematic.world.CuboidRegion;
 import com.minecade.mcore.schematic.world.Region;
 import com.minecade.mcore.schematic.world.Vector;
@@ -69,7 +70,7 @@ import com.minecade.minecraftmaker.data.MakerSteveData;
 import com.minecade.minecraftmaker.function.operation.LevelClipboardCopyOperation;
 import com.minecade.minecraftmaker.function.operation.LevelClipboardPasteOperation;
 import com.minecade.minecraftmaker.function.operation.LevelStartBeaconPasteOperation;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
+import com.minecade.minecraftmaker.items.MakerMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 import com.minecade.minecraftmaker.util.LevelUtils;
@@ -128,7 +129,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 		mPlayer.setAllowFlight(true);
 		mPlayer.setFlying(true);
 		mPlayer.clearInventory();
-		mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getItem());
+		mPlayer.getPlayer().getInventory().setItem(8, MakerMenuItem.GUEST_EDIT_LEVEL_OPTIONS.getItem());
 	}
 
 	private void checkForProblematicEntities() {
@@ -836,22 +837,22 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 
 	public void onPlayerDropItem(PlayerDropItemEvent event) {
 		if (LevelStatus.PLAYING.equals(getStatus())) {
-			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), GeneralMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
+			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), MakerMenuItem.PLAY_LEVEL_OPTIONS.getDisplayName())) {
 				event.setCancelled(true);
 				return;
 			}
-			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
+			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), MakerMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getDisplayName())) {
 				event.setCancelled(true);
 				return;
 			}
-			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), GeneralMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
+			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), MakerMenuItem.STEVE_LEVEL_OPTIONS.getDisplayName())) {
 				event.setCancelled(true);
 				return;
 			}
 			return;
 		}
 		if (LevelStatus.EDITING.equals(getStatus())) {
-			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), GeneralMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
+			if (ItemUtils.itemNameEquals(event.getItemDrop().getItemStack(), MakerMenuItem.EDIT_LEVEL_OPTIONS.getDisplayName())) {
 				event.setCancelled(true);
 				return;
 			}
@@ -1345,7 +1346,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 			mPlayer.setAllowFlight(true);
 			mPlayer.setFlying(true);
 			mPlayer.clearInventory();
-			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.CHECK_TEMPLATE_OPTIONS.getItem());
+			mPlayer.getPlayer().getInventory().setItem(8, MakerMenuItem.CHECK_TEMPLATE_OPTIONS.getItem());
 			mPlayer.updateInventory();
 			mPlayer.sendActionMessage("template.check.start");
 			return;
@@ -1383,7 +1384,7 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 			mPlayer.setFlying(true);
 			mPlayer.clearInventory();
 			mPlayer.getPlayer().getInventory().setItem(0, new ItemStack(Material.BEACON));
-			mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.EDIT_LEVEL_OPTIONS.getItem());
+			mPlayer.getPlayer().getInventory().setItem(8, MakerMenuItem.EDIT_LEVEL_OPTIONS.getItem());
 			mPlayer.updateInventory();
 			if (firstTimeEdited) {
 				firstTimeEdited = false;
@@ -1439,12 +1440,12 @@ public class MakerPlayableLevel extends AbstractMakerLevel implements ClipboardW
 			// FIXME: re-think this control
 			if (isPublished()) {
 				if (isSteve()) {
-					mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.STEVE_LEVEL_OPTIONS.getItem());
+					mPlayer.getPlayer().getInventory().setItem(8, MakerMenuItem.STEVE_LEVEL_OPTIONS.getItem());
 				} else {
-					mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.PLAY_LEVEL_OPTIONS.getItem());
+					mPlayer.getPlayer().getInventory().setItem(8, MakerMenuItem.PLAY_LEVEL_OPTIONS.getItem());
 				}
 			} else {
-				mPlayer.getPlayer().getInventory().setItem(8, GeneralMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getItem());
+				mPlayer.getPlayer().getInventory().setItem(8, MakerMenuItem.EDITOR_PLAY_LEVEL_OPTIONS.getItem());
 			}
 			mPlayer.updateInventory();
 			if (isSteve()) {

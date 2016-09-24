@@ -8,8 +8,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.minecade.mcore.inventory.MenuClickResult;
+import com.minecade.mcore.item.CommonMenuItem;
 import com.minecade.mcore.item.ItemUtils;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
@@ -54,16 +54,16 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 		for (int i = 0; i < inventory.getSize(); i++) {
 			items[i] = getGlassPane();
 		}
-		items[9] = GeneralMenuItem.PREVIOUS_PAGE.getItem();
-		items[18] = GeneralMenuItem.PREVIOUS_10TH_PAGE.getItem();
-		items[27] = GeneralMenuItem.PREVIOUS_100TH_PAGE.getItem();
-		items[36] = GeneralMenuItem.PREVIOUS_1000TH_PAGE.getItem();
-		items[17] = GeneralMenuItem.NEXT_PAGE.getItem();
-		items[26] = GeneralMenuItem.NEXT_10TH_PAGE.getItem();
-		items[35] = GeneralMenuItem.NEXT_100TH_PAGE.getItem();
-		items[44] = GeneralMenuItem.NEXT_1000TH_PAGE.getItem();
-		items[47] = GeneralMenuItem.CURRENT_PAGE.getItem();
-		items[51] = GeneralMenuItem.EXIT_MENU.getItem();
+		items[9] = CommonMenuItem.PREVIOUS_PAGE.getItem();
+		items[18] = CommonMenuItem.PREVIOUS_10TH_PAGE.getItem();
+		items[27] = CommonMenuItem.PREVIOUS_100TH_PAGE.getItem();
+		items[36] = CommonMenuItem.PREVIOUS_1000TH_PAGE.getItem();
+		items[17] = CommonMenuItem.NEXT_PAGE.getItem();
+		items[26] = CommonMenuItem.NEXT_10TH_PAGE.getItem();
+		items[35] = CommonMenuItem.NEXT_100TH_PAGE.getItem();
+		items[44] = CommonMenuItem.NEXT_1000TH_PAGE.getItem();
+		items[47] = CommonMenuItem.CURRENT_PAGE.getItem();
+		items[51] = CommonMenuItem.EXIT_MENU.getItem();
 	}
 
 	private void next1000thPage() {
@@ -101,28 +101,28 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 			return result;
 		}
 		ItemStack clickedItem = inventory.getItem(slot);
-		if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.NEXT_PAGE.getDisplayName())) {
+		if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.NEXT_PAGE.getDisplayName())) {
 			nextPage();
 			return MenuClickResult.CANCEL_UPDATE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.NEXT_10TH_PAGE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.NEXT_10TH_PAGE.getDisplayName())) {
 			next10thPage();
 			return MenuClickResult.CANCEL_UPDATE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.NEXT_100TH_PAGE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.NEXT_100TH_PAGE.getDisplayName())) {
 			next100thPage();
 			return MenuClickResult.CANCEL_UPDATE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.NEXT_1000TH_PAGE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.NEXT_1000TH_PAGE.getDisplayName())) {
 			next1000thPage();
 			return MenuClickResult.CANCEL_UPDATE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.PREVIOUS_PAGE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.PREVIOUS_PAGE.getDisplayName())) {
 			previousPage();
 			return MenuClickResult.CANCEL_UPDATE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.PREVIOUS_10TH_PAGE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.PREVIOUS_10TH_PAGE.getDisplayName())) {
 			previous10thPage();
 			return MenuClickResult.CANCEL_UPDATE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.PREVIOUS_100TH_PAGE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.PREVIOUS_100TH_PAGE.getDisplayName())) {
 			previous100thPage();
 			return MenuClickResult.CANCEL_UPDATE;
-		} else if (ItemUtils.itemNameEquals(clickedItem, GeneralMenuItem.PREVIOUS_1000TH_PAGE.getDisplayName())) {
+		} else if (ItemUtils.itemNameEquals(clickedItem, CommonMenuItem.PREVIOUS_1000TH_PAGE.getDisplayName())) {
 			previous1000thPage();
 			return MenuClickResult.CANCEL_UPDATE;
 		}
@@ -159,11 +159,11 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 
 	private void updateCurrentPageItem() {
 		if (items[47] == null) {
-			items[47] = GeneralMenuItem.CURRENT_PAGE.getItem();
+			items[47] = CommonMenuItem.CURRENT_PAGE.getItem();
 		}
 
 		ItemMeta currentPageMeta = items[47].getItemMeta();
-		currentPageMeta.setDisplayName(String.format("%s %s/%s", GeneralMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, getTotalPages()));
+		currentPageMeta.setDisplayName(String.format("%s %s/%s", CommonMenuItem.CURRENT_PAGE.getDisplayName(), currentPage, getTotalPages()));
 		items[47].setItemMeta(currentPageMeta);
 	}
 
@@ -171,7 +171,7 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 		if (currentPage == getTotalPages()) {
 			items[17] = getGlassPane();
 		} else {
-			items[17] = GeneralMenuItem.NEXT_PAGE.getItem();
+			items[17] = CommonMenuItem.NEXT_PAGE.getItem();
 			ItemMeta nextPageMeta = items[17].getItemMeta();
 			nextPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F%s --->", currentPage + 1)));
 			items[17].setItemMeta(nextPageMeta);
@@ -179,7 +179,7 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 		if (currentPage + 10 > getTotalPages()) {
 			items[26] = getGlassPane();
 		} else {
-			items[26] = GeneralMenuItem.NEXT_10TH_PAGE.getItem();
+			items[26] = CommonMenuItem.NEXT_10TH_PAGE.getItem();
 			ItemMeta nextPageMeta = items[26].getItemMeta();
 			nextPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F%s --->", currentPage + 10)));
 			items[26].setItemMeta(nextPageMeta);
@@ -187,7 +187,7 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 		if (currentPage + 100 > getTotalPages()) {
 			items[35] = getGlassPane();
 		} else {
-			items[35] = GeneralMenuItem.NEXT_100TH_PAGE.getItem();
+			items[35] = CommonMenuItem.NEXT_100TH_PAGE.getItem();
 			ItemMeta nextPageMeta = items[35].getItemMeta();
 			nextPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F%s --->", currentPage + 100)));
 			items[35].setItemMeta(nextPageMeta);
@@ -195,7 +195,7 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 		if (currentPage + 1000 > getTotalPages()) {
 			items[44] = getGlassPane();
 		} else {
-			items[44] = GeneralMenuItem.NEXT_1000TH_PAGE.getItem();
+			items[44] = CommonMenuItem.NEXT_1000TH_PAGE.getItem();
 			ItemMeta nextPageMeta = items[44].getItemMeta();
 			nextPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F%s --->", currentPage + 1000)));
 			items[44].setItemMeta(nextPageMeta);
@@ -212,7 +212,7 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 		if (currentPage == 1) {
 			items[9] = getGlassPane();
 		} else {
-			items[9] = GeneralMenuItem.PREVIOUS_PAGE.getItem();
+			items[9] = CommonMenuItem.PREVIOUS_PAGE.getItem();
 			ItemMeta previousPageMeta = items[9].getItemMeta();
 			previousPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F<--- %s", currentPage - 1)));
 			items[9].setItemMeta(previousPageMeta);
@@ -220,7 +220,7 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 		if (currentPage <= 10) {
 			items[18] = getGlassPane();
 		} else {
-			items[18] = GeneralMenuItem.PREVIOUS_10TH_PAGE.getItem();
+			items[18] = CommonMenuItem.PREVIOUS_10TH_PAGE.getItem();
 			ItemMeta previousPageMeta = items[18].getItemMeta();
 			previousPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F<--- %s", currentPage - 10)));
 			items[18].setItemMeta(previousPageMeta);
@@ -228,7 +228,7 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 		if (currentPage <= 100) {
 			items[27] = getGlassPane();
 		} else {
-			items[27] = GeneralMenuItem.PREVIOUS_100TH_PAGE.getItem();
+			items[27] = CommonMenuItem.PREVIOUS_100TH_PAGE.getItem();
 			ItemMeta previousPageMeta = items[27].getItemMeta();
 			previousPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F<--- %s", currentPage - 100)));
 			items[27].setItemMeta(previousPageMeta);
@@ -236,7 +236,7 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 		if (currentPage <= 1000) {
 			items[36] = getGlassPane();
 		} else {
-			items[36] = GeneralMenuItem.PREVIOUS_1000TH_PAGE.getItem();
+			items[36] = CommonMenuItem.PREVIOUS_1000TH_PAGE.getItem();
 			ItemMeta previousPageMeta = items[36].getItemMeta();
 			previousPageMeta.setLore(Arrays.asList(StringUtils.EMPTY, String.format("§F<--- %s", currentPage - 1000)));
 			items[36].setItemMeta(previousPageMeta);

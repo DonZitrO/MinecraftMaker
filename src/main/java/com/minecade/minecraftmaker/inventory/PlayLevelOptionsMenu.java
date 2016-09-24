@@ -5,8 +5,8 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.mcore.inventory.MenuClickResult;
+import com.minecade.mcore.item.CommonMenuItem;
 import com.minecade.mcore.item.ItemUtils;
-import com.minecade.minecraftmaker.items.GeneralMenuItem;
 import com.minecade.minecraftmaker.items.PlayLevelOptionItem;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
@@ -38,7 +38,7 @@ public class PlayLevelOptionsMenu extends AbstractSharedMenu {
 			items[i] = item.getItem();
 			i++;
 		}
-		items[8] = GeneralMenuItem.EXIT_MENU.getItem();
+		items[8] = CommonMenuItem.EXIT_MENU.getItem();
 	}
 
 	@Override
