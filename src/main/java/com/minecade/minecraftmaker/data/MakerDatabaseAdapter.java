@@ -368,7 +368,7 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter<MakerPlayerDat
 				long expectedTrendingScore = calculateTrendingScore(likes, dislikes, result.getTimestamp("date_published"));
 				if (expectedTrendingScore != formerTrendingScore) {
 					Bukkit.getLogger().warning(String.format("MakerDatabaseAdapter.loadLevelLikesAndUnlikesAndUpdateTrendingScore - updating trending score from: [%s] to [%s] on level: [%s]", formerTrendingScore, expectedTrendingScore, result.getString("level_name")));
-					updateLevelTrendingScore(levelId, expectedTrendingScore);
+					updateStageTrendingScore("level", levelId, expectedTrendingScore);
 				}
 				return new long[] { likes, dislikes, expectedTrendingScore };
 			}
@@ -442,34 +442,6 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter<MakerPlayerDat
 			Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().loadLevelTemplatesCallback(templates));
 		}
 	}
-
-//	public synchronized Set<MakerDisplayableLevel> loadPublishedLevelsBySerials(Set<Long> serials) {
-//		if (Bukkit.isPrimaryThread()) {
-//			throw new RuntimeException("This method should not be called from the main thread");
-//		}
-//		checkNotNull(serials);
-//		Set<MakerDisplayableLevel> levels = new LinkedHashSet<MakerDisplayableLevel>();
-//		if (serials.isEmpty()) {
-//			return levels;
-//		}
-//		String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
-//				SELECT_ALL_FROM_LEVELS,
-//				"WHERE `levels`.`level_serial` IN (%s) AND `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0 AND `levels`.`unpublished` = 0", "");
-//		try (PreparedStatement loadLevelById = getConnection().prepareStatement(String.format(query, StringUtils.join(serials, ",")))) {
-//			ResultSet resultSet = loadLevelById.executeQuery();
-//			while (resultSet.next()) {
-//				MakerDisplayableLevel level = new MakerDisplayableLevel(plugin);
-//				loadLevelFromResult(level, resultSet);
-//				loadLevelRecords(level);
-//				levels.add(level);
-//			}
-//		} catch (Exception e) {
-//			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPublishedLevelsBySerials - error while loading level - %s", e.getMessage()));
-//			e.printStackTrace();
-//		}
-//		return levels;
-//	}
-
 
 	public void loadLevelTemplatesAsync() {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadLevelTemplates());
@@ -610,30 +582,6 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter<MakerPlayerDat
 		int[] levelCounts = loadPlayerStagesCount("levels", data.getUniqueId(), false);
 		data.setPublishedLevelsCount(levelCounts[0]);
 		data.setUnpublishedLevelsCount(levelCounts[1]);
-	}
-
-	private synchronized void loadPublishedLevelByLevelId(String levelId) {
-		verifyNotPrimaryThread();
-		checkNotNull(levelId);
-		try {
-			int levelCount = loadPublishedStagesCount("level");
-			String query = String.format(LOAD_LEVEL_WITH_DATA_QUERY_BASE,
-					SELECT_ALL_FROM_LEVELS,
-					"WHERE `levels`.`level_id` = UNHEX(?) AND `levels`.`date_published` IS NOT NULL AND `levels`.`deleted` = 0 AND `levels`.`unpublished` = 0");
-			try (PreparedStatement loadLevelById = getConnection().prepareStatement(String.format(query))) {
-				loadLevelById.setString(1, levelId);
-				ResultSet resultSet = loadLevelById.executeQuery();
-				if (resultSet.next()) {
-					MakerDisplayableLevel level = new MakerDisplayableLevel(plugin);
-					loadLevelFromResult(level, resultSet);
-					loadlLevelBestClearData(level);
-					Bukkit.getScheduler().runTask(plugin, () -> plugin.getController().loadPublishedLevelCallback(level, levelCount));
-				}
-			}
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.loadPublishedLevel - error while loading level - %s", e.getMessage()));
-			e.printStackTrace();
-		}
 	}
 
 	public synchronized Set<MakerDisplayableLevel> loadPublishedLevelsPage(LevelSortBy levelSortBy, boolean reverseOrder, int pageOffset, int levelsPerPage) {
@@ -842,10 +790,9 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter<MakerPlayerDat
 				level.setDatePublished(resultSet.getTimestamp("date_published"));
 			}
 			loadPlayerStagesCount("levels", level.getAuthorId(), true);
-			updateLevelTrendingScore(level.getLevelId(), calculateTrendingScore(0, 0, level.getDatePublished()));
+			updateStageTrendingScore("level", level.getLevelId(), calculateTrendingScore(0, 0, level.getDatePublished()));
 			level.tryStatusTransition(LevelStatus.PUBLISHING, LevelStatus.PUBLISHED);
-			loadPublishedLevelByLevelId(levelId);
-			if (Bukkit.getLogger().isLoggable(Level.INFO)) {
+			if (plugin.isDebugMode()) {
 				Bukkit.getLogger().info(String.format("MakerDatabaseAdapter.publishLevel - level updated without errors: [%s<%s>]", level.getLevelName(), level.getLevelId()));
 			}
 		} catch (Exception e) {
@@ -1110,23 +1057,6 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter<MakerPlayerDat
 
 	public void updateLevelAuthorClearTimeAsync(UUID levelId, long clearTimeMillis) {
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> updateLevelAuthorClearTime(levelId, clearTimeMillis));
-	}
-
-	private synchronized void updateLevelTrendingScore(UUID levelId, long trendingScore) {
-		try {
-			String levelIdString = levelId.toString().replace("-", "");
-			try (PreparedStatement updateLevelSt = getConnection().prepareStatement("UPDATE `mcmaker`.`levels` SET `trending_score` = ? WHERE `level_id` = UNHEX(?)")) {
-				updateLevelSt.setLong(1, trendingScore);
-				updateLevelSt.setString(2, levelIdString);
-				updateLevelSt.executeUpdate();
-			}
-			if (plugin.isDebugMode()) {
-				Bukkit.getLogger().info(String.format("[DEBUG] | MakerDatabaseAdapter.updateLevelTrendingScore - level updated without errors: [%s]", levelId));
-			}
-		} catch (Exception e) {
-			Bukkit.getLogger().severe(String.format("MakerDatabaseAdapter.updateLevelTrendingScore - error while updating level: [%s] - ", levelId, e.getMessage()));
-			e.printStackTrace();
-		}
 	}
 
 	@Deprecated

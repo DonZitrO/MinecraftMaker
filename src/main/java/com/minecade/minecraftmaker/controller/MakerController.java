@@ -554,15 +554,6 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 		LevelTemplatesMenu.updateTemplates(templates);
 	}
 
-	public void loadPublishedLevelCallback(MakerDisplayableLevel level, int levelCount) {
-		verifyPrimaryThread();
-		// FIXME: candidate for removal?
-		LevelBrowserMenu.updateLevelCount(levelCount);
-		//PlayerLevelsMenu.removeLevelFromViewer(level);
-		//steveLevelSerials.add(level.getLevelSerial());
-		//LevelBrowserMenu.addOrUpdateLevel(plugin, level);
-	}
-
 	public void muteOthers(UUID playerId) {
 		mutedOtherPlayers.add(playerId);
 	}
