@@ -1134,7 +1134,7 @@ public class MakerController extends AbstractController<MakerPlayer> implements 
 			return;
 		}
 		if (EventUtils.isItemClick(event)) {
-			switch (onMenuItemClick(mPlayer, event.getItem())) {
+			switch (onMenuItemClick(mPlayer, mPlayer.getPlayer().getInventory().getItemInMainHand())) {
 			case CANCEL_CLOSE:
 				event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
 				event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
