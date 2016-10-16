@@ -1,19 +1,20 @@
 package com.minecade.minecraftmaker.cmd;
 
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.minecade.mcore.cmd.AbstractCommandExecutor;
 import com.minecade.mcore.data.Rank;
 import com.minecade.mcore.item.SkullItemBuilder;
+import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.level.LevelStatus;
 import com.minecade.minecraftmaker.level.PlayableLevelLimits;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class MakerCommandExecutor extends AbstractMakerCommandExecutor {
+public class MakerCommandExecutor extends AbstractCommandExecutor<MinecraftMakerPlugin, MakerController, MakerPlayer> {
 
 	public MakerCommandExecutor(MinecraftMakerPlugin plugin) {
 		super(plugin);
@@ -280,23 +281,6 @@ public class MakerCommandExecutor extends AbstractMakerCommandExecutor {
 			return;
 		}
 		mPlayer.sendMessage("command.maker.remove.error.uninvited", args[1]);
-	}
-
-	// TODO: move this to super class
-	private String validatePlayerName(String playerName) {
-		if (plugin.isDebugMode()) {
-			Bukkit.getLogger().info(String.format("[DEBUG] | PlayerCommandExecutor.validatePlayerName - validating player name: [%s]", playerName));
-		}
-		if (StringUtils.isBlank(playerName)) {
-			return "player.error.empty-name";
-		}
-		if (playerName.length() > 16) {
-			return "player.error.name-too-long";
-		}
-		if (!playerName.matches("^[a-zA-Z0-9_]{2,16}$")) {
-			return "player.error.invalid-name";
-		}
-		return null;
 	}
 
 }

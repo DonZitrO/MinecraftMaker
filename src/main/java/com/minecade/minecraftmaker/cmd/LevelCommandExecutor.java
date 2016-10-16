@@ -11,11 +11,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.google.common.base.Joiner;
+import com.minecade.mcore.cmd.AbstractCommandExecutor;
 import com.minecade.mcore.data.Rank;
+import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class LevelCommandExecutor extends AbstractMakerCommandExecutor {
+public class LevelCommandExecutor extends AbstractCommandExecutor<MinecraftMakerPlugin, MakerController, MakerPlayer> {
 
 	private static long validateLevelSerial(String[] args, int index) {
 		if (args.length > index) {

@@ -4,11 +4,13 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.minecade.mcore.cmd.AbstractCommandExecutor;
 import com.minecade.mcore.data.Rank;
+import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class MakerTestCommandExecutor extends AbstractMakerCommandExecutor {
+public class MakerTestCommandExecutor extends AbstractCommandExecutor<MinecraftMakerPlugin, MakerController, MakerPlayer> {
 
 	public MakerTestCommandExecutor(MinecraftMakerPlugin plugin) {
 		super(plugin);

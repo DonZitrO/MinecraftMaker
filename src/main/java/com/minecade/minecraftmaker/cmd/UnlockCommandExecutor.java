@@ -5,11 +5,13 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.minecade.mcore.cmd.AbstractCommandExecutor;
+import com.minecade.minecraftmaker.controller.MakerController;
 import com.minecade.minecraftmaker.data.MakerUnlockable;
 import com.minecade.minecraftmaker.player.MakerPlayer;
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
-public class UnlockCommandExecutor extends AbstractMakerCommandExecutor {
+public class UnlockCommandExecutor extends AbstractCommandExecutor<MinecraftMakerPlugin, MakerController, MakerPlayer> {
 
 	private static MakerUnlockable validateUnlockable(String[] args, int index) {
 		if (args.length > index) {
