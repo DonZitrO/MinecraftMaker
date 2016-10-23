@@ -70,8 +70,6 @@ public class MinecraftMakerPlugin extends MPlugin<MakerController, MakerPlayer> 
 		return databaseAdapter;
 	}
 
-
-	
 	public LevelOperatorTask getLevelOperatorTask() {
 		return levelOperatorTask;
 	}
@@ -88,8 +86,8 @@ public class MinecraftMakerPlugin extends MPlugin<MakerController, MakerPlayer> 
 		// register commands
 		getCommand("level").setExecutor(new LevelCommandExecutor(this));
 		getCommand("maker").setExecutor(new MakerCommandExecutor(this));
-		getCommand("report").setExecutor(new ReportCommandExecutor(this));
-		getCommand("makerlobby").setExecutor(new GameLobbyCommandExecutor(this));
+		getCommand("report").setExecutor(new ReportCommandExecutor<MinecraftMakerPlugin, MakerController, MakerPlayer>(this));
+		getCommand("makerlobby").setExecutor(new GameLobbyCommandExecutor<MinecraftMakerPlugin, MakerController, MakerPlayer>(this));
 		getCommand("makertest").setExecutor(new MakerTestCommandExecutor(this));
 		getCommand("unlock").setExecutor(new UnlockCommandExecutor(this));
 		databaseAdapter = new MakerDatabaseAdapter(this);
