@@ -23,9 +23,11 @@ import org.bukkit.craftbukkit.v1_9_R2.CraftServer;
 import org.bukkit.craftbukkit.v1_9_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_9_R2.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_9_R2.entity.CraftLivingEntity;
 import org.bukkit.craftbukkit.v1_9_R2.inventory.CraftItemStack;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.inventory.ItemStack;
 
 import com.minecade.mcore.nmsapi.NMSAdapter;
@@ -49,7 +51,9 @@ import com.minecade.mcore.schematic.jnbt.Tag;
 
 import net.minecraft.server.v1_9_R2.BiomeBase;
 import net.minecraft.server.v1_9_R2.BlockPosition;
+import net.minecraft.server.v1_9_R2.DamageSource;
 import net.minecraft.server.v1_9_R2.Entity;
+import net.minecraft.server.v1_9_R2.EntityLiving;
 import net.minecraft.server.v1_9_R2.EntityTypes;
 import net.minecraft.server.v1_9_R2.NBTBase;
 import net.minecraft.server.v1_9_R2.NBTTagByte;
@@ -488,6 +492,22 @@ public final class NMS_Spigot_v1_9_R2 implements NMSAdapter {
 			e.printStackTrace();
 		}
 		return item;
+	}
+
+	@Override
+	public void damageLivingEntity(org.bukkit.entity.LivingEntity entity, DamageCause cause, float amount) {
+		CraftLivingEntity craftEntity = ((CraftLivingEntity) entity);
+		EntityLiving mcEntity = craftEntity.getHandle();
+		mcEntity.damageEntity(fromDamageCause(cause), amount);
+	}
+
+	private DamageSource fromDamageCause(DamageCause cause) {
+		switch (cause) {
+		case VOID:
+			return DamageSource.OUT_OF_WORLD;
+		default:
+			return DamageSource.GENERIC;
+		}
 	}
 
 }
