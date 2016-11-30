@@ -52,6 +52,9 @@ public class VipLevelToolsMenu extends AbstractSharedMenu {
 		
 
 		ItemStack itemStack = inventory.getItem(slot);
+		if (itemStack == null) {
+			return MenuClickResult.ALLOW;
+		}
 
 		if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.EXIT.getDisplayName())) {
 			return MenuClickResult.CANCEL_CLOSE;

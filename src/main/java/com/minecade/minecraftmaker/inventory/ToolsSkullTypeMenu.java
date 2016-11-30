@@ -61,6 +61,9 @@ public class ToolsSkullTypeMenu extends AbstractSharedMenu {
 			return MenuClickResult.CANCEL_CLOSE;
 		}
 		ItemStack itemStack = inventory.getItem(slot);
+		if (itemStack == null) {
+			return MenuClickResult.ALLOW;
+		}
 		if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.EXIT.getDisplayName())) {
 			mPlayer.openVIPLevelToolsMenu();
 			return MenuClickResult.CANCEL_CLOSE;

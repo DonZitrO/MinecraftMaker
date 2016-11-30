@@ -82,6 +82,9 @@ public class LevelTimeMenu extends AbstractMakerMenu {
 		}
 		
 		ItemStack itemStack = inventory.getItem(slot);
+		if (itemStack == null) {
+			return MenuClickResult.ALLOW;
+		}
 		if (ItemUtils.itemNameEquals(itemStack, LevelToolsItem.EXIT.getDisplayName())) {
 			mPlayer.openConfigLevelMenu();
 			return MenuClickResult.CANCEL_CLOSE;

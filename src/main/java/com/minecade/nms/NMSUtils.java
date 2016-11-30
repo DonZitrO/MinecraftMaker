@@ -18,6 +18,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.minecade.minecraftmaker.plugin.MinecraftMakerPlugin;
 
+import net.minecraft.server.v1_9_R2.CancelledPacketHandleException;
 import net.minecraft.server.v1_9_R2.Entity;
 import net.minecraft.server.v1_9_R2.EntityCaveSpider;
 import net.minecraft.server.v1_9_R2.EntityHuman;
@@ -97,6 +98,8 @@ public class NMSUtils {
 	private static void respawn(Player player){
 		try {
 			((CraftPlayer) player).getHandle().playerConnection.a(new PacketPlayInClientCommand(EnumClientCommand.PERFORM_RESPAWN));
+		} catch (CancelledPacketHandleException e) {
+			// expected behavior
 		} catch (Exception e) {
 			// CancelledPacketHandleException: we don't care
 			Bukkit.getLogger().warning(String.format("NMSUtils.respawn - %s: - %s ", e.getClass().getSimpleName(), e.getMessage()));
