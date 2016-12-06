@@ -15,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -129,11 +130,11 @@ public class LevelBrowserMenu extends AbstractDisplayableLevelMenu {
 //	}
 
 	@Override
-	public MenuClickResult onClick(MakerPlayer mPlayer, int slot, ClickType clickType) {
+	public MenuClickResult onClick(MakerPlayer mPlayer, Inventory clickedInventory, int slot, ClickType clickType) {
 		if (isBusy()) {
 			return MenuClickResult.CANCEL_UPDATE;
 		}
-		MenuClickResult result = super.onClick(mPlayer, slot, clickType);
+		MenuClickResult result = super.onClick(mPlayer, clickedInventory, slot, clickType);
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;
 		}

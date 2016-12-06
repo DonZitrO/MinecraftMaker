@@ -15,9 +15,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.scoreboard.Scoreboard;
 
 import com.minecade.mcore.data.Rank;
@@ -340,11 +339,11 @@ public class MakerPlayer extends MPlayer implements Tickable {
 		return player.getGameMode().equals(GameMode.SPECTATOR);
 	}
 
-	public MenuClickResult onInventoryClick(Inventory inventory, int slot, ClickType clickType) {
-		checkNotNull(inventory);
-		AbstractMakerMenu menu = personalMenus.get(inventory.getTitle());
+	public MenuClickResult onInventoryClick(InventoryClickEvent event) {
+		checkNotNull(event);
+		AbstractMakerMenu menu = personalMenus.get(event.getInventory().getTitle());
 		if (menu != null) {
-			return menu.onClick(this, slot, clickType);
+			return menu.onClick(this, event);
 		}
 		return MenuClickResult.ALLOW;
 	}

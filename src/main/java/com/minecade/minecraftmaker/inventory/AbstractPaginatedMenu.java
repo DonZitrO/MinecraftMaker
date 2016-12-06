@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -95,8 +96,8 @@ public abstract class AbstractPaginatedMenu extends AbstractMakerMenu {
 	}
 
 	@Override
-	public MenuClickResult onClick(MakerPlayer mPlayer, int slot, ClickType clickType) {
-		MenuClickResult result = super.onClick(mPlayer, slot, clickType);
+	public MenuClickResult onClick(MakerPlayer mPlayer, Inventory clickedInventory, int slot, ClickType clickType) {
+		MenuClickResult result = super.onClick(mPlayer, clickedInventory, slot, clickType);
 		if (!MenuClickResult.ALLOW.equals(result)) {
 			return result;
 		}
