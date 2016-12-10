@@ -34,6 +34,7 @@ import com.minecade.mcore.nmsapi.NMSAdapter;
 import com.minecade.mcore.schematic.block.BaseBlock;
 import com.minecade.mcore.schematic.bukkit.Constants;
 import com.minecade.mcore.schematic.entity.BaseEntity;
+import com.minecade.mcore.schematic.item.CustomItemStack;
 import com.minecade.mcore.schematic.jnbt.ByteArrayTag;
 import com.minecade.mcore.schematic.jnbt.ByteTag;
 import com.minecade.mcore.schematic.jnbt.CompoundTag;
@@ -508,6 +509,51 @@ public final class NMS_Spigot_v1_9_R2 implements NMSAdapter {
 		default:
 			return DamageSource.GENERIC;
 		}
+	}
+
+	@Override
+	public List<CustomItemStack> toCustomItemStackList(List<ItemStack> loadout) {
+		List<CustomItemStack> items = new ArrayList<>();
+		if (loadout == null) {
+			return items;
+		}
+		for (int i = 0; i < loadout.size(); ++i) {
+			if (loadout.get(i) != null) {
+				NBTTagCompound nbttagcompound1 = new NBTTagCompound();
+				nbttagcompound1.setByte("Slot", (byte) i);
+				CraftItemStack.asNMSCopy(loadout.get(i)).save(nbttagcompound1);
+				items.add(new CustomItemStack((CompoundTag) toNative(nbttagcompound1)));
+			}
+		}
+		return items;
+	}
+
+	@Override
+	public List<ItemStack> toItemStackList(List<CustomItemStack> loadout) {
+		List<ItemStack> items = new ArrayList<>();
+		if (loadout == null) {
+			return items;
+		}
+		for (CustomItemStack custom : loadout) {
+			if (custom != null && custom.getNbtData() != null) {
+				byte slot = custom.getNbtData().getByte("Slot");
+				ItemStack stack = fromNbtData(custom.getNbtData());
+				while (items.size() <= slot) {
+					items.add(null);
+				}
+				items.set(slot, stack);
+			}
+		}
+		return items;
+	}
+
+	private ItemStack fromNbtData(CompoundTag tag) {
+		try {
+			return CraftItemStack.asBukkitCopy(net.minecraft.server.v1_9_R2.ItemStack.createStack((NBTTagCompound) fromNative(tag)));
+		} catch (Exception e) {
+			Bukkit.getLogger().severe(String.format("NMS_Spigot_v1_9_R2.fromNbtData - error: %s", e.getMessage()));
+		}
+		return null;
 	}
 
 }
