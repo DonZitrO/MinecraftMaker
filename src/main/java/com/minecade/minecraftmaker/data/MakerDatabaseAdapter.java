@@ -481,8 +481,8 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter<MakerPlayerDat
 		verifyNotPrimaryThread();
 		try {
 			long levelSerial = 0;
+			level.tryStatusTransition(LevelStatus.STEVE_LEVEL_LOAD_READY, LevelStatus.STEVE_LEVEL_LOADING);
 			do {
-				level.tryStatusTransition(LevelStatus.STEVE_LEVEL_LOAD_READY, LevelStatus.STEVE_LEVEL_LOADING);
 				int random = RANDOM.nextInt(100);
 				if (random < 50) {
 					// last 50 from trending
