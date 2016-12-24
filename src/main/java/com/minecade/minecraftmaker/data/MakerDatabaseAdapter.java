@@ -1033,7 +1033,7 @@ public class MakerDatabaseAdapter extends AbstractDatabaseAdapter<MakerPlayerDat
 	}
 
 	public void unpublishLevelBySerialAsync(long serial, MakerPlayer mPlayer) {
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> unpublishStageBySerial("stage", serial, mPlayer));
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> unpublishStageBySerial("level", serial, mPlayer));
 	}
 
 	private synchronized void updateLevelAuthorClearTime(UUID levelId, long clearTimeMillis) {
